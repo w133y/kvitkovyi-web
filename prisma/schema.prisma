@@ -4,7 +4,13 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  // DATABASE_URL is Neon's pooled (PgBouncer, "-pooler" host) connection —
+  // right for the app's own runtime queries (serverless, many short-lived
+  // connections), but `prisma migrate deploy` needs a direct connection for
+  // its advisory locking. Without directUrl, migrate deploy used the pooled
+  // one too and failed with P1002 (timeout) during the Vercel build.
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 // A rolling log of server-side errors (failed Discord/Kinetic/Cloudinary/
