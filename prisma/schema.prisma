@@ -1,0 +1,370 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// --- Auth.js (NextAuth) required models ---
+// https://authjs.dev/getting-started/adapters/prisma
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+
+  // Denormalized from the Discord Account for convenient joins against the
+  // Minecraft server's DB (see lib/mc-db.ts) without re-querying Account.
+  discordId String? @unique
+  role      Role    @default(USER)
+
+  // Opt-in: shows this account's Discord name/avatar (name/image above,
+  // populated by the adapter from the Discord OAuth profile) on the public
+  // /profile/[nickname] page. Off by default — most players never chose to
+  // publish their Discord identity, so a default of "visible" would leak it.
+  showDiscord Boolean @default(false)
+  // Freeform links, shown as icons on the public profile when set (no
+  // separate on/off toggle — an empty value just doesn't render an icon).
+  twitchUrl  String?
+  youtubeUrl String?
+
+  // "he" | "she" | "they" | null. Never rendered as its own label on the
+  // profile page — it only picks the grammatical gender of Ukrainian
+  // past-tense text that refers to this player (e.g. "Заходив"/"Заходила"/
+  // "Заходили" for last-seen). null falls back to the masculine default,
+  // same wording the site used before this field existed.
+  pronoun String?
+
+  accounts      Account[]
+  sessions      Session[]
+  orders        Order[]
+  donateOrders  DonateOrder[]
+  galleryPhotos GalleryPhoto[]
+}
+
+// Keyed by Minecraft nickname (not User) so it survives a Discord relink and
+// stays keyed the same way the public /profile/[nickname] route is. Editable
+// only by whoever's current Discord-linked nickname (via mc-db's
+// getDiscordLink) matches — see lib/actions/bio.ts.
+model PlayerBio {
+  nickname  String   @id
+  bio       String   @db.VarChar(160)
+  updatedAt DateTime @updatedAt
+}
+
+// Admin-awarded badges shown on the public /profile/[nickname] page (season
+// participation, hosting a project, top playtime, mayor of a town, event
+// winner, sponsor, etc). Keyed by nickname like PlayerBio, for the same
+// reason. No automation yet — every row is created by hand in /admin — but
+// the shape already supports it: a later job could upsert rows for things
+// like "most playtime" without changing this model.
+model Achievement {
+  id       String @id @default(cuid())
+  nickname String
+
+  // Badge label shown at the top of the card — a preset (Мер, Спонсор,
+  // Івент, Старожил, Гравець) or free text, picked in the admin form.
+  category String
+
+  // "emoji" renders `icon` as text (e.g. "🏆"); "image" renders it as an
+  // <img src>. Kept as a plain string rather than an enum so the admin form
+  // doesn't need a migration to add a third kind later.
+  iconType String @default("emoji")
+  icon     String
+
+  title    String // big text under the icon: city/event name, "1200 год.", etc.
+  subtitle String? // optional smaller text under the title: season number, etc.
+
+  // Raw CSS values chosen in the admin form (a hex color, or a full
+  // gradient() string for background) — null means "use the card's default
+  // look" rather than force every badge to pick a style.
+  borderColor String?
+  background  String?
+
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@index([nickname])
+}
+
+// Флорист/Меценат donate tiers (see /shop/sponsorship). Payment isn't
+// wired up yet (Donatello polling worker is a later phase) — for now an
+// admin grants/revokes these by hand from /admin, same as Achievement.
+// A row past its expiresAt is simply inactive; nothing deletes it
+// automatically, so it stays visible in the admin audit list.
+enum DonateTier {
+  FLORIST
+  MECENAT
+}
+
+model DonatePrivilege {
+  id       String     @id @default(cuid())
+  nickname String
+  tier     DonateTier
+
+  // Custom icon — Меценат only. Флорист's icon is fixed (see
+  // lib/minecraft-symbols.ts FLORIST_SYMBOL/FLORIST_COLOR_HEX), so those
+  // rows leave these null rather than duplicating the same fixed values.
+  iconSymbol   String?
+  iconColorHex String?
+
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  // Set once the in-game grant (LuckPerms group + prefix) has actually been
+  // revoked — by the expiry sweep (see lib/donate-privilege-grants.ts) or by
+  // an admin manually deleting the row. The row itself is never deleted on
+  // expiry (kept for the admin audit list); a manual admin delete removes
+  // the row outright, so this only ever gets set by the expiry sweep.
+  revokedAt DateTime?
+
+  @@index([nickname])
+}
+
+enum DonateOrderStatus {
+  PENDING
+  PAID
+  // Never paid within ORDER_TIMEOUT_MS (10 min) of creation — set
+  // opportunistically the next time the order is read or polled (same
+  // no-cron tradeoff as the DonatePrivilege expiry sweep), not the instant
+  // the deadline passes. See lib/actions/donate-order.ts's expireIfStale.
+  EXPIRED
+}
+
+// A pending Флорист/Меценат purchase created when someone hits
+// "Продовжити" on /shop/sponsorship — carries a random `code` the buyer is
+// asked to put in their Donatello donation message so the poller (see
+// lib/actions/donate-order.ts) can match the donation back to this exact
+// order without a webhook. Paying grants a DonatePrivilege row, same as an
+// admin's manual grant.
+model DonateOrder {
+  id     String @id @default(cuid())
+  code   String @unique
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  // Who the privilege actually goes to — normally the buyer's own linked
+  // nickname, but the builder lets them gift it to a different player, so
+  // this can differ from buyerNickname below.
+  nickname String
+  // The buyer's own linked nickname, always — kept separately from
+  // `nickname` so the Discord log (and any future "my purchases" view) can
+  // show who actually paid even on a gifted order.
+  buyerNickname String
+
+  tier         DonateTier
+  iconSymbol   String? // Меценат only, snapshotted at order creation
+  iconColorHex String?
+  amountUah    Int
+
+  status DonateOrderStatus @default(PENDING)
+  // The matched Donatello donation's pubId, once paid — @unique so the same
+  // real-world donation can never be claimed by two orders.
+  donatelloPubId String? @unique
+
+  // The Discord message id of this order's status post in the admin log
+  // channel (see lib/discord.ts) — set right after that message is sent, so
+  // the payment confirmation can edit it in place instead of posting again.
+  discordMessageId String?
+
+  createdAt DateTime  @default(now())
+  paidAt    DateTime?
+
+  @@index([userId])
+  @@index([status])
+}
+
+// --- Gallery ---
+
+enum GalleryPhotoStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum GalleryPhotoSource {
+  SITE // submitted through the form under the homepage slider
+  DISCORD // submitted via the /gallery slash command
+  LEGACY // the original hardcoded ImageSlider images, migrated in once
+}
+
+model GalleryPhoto {
+  id String @id @default(cuid())
+
+  url                String // Cloudinary secure_url
+  cloudinaryPublicId String? // null for LEGACY (never went through Cloudinary)
+
+  description     String?
+  // Moderators can hide a description without deleting it (a "toggle
+  // with/without" button in the moderation message) rather than it being
+  // all-or-nothing.
+  showDescription Boolean @default(true)
+  // Shown bottom-right on hover, on the site only — LEGACY photos have none
+  // by design (see lib/gallery-log.ts / the migration script).
+  author          String?
+  season          Int
+
+  source GalleryPhotoSource
+  status GalleryPhotoStatus @default(PENDING)
+
+  // Site submitter, for the 3-per-day rate limit — null for DISCORD/LEGACY.
+  submittedByUserId String?
+  submittedByUser   User?   @relation(fields: [submittedByUserId], references: [id])
+  // Discord submitter — null for SITE/LEGACY. The slash-command route is
+  // explicitly exempt from the rate limit, so this is for attribution only.
+  submittedByDiscordId String?
+
+  // The moderation message in DISCORD_GALLERY_CHANNEL_ID — edited in place
+  // as its buttons are used (approve/reject/edit description/toggle
+  // description), see app/api/discord/interactions/route.ts.
+  discordMessageId String?
+
+  createdAt  DateTime  @default(now())
+  approvedAt DateTime?
+
+  @@index([status])
+  @@index([source, status, createdAt])
+  @@index([season])
+}
+
+// Singleton (id is always "default") — the season new site submissions
+// default to, changeable from /admin but only after a Yes/No confirmation
+// posted to DISCORD_ADMIN_CONFIRM_CHANNEL_ID (see lib/actions/gallery.ts and
+// the interactions route) actually applies it.
+model GallerySettings {
+  id            String  @id @default("default")
+  currentSeason Int     @default(1)
+  // When true, the site submission form's season field is locked to
+  // currentSeason (shown read-only) — submitGalleryPhoto also enforces
+  // this server-side, never trusting the client's season value while
+  // locked. No Discord confirmation for this one, unlike currentSeason
+  // itself — it's a simple on/off, not something that reshuffles data.
+  seasonLocked  Boolean @default(false)
+
+  pendingSeason          Int?
+  pendingSeasonMessageId String?
+  pendingSeasonAdminName String?
+}
+
+// --- Shop ---
+
+enum ProductCategory {
+  SPONSORSHIP
+  COSMETIC
+}
+
+model Product {
+  id          String          @id @default(cuid())
+  slug        String          @unique
+  name        String
+  description String
+  category    ProductCategory
+  priceCents  Int
+  currency    String          @default("UAH")
+  imageUrl    String?
+  active      Boolean         @default(true)
+  sortOrder   Int             @default(0)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+
+  orderItems OrderItem[]
+
+  // Matches getProductsByCategory's exact where + orderBy shape (every
+  // /shop/cosmetics and /shop/sponsorship page load).
+  @@index([category, active, sortOrder])
+}
+
+enum OrderStatus {
+  PENDING
+  FULFILLED
+  CANCELLED
+}
+
+model Order {
+  id         String      @id @default(cuid())
+  userId     String
+  user       User        @relation(fields: [userId], references: [id])
+  status     OrderStatus @default(PENDING)
+  totalCents Int
+  currency   String      @default("UAH")
+
+  // Captured at checkout time — a Discord account may not always resolve to
+  // a linked player later, so we snapshot what the buyer told us.
+  minecraftNickname String?
+  note              String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  items OrderItem[]
+
+  @@index([userId])
+  // Matches getLeaderboardBadges' fulfilled-sponsorship-orders lookup, which
+  // runs (at most once a minute, cached) on every /leaderboard visit.
+  @@index([status])
+}
+
+model OrderItem {
+  id      String @id @default(cuid())
+  orderId String
+  order   Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+
+  quantity       Int @default(1)
+  unitPriceCents Int // snapshot of Product.priceCents at purchase time
+
+  createdAt DateTime @default(now())
+
+  @@index([orderId])
+  @@index([productId])
+}

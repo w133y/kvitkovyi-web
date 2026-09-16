@@ -1,0 +1,5132 @@
+* {
+    box-sizing: border-box;
+}
+
+a {
+    color: inherit;
+}
+
+@font-face {
+    font-family: 'Minecraft';
+    src: url('/fonts/Minecraft.ttf') format('truetype');
+}
+
+header {
+    position: relative;
+    top: 0;
+    width: 100%;
+    height: 100vh;
+    overflow: hidden;
+    z-index: 1000;
+    transition: opacity 0.3s ease;
+}
+
+/* Profile pages skip the big hero image/logo — just enough height to clear
+   the fixed nav bar before page content starts. */
+header.header-slim {
+    height: 110px;
+}
+
+/* The map page takes zero header height so the map fills the viewport from
+   y=0, with the (fixed-position) nav simply floating on top of it — no
+   black strip between the nav and the map. */
+header.header-map {
+    height: 0;
+    overflow: visible;
+}
+
+.header-img {
+    background: url('/img/header.webp') no-repeat center/cover;
+    height: 100%;
+    width: 100%;
+    position: relative;
+    overflow: hidden;
+    z-index: 2;
+}
+
+
+.header-img::after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 100px;
+    background: linear-gradient(to top, rgba(20, 20, 20, 1), transparent);
+    pointer-events: none;
+}
+
+.menutext {
+    margin-top: 20px;
+	font-weight: 800;
+	font-family: "Minecraft";
+    padding: 20px 32px;
+	border-radius: 20px;
+	background: rgba(20, 20, 20, 0.55);
+	border: 2px solid rgba(255, 255, 255, 0.2);
+	box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+	backdrop-filter: blur(6px);
+	-webkit-backdrop-filter: blur(6px);
+	display: flex;
+	align-items: center;
+	gap: 20px;
+	font-size: 25px;
+	line-height: 1;
+	list-style: none;
+	justify-content: center;
+    align-items: center;
+}
+
+.menutext li {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    
+
+}
+
+.menutext a {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    color: white;
+    padding: 0 15px;
+    white-space: nowrap;
+    box-sizing: border-box;
+    /* The Minecraft font's glyphs sit high in their own line box — nudge
+       down so they look vertically centered on the plate. */
+    transform: translateY(7px);
+    transition: color 0.3s ease, text-shadow 0.3s ease;
+}
+.menutext a:hover,
+.menutext a.active {
+    color: #ffd900e0;
+    text-shadow: 2px 0px 10px #ffa600;
+    margin-right: 0vh;
+}
+/* Кнопка меню */
+.mobile-menu-button {
+    display: none;
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    cursor: pointer;
+    padding: 10px;
+
+}
+
+.hamburger {
+    width: 30px;
+    height: 25px;
+    position: relative;
+}
+
+.hamburger span {
+    display: block;
+    position: absolute;
+    height: 3px;
+    width: 100%;
+    background: white;
+    border-radius: 3px;
+    transition: all 0.3s ease;
+}
+
+.hamburger span:nth-child(1) { top: 0; }
+.hamburger span:nth-child(2) { top: 10px; }
+.hamburger span:nth-child(3) { top: 20px; }
+
+/* Анімація кнопки при відкритті */
+.hamburger.active span:nth-child(1) {
+    transform: rotate(45deg);
+    top: 10px;
+}
+
+.hamburger.active span:nth-child(2) {
+    opacity: 0;
+}
+
+.hamburger.active span:nth-child(3) {
+    transform: rotate(-45deg);
+    top: 10px;
+}
+
+/* Мобільне меню */
+.mobile-menu {
+    display: none;
+    position: fixed;
+    top: 0;
+    right: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(20, 20, 20, 0.98);
+    z-index: 999;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.mobile-menu.active {
+    opacity: 1;
+    visibility: visible;
+}
+
+.mobile-menu-container {
+    padding: 80px 20px 20px;
+    height: 100%;
+}
+
+.mobile-menutext {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.mobile-menutext li {
+    margin: 20px 0;
+    text-align: center;
+}
+
+.mobile-menutext a {
+    font-family: "Minecraft", sans-serif;
+    font-weight: 600;
+    color: white;
+    text-decoration: none;
+    font-size: 40px;
+    display: block;
+    padding: 15px;
+    transition: color 0.3s ease;
+}
+
+.mobile-menutext a:hover,
+.mobile-menutext a.active {
+    color: #ffd900e0;
+}
+
+/* Медіа-запит для мобільних пристроїв (і для того, щоб плашка навігації +
+   кнопка/профіль Discord не тіснились на середніх ширинах) */
+@media (max-width: 1024px) {
+    .container-text {
+        display: none;
+    }
+
+    .mobile-menu-button {
+        display: block;
+    }
+
+    .mobile-menu {
+        display: block;
+    }
+}
+
+@media (max-width: 480px) {
+    .mobile-menu-button {
+        top: 15px; /* Трохи зменшено відступ зверху */
+    }
+}
+
+/*-------------------------------*/
+
+header .img img {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 50%;
+    /* No height rule here at all — with nothing to override it, the <img>
+       height="400" HTML attribute won it while width scaled via the 50%
+       above, pinning height and breaking the aspect ratio (and triggering
+       next/image's "width or height modified, but not the other" warning). */
+    height: auto;
+    transition: transform 0.3s ease;
+    animation: pulse 2s infinite alternate ease-in-out;
+}
+
+@keyframes pulse {
+    0% {
+        transform: translate(-50%, -50%) scale(1);
+    }
+    100% {
+        transform: translate(-50%, -50%) scale(1.02);
+    }
+}
+/* ----------------------------- */
+.buttons-container {
+    display: flex;
+    justify-content: center;
+    gap: 30px;
+    margin-top: 20px;
+    z-index: 2;
+    font-weight: 600;
+    margin-bottom: 20px;
+    align-items: center;
+    white-space: nowrap;
+    min-width: max-content;
+
+}
+
+
+.custom-button:first-child {
+    padding: 15px 40px;
+    border: none;
+    border-radius: 8px;
+    background: linear-gradient(to top left, #FFD139 0%, #FFBD3A 50%, #FF9900 100%);
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-weight: 600;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    font-size: 25px;
+    min-width: 200px;
+    text-shadow:0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.custom-button:last-child {
+    padding: 15px 40px;
+    border: 4px solid white;
+    border-radius: 8px;
+    background: transparent;
+    color: white;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-weight: 600;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    font-size: 25px;
+    min-width: 200px;
+}
+
+.custom-button:hover {
+    transform: translateY(-2px);
+    opacity: 0.9;
+}
+
+.custom-button:active {
+    transform: translateY(0);
+}
+
+.custom-button i {
+    font-size: 1.3em;
+}
+
+.custom-button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    text-decoration: none;
+    color: white;
+    min-width: 160px;
+    max-width: 300px;
+    text-align: center;
+
+}
+
+@media (max-width: 900px) {
+    .buttons-container {
+        flex-direction: column;
+        width: 100%;
+    }
+
+    .custom-button {
+        width: 100%;
+        margin: 5px 0;
+    }
+}
+
+@media (max-width: 640px) {
+    .buttons-container {
+        gap: 10px;
+    }
+
+    .custom-button {
+        padding: 12px 20px;
+        font-size: 16px;
+    }
+}
+
+/* ----------------------------- */
+body, html {
+    overflow-x: hidden;
+    width: 100%;
+    position: relative;
+}
+
+body {
+	font-family: "Ubuntu Sans", sans-serif;
+    position: relative;
+    margin: auto;
+    background: rgb(20, 20, 20);
+	background-size: 10000% 10000%;
+    animation: gradient 15s ease infinite;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+/* Pushes .site-footer to the bottom of the viewport on pages whose content
+   is shorter than the screen (profile, admin), instead of leaving a gap. */
+.site-main {
+    flex: 1 0 auto;
+    display: flex;
+    flex-direction: column;
+}
+
+.site-footer {
+    flex-shrink: 0;
+}
+
+@keyframes gradient {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+
+body d {
+	font-family: "Ubuntu Sans", sans-serif;
+	font-weight: 800;
+	background: #FF9306;
+    background: linear-gradient(to top left, #FF9306 0%, #CF6800 100%);
+	-webkit-background-clip: text;
+	-webkit-text-fill-color: transparent;
+
+}
+body b {
+	font-family: "Ubuntu Sans", sans-serif;
+    background: #F7FF18;
+    background: linear-gradient(to top left, #FFD139 0%, #FFBD3A 50%, #FF9900 100%);
+	-webkit-background-clip: text;
+	-webkit-text-fill-color: transparent;
+	font-weight: 800;
+}
+
+body h2 {
+	color: white;
+	font-size: 35px;
+    font-family: "Ubuntu Sans", sans-serif;
+}
+
+body h3 {
+	font-size: 40px;
+    font-family: "Ubuntu Sans", sans-serif;
+}
+
+body p {
+	color: rgb(200, 200, 200);
+    font-size: 23px;
+}
+
+body .box {
+    margin: 10vh 10%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 50px;
+    background: rgb(35, 35, 35);
+    border-radius: 50px;
+    box-shadow: 0px 0px 10px 0px rgba(0,0,0,0.1);
+    padding: 30px;
+}
+
+body .boximage {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+body .boximage img {
+    max-height: 500px;
+    max-width: 120%;
+    height: auto;
+}
+
+
+.boxtext {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 20px;
+}
+
+
+
+/* Додаткові оптимізації для дуже маленьких екранів */
+@media (max-width: 768px) {
+    body .box {
+        flex-direction: column-reverse;
+
+        margin: 3vh 10px;
+        padding: 15px;
+    }
+
+    body .boximage img {
+        max-width: 100%;
+        margin-bottom: 20px;
+    }
+
+    .boxtext {
+        padding: 5px;
+    }
+}
+
+.box3 {
+    margin: 10vh 10%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: rgb(35, 35, 35);
+    border-radius: 50px;
+    box-shadow: 0px 0px 10px 0px rgba(0,0,0,0.1);
+    padding: 30px;
+}
+
+.box3 > h2 {
+    margin-top: 20px;
+    text-align: center;
+    margin-bottom: 50px;
+}
+
+.rules-container {
+    display: flex;
+    gap: 40px;
+    justify-content: left;
+    padding-bottom: 40px;
+}
+
+.rules-column {
+    flex: 1;
+    min-width: 0;
+    text-align: left;
+    background: rgb(45, 45, 45);
+    border-radius: 20px;
+    padding: 20px;
+    box-shadow: 0 0px 2px rgba(0, 0, 0, 0.2);
+}
+
+.rules-column.full-width {
+    flex: 1 1 100%;
+}
+
+.rules-column h2 {
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.rules-column p {
+    margin: 20px 10px 20px 30px;
+}
+
+@media (max-width: 768px) {
+    .box3 {
+        margin: 3vh 30px;
+        padding: 15px;
+    }
+
+    .rules-container {
+        flex-direction: column;
+        gap: 20px;
+        width: 100%;
+    }
+}
+/* ----------------------------- */
+.support-box {
+    background: linear-gradient(135deg, #2b2b2b 0%, #1a1a1a 100%);
+    padding: 20px;
+    border-radius: 20px;
+    margin: 40px 0;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* .custom-button's shared max-width:300px (sized for the shorter hero CTA
+   pair) is too narrow for this button's longer label — with white-space:
+   nowrap from .buttons-container the icon+text just overflow past the
+   capped border instead of wrapping, which is the "icon crammed into the
+   corner" glitch. Only this button needs the cap lifted. */
+.support-box .custom-button {
+    max-width: none;
+}
+
+.support-features {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 30px;
+    margin: 30px 0;
+}
+
+.feature {
+    text-align: left;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 15px;
+    transition: transform 0.2s ease;
+}
+
+.feature:hover {
+    transform: translateY(-5px);
+}
+
+.feature i {
+    font-size: 2em;
+    color: #FFD139;
+    margin-bottom: 15px;
+}
+
+.feature h3 {
+    font-size: 1.5em;
+    margin: 10px 0;
+    color: white;
+}
+
+.feature p {
+    font-size: 1.3em;
+    color: #cccccc;
+    line-height: 1.6;
+}
+
+/* Адаптивність для мобільних пристроїв */
+@media (max-width: 768px) {
+    .support-features {
+        grid-template-columns: 1fr;
+    }
+
+    .support-box {
+        padding: 20px;
+    }
+
+    .feature {
+        text-align: center;
+    }
+}
+/* ----------------------------- */
+
+body .line {
+  background-color: rgb(10,10,10);
+  display: flex;
+  /* space-between pins the first/last box to the container's edges and
+     stretches the gaps between them to fill whatever width is left over —
+     on a wide desktop viewport that leaves the three boxes spread far
+     apart instead of sitting together as one centered group. */
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 160px;
+  padding: 50px 10%;
+
+
+}
+
+body .line .boxline {
+  height: auto;
+  background: rgb(35, 35, 35);
+  text-align: center;
+  width: 350px;
+  border-radius: 30px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 20px;
+  margin: 0;
+  transition: all 0.3s ease;
+}
+
+body .line .boxline:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 10px 25px rgba(255, 255, 255, 0.2);
+}
+
+body .line .boxline img {
+    max-width: 350px;
+    margin-top: -30px;
+    margin-bottom: 20px;
+}
+
+body .line .boxline p, h2 {
+    margin: 10px 10px 10px 10px;
+}
+
+body .line .boxline .svg-bottom {
+    width: 100px;
+    margin-top: 50px;
+	filter: brightness(0) saturate(100%) invert(65%) sepia(58%) saturate(1058%) hue-rotate(4deg) brightness(107%) contrast(98%);
+}
+
+@media (max-width: 768px) {
+    /* Desktop's 150px side padding leaves almost no room for the 350px
+       cards on a phone screen, so the fixed-width boxline overflows past
+       .line's own edge while a huge slab of .line's near-black background
+       shows through as an ugly bar before the card starts. */
+    body .line {
+        padding: 30px 10%;
+        
+        gap: 40px;
+    }
+
+    body .line .boxline {
+        width: 100%;
+        justify-content: center;
+        align-items: center;
+        
+    }
+}
+
+body .leaderboard {
+    margin: 30px auto 0 auto;
+    width: 80%;
+    border-radius: 14px;
+    overflow: hidden;
+}
+
+body .lb {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+}
+
+body .box2 {
+    background: rgb(35, 35, 35);
+    margin: 10vh 10%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border-radius: 50px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    padding: 30px;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+.box2 .lbheader {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    max-width: 100%;
+    align-items: center;
+    text-align: center;
+}
+
+.box2 .lbheader h2 {
+    margin-top: 20px;
+    color: white;
+    font-size: 35px;
+    font-family: "Ubuntu Sans", sans-serif;
+    text-align: center;
+}
+
+.box2 .lbheader p {
+    margin-top: 15px;
+    text-align: center;
+    padding: 0 2rem;
+    color: #c8c8c8;
+}
+
+@media (max-width: 768px) {
+    body .box2 {
+        margin: 3vh 30px;
+        padding: 15px;
+        border-radius: 50px;
+        max-width: none;
+    }
+    body .leaderboard {
+        width: 100%;
+        max-width: 100%;
+        height: 400px;
+    }
+    .box2 .lbheader p {
+        padding: 0 6px;
+    }
+}
+
+
+ .slider-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      padding: 30px 30px;
+      position: relative;
+    }
+
+    .slider-wrapper {
+      position: relative;
+      width: 100%;
+    }
+
+    .slider {
+      width: 100%;
+      height: 400px;
+      overflow: hidden;
+      border-radius: 20px;
+      position: relative;
+    }
+
+    .slide {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0;
+      transition: opacity 0.5s ease-in-out;
+      border-radius: 20px;
+    }
+
+    .slide.active {
+      opacity: 1;
+    }
+
+    /* Author credit ("справа знизу, якщо навестись") — description above
+       it when a moderator has left it toggled on. Hidden until hover so it
+       doesn't permanently clutter the photo. */
+    .slide-caption {
+      position: absolute;
+      right: 16px;
+      bottom: 16px;
+      max-width: 75%;
+      background: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(4px);
+      padding: 8px 14px;
+      border-radius: 10px;
+      color: white;
+      font-size: 13px;
+      text-align: right;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+      pointer-events: none;
+      z-index: 3;
+    }
+
+    .slider-wrapper:hover .slide-caption,
+    .slider-wrapper:focus-within .slide-caption {
+      opacity: 1;
+    }
+
+    .slide-caption-desc {
+      margin-bottom: 2px;
+      opacity: 0.9;
+    }
+
+    .slide-caption-author {
+      font-weight: 700;
+      font-size: 12px;
+      color: rgb(255, 209, 57);
+    }
+
+    /* One row, one level, one design for every control under the gallery
+       (prev/next + the two page actions) — same look as .lb-full-link's
+       "Повний рейтинг" pill (.custom-button:last-child): solid white
+       border, transparent fill, bold white text. A small margin-top keeps
+       it from sitting flush against the photo. */
+    .gallery-controls-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .gallery-pill-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      background: transparent;
+      border: 2px solid #ffffff;
+      border-radius: 8px;
+      padding: 10px 20px;
+      color: white;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s ease, opacity 0.2s ease;
+    }
+
+    .gallery-pill-btn:hover {
+      transform: translateY(-2px);
+      opacity: 0.9;
+    }
+
+    .gallery-pill-btn:active {
+      transform: translateY(0);
+    }
+
+    .gallery-pill-btn i {
+      font-size: 1.1em;
+    }
+
+    .gallery-arrow-btn {
+      padding: 10px 16px;
+    }
+
+    .gallery-arrow-btn svg {
+      width: 16px;
+      height: 16px;
+      fill: #ffffff;
+    }
+
+    /* Lightbox over the currently-shown photo rather than a block that
+       pushes the rest of the page down — .slider-wrapper is the
+       positioning context (see .slider-wrapper { position: relative }
+       above), so this covers exactly the gallery image, not the page. */
+    .gallery-submit-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(10, 10, 10, 0.85);
+      backdrop-filter: blur(6px);
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      overflow-y: auto;
+      z-index: 20;
+    }
+
+    .gallery-submit-close {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 2px solid white;
+      background: transparent;
+      color: white;
+      font-size: 16px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+      z-index: 21;
+    }
+
+    .gallery-submit-close:hover {
+      border-color: #FFD139;
+      color: #FFD139;
+      transform: rotate(90deg);
+    }
+
+    .gallery-submit-form {
+      width: 100%;
+      max-width: 480px;
+      max-height: 100%;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      background: rgb(30, 30, 30);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 20px;
+      padding: 24px;
+      box-sizing: border-box;
+    }
+
+    .gallery-submit-row {
+      display: flex;
+      gap: 14px;
+    }
+
+    .gallery-submit-row .gallery-submit-field {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .gallery-submit-field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      color: rgb(200, 200, 200);
+      font-size: 13px;
+    }
+
+    .gallery-submit-field input {
+      background: rgb(45, 45, 45);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 10px;
+      color: white;
+      font-family: inherit;
+      font-size: 14px;
+      padding: 8px 10px;
+      box-sizing: border-box;
+      width: 100%;
+    }
+
+    .gallery-submit-locked-hint {
+      color: rgb(140, 140, 140);
+      font-size: 11px;
+    }
+
+    .gallery-submit-field input:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .gallery-submit-error {
+      margin: 0;
+      color: #FF5555;
+      font-size: 13px;
+    }
+
+    .gallery-submit-btn {
+      background: linear-gradient(to top left, #FFD139 0%, #FFBD3A 50%, #FF9900 100%);
+      border: none;
+      border-radius: 12px;
+      color: white;
+      font-weight: 700;
+      font-size: 14px;
+      padding: 12px;
+      cursor: pointer;
+      transition: opacity 0.2s ease;
+    }
+
+    .gallery-submit-btn:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .gallery-submit-hint {
+      margin: 0;
+      color: rgb(140, 140, 140);
+      font-size: 12px;
+      text-align: center;
+    }
+
+    .gallery-submit-success {
+      flex-direction: row;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      color: #4caf50;
+      font-weight: 600;
+      gap: 10px;
+    }
+
+/* Large screens: bigger gallery framed by a 10%-side margin (matching the
+   margin pattern other sections use), controls moved from overlaying the
+   image edges to a static row underneath it instead. */
+@media (min-width: 769px) {
+    .slider-container {
+        margin: 0 10%;
+        padding: 50px 0;
+    }
+
+    .slider {
+        height: 700px;
+    }
+
+    .gallery-controls-row {
+        gap: 16px;
+    }
+}
+
+@media (max-width: 480px) {
+    .slider-container {
+        padding: 20px 20px;
+    }
+
+    .slider {
+        height: 300px;
+    }
+}
+/* --------------- */
+.cards_bg {
+	padding: 40px 0 40px 0;
+	background: rgb(10, 10, 10);
+}
+ .unique-carousel-wrapper {
+    position: relative;
+    width: 80vw;
+    max-width: 1400px;
+    margin: auto;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+
+  }
+
+
+  .unique-carousel-view {
+    overflow: hidden;
+    flex: 1;
+  }
+
+  .unique-carousel-track {
+    display: flex;
+    gap: 40px;
+    transition: transform 0.5s ease;
+    will-change: transform;
+  }
+
+.unique-carousel-card {
+    position: relative;
+    flex: 0 0 auto;
+    aspect-ratio: 1080 / 1920;
+    border-radius: 20px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    text-align: center;
+    color: white;
+    background: rgb(35, 35, 35);
+
+    box-shadow: 0 4px 15px rgba(18, 18, 18, 0.2);
+}
+
+.unique-carousel-card::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 20%;
+    background: linear-gradient(to bottom,
+    rgba(0, 0, 0, 0) 0%,
+    rgba(0, 0, 0, 0.85) 100%
+    );
+    pointer-events: none;
+    z-index: 1;
+}
+
+.unique-carousel-image {
+    position: relative;
+    width: 100%;
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+.unique-carousel-image::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, rgba(0, 0, 0, 0.12), rgba(0, 0, 0, 0));
+    pointer-events: none;
+    z-index: 1;
+}
+
+.unique-carousel-nick {
+    font-family: "Minecraft", sans-serif;
+    background: #FFFFFF;
+    -webkit-background-clip: text;
+    font-weight: 800;
+    position: absolute;
+    top: 50px;
+    width: 100%;
+    left: 0;
+    font-size: 1.7rem;
+    pointer-events: none;
+    z-index: 2;
+    text-shadow: 0px 10px 30px rgba(0, 0, 0, 0.9), 0 0 8px rgba(0, 0, 0, 0.6);
+    text-align: center;
+}
+
+.unique-carousel-position {
+    position: absolute;
+    bottom: 16px;
+    left: 0;
+    width: 100%;
+    font-family: "Minecraft", sans-serif;
+    color: rgba(255, 255, 255, 0.7);
+    font-weight: 800;
+    font-size: 1rem;
+    letter-spacing: 0.03em;
+    pointer-events: none;
+    z-index: 2;
+    text-shadow: 0px 6px 18px rgba(0, 0, 0, 0.45);
+    text-align: center;
+}
+
+  .unique-carousel-card img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    pointer-events: none;
+  }
+
+  .unique-carousel-btn {
+      top: 50%;
+      transform: translateY(-50%);
+      width: 50px;
+      height: 50px;
+      border-radius: 50%;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+      z-index: 2;
+      border: 2px solid #ffffff;
+      background-color: transparent;
+      transition: transform 0.1s ease, opacity 0.1s ease;
+  }
+.unique-carousel-btn svg {
+	width: 20px;
+      height: 20px;
+      fill: #ffffff;
+}
+
+  .unique-carousel-btn:active {
+    transform: translateY(-50%) scale(0.9);
+    opacity: 0.7;;
+  }
+  /* ----------------------------------*/
+.join-section {
+    width: 100%;
+    background: rgb(10, 10, 10);
+    min-height: 400px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 80px 0;
+    margin-top: 10vh;
+    position: relative;
+    overflow: hidden;
+}
+
+.join-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg,
+        rgba(255, 209, 57, 0) 0%,
+        rgba(255, 209, 57, 1) 50%,
+        rgba(255, 209, 57, 0) 100%
+    );
+}
+
+.join-section::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg,
+        rgba(255, 153, 0, 0) 0%,
+        rgba(255, 153, 0, 1) 50%,
+        rgba(255, 153, 0, 0) 100%
+    );
+}
+
+.join-content {
+    text-align: center;
+    max-width: 70vw;
+    margin: 0 auto;
+    position: relative;
+    padding: 60px;
+    border-radius: 15px;
+    background: rgba(255, 255, 255, 0.03);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(4px);
+}
+
+.join-content h2 {
+    color: white;
+    font-size: 45px;
+    font-family: "Ubuntu Sans", sans-serif;
+    margin-bottom: 30px;
+    text-shadow: 0 0 10px rgba(255, 209, 57, 0.3);
+}
+
+.join-content p {
+    color: white;
+    font-size: 22px;
+    margin-bottom: 40px;
+    line-height: 1.6;
+    opacity: 0.9;
+}
+
+.join-button {
+    /* Was a plain inline <a> — with no display set, wrapping onto two
+       lines at narrow widths gave each line its OWN padded/rounded
+       background box (how inline elements fragment across lines), which
+       is the "two overlapping pills" glitch. A flex box is one box no
+       matter how its content wraps. */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    background: linear-gradient(to top left, #FFD139 0%, #FFBD3A 50%, #FF9900 100%);
+    border: none;
+    border-radius: 10px;
+    color: white;
+    text-decoration: none;
+    padding: 20px 50px;
+    font-size: 22px;
+    font-weight: bold;
+    font-family: "Ubuntu Sans", sans-serif;
+    cursor: pointer;
+    transition: all 0.3s ease-in-out;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 30%);
+}
+.join-button:hover {
+    background: linear-gradient(to top left, #FFD139 0%, #FFBD3A 50%, #FF9900 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(255, 153, 0, 0.4);
+}
+
+@media (max-width: 768px) {
+    /* 70vw + 60px padding was never sized for a phone screen — on a
+       375px-wide viewport that left ~140px for the button itself,
+       guaranteeing a wrap (and the overlapping-box glitch above) even
+       once .join-button became a proper flex box. */
+    .join-content {
+        max-width: 90vw;
+        padding: 36px 24px;
+    }
+
+    .join-content h2 {
+        font-size: 30px;
+        margin-bottom: 18px;
+    }
+
+    .join-content p {
+        font-size: 16px;
+        margin-bottom: 28px;
+    }
+
+    .join-button {
+        padding: 14px 28px;
+        font-size: 16px;
+    }
+}
+
+/* ----------------------------------*/
+.site-footer {
+    background-color: #000000;
+    padding: 60px 0 30px;
+    position: relative;
+    color: white;
+}
+
+.footer-content {
+    max-width: 1920px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+.footer-main {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 40px;
+}
+
+.footer-logo {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.server-icon {
+    width: 50px;
+    height: 50px;
+}
+
+.server-name {
+    font-size: 24px;
+    font-weight: bold;
+    font-family: "Ubuntu Sans", sans-serif;
+}
+
+.footer-nav {
+    display: flex;
+    gap: 30px;
+}
+
+.footer-nav a {
+    color: white;
+    text-decoration: none;
+    font-size: 25px;
+    transition: color 0.3s ease;
+}
+
+.footer-nav a:hover {
+    color: #FF9900;
+}
+
+.social-links {
+    display: flex;
+    gap: 20px;
+}
+
+.social-icon {
+    color: white;
+    font-size: 40px;
+    transition: color 0.3s ease;
+}
+
+.social-icon:hover {
+    color: #FF9900;
+}
+
+.contact-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 24px;
+    background: transparent;
+    border: 4px solid white;
+    border-radius: 8px;
+    color: white;
+    font-size: 25px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.contact-button i {
+    font-size: 20px;
+}
+
+.contact-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(104, 104, 104, 0.4);
+}
+
+@media (max-width: 768px) {
+    .contact-button {
+        padding: 10px 20px;
+        font-size: 14px;
+    }
+
+    .contact-button i {
+        font-size: 18px;
+    }
+}
+
+
+.footer-bottom {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    padding-top: 30px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 25px;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+@media (max-width: 768px) {
+    .footer-main {
+        flex-direction: column;
+        gap: 30px;
+        text-align: center;
+    }
+
+    .social-links {
+        justify-content: center;
+    }
+
+    .footer-bottom {
+        flex-direction: column;
+        gap: 15px;
+        text-align: center;
+    }
+}
+/* ----------------------------------*/
+@media (max-width: 1200px) {
+    header .img img {
+        max-width: 60%;
+    }
+
+    body .box {
+        margin-left: 10%;
+        margin-right: 10%;
+    }
+}
+
+@media (max-width: 768px) {
+    header .img img {
+        max-width: 70%;
+    }
+
+    body .box {
+        margin-left: 5%;
+        margin-right: 5%;
+    }
+}
+
+@media (max-width: 480px) {
+    header .img img {
+        max-width: 80%;
+    }
+
+    body .box {
+        margin-left: 2%;
+        margin-right: 2%;
+    }
+
+    h1 {
+        font-size: 2em;
+    }
+
+    h2 {
+        font-size: 1.2em;
+    }
+}
+/*-------------------------*/
+.support-buttons {
+    display: flex;
+    gap: 30px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+
+.copy-button {
+    position: relative;
+    padding: 20px 50px;
+    background: transparent;
+    border: 4px solid white;
+    border-radius: 10px;
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 600;
+    font-size: 22px;
+    gap: 10px;
+    text-shadow: 0 2px 10px rgba(0, 0, 0, 30%);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+    height: 75px;
+    min-width: 300px;
+    overflow: hidden;
+}
+
+.copy-button .button-text {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    text-shadow: inherit;
+    white-space: nowrap;
+}
+
+
+.copy-button:hover {
+    transform: translateY(-2px);
+    opacity: 0.9;
+    box-shadow: 0 5px 15px rgba(255, 255, 255, 0.4);
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.join-button i, .copy-button i {
+    font-size: 1.3em;
+}
+/* -----------------------------*/
+.launcher-box {
+    margin: 10vh 15%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 50px;
+    background: rgb(35, 35, 35);
+    border-radius: 50px;
+    box-shadow: 0px 0px 10px 0px rgba(0,0,0,0.1);
+    padding: 30px;
+}
+
+.launcher-info {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    width: 60%;
+}
+
+.launcher-info h2 {
+    font-size: 2.5em;
+    color: #ffffff;
+    margin-bottom: 20px;
+}
+
+.launcher-text {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+.launcher-text a {
+    text-decoration: none;
+    color: white;
+    font-weight: 600;
+}
+
+.launcher-text p {
+    color: rgb(200, 200, 200);
+    line-height: 1.6;
+}
+
+
+.launcher-image {
+    width: 30%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.launcher-image img {
+    max-height: 1080px;
+    max-width: 1920px;
+    width: auto;
+    height: auto;
+    border-radius: 20px;
+}
+
+/* Медіа-запит для маленьких екранів */
+@media (max-width: 768px) {
+    .launcher-box {
+        margin: 5vh 15px;
+        flex-direction: column;
+        padding: 20px;
+        gap: 20px;
+        overflow: visible;
+    }
+
+    .launcher-info {
+        width: 100%;
+        order: 1;
+    }
+
+    .launcher-image {
+        order: -1;
+        width: 100%;
+        margin-bottom: 20px;
+    }
+
+    .launcher-image img {
+        max-height: 1080px;
+        width: auto;
+    }
+
+}
+
+/* Додаткові оптимізації для дуже маленьких екранів */
+@media (max-width: 480px) {
+    .launcher-box {
+        margin: 3vh 10px;
+        padding: 15px;
+    }
+
+    .launcher-info h2 {
+        font-size: 2em;
+    }
+}
+
+w {
+    color: red;
+}
+r {
+    color: forestgreen;
+}
+/* ----------------------------- */
+.leaderboard-scroll {
+    max-height: 320px;
+    overflow-y: auto;
+    
+    
+}
+
+.leaderboard-scroll::-webkit-scrollbar {
+    width: 6px;
+}
+
+.leaderboard-scroll::-webkit-scrollbar-thumb {
+    background-color: #555;
+    border-radius: 3px;
+    
+}
+
+.leaderboard-rows {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+.leaderboard-row {
+    background: #2d2d2d;
+    display: flex;
+    align-items: center;
+    padding: 4px 0;
+    min-height: 44px;
+    position: relative;
+}
+
+.leaderboard-row::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 12px;
+    right: 12px;
+    height: 1px;
+    opacity: 0.5;
+    border-bottom: 1px solid rgba(85, 85, 85, 0.5);
+}
+
+.leaderboard-row:last-child {
+    border-bottom: none;
+}
+
+.leaderboard-row > div,
+.leaderboard-row > a {
+    padding: 8px;
+    vertical-align: middle;
+}
+
+.leaderboard .rank-cell {
+    width: 24px;
+    text-align: center;
+    font-weight: 800;
+    margin: 0 12px;
+    flex-shrink: 0;
+    font-size: 15px;
+}
+
+.leaderboard .rank-1 { color: #FFD139; }
+.leaderboard .rank-2 { color: #C0C0C0; }
+.leaderboard .rank-3 { color: #CD7F32; }
+.leaderboard .rank-default { color: #888; }
+
+.leaderboard .avatar-cell {
+    flex-shrink: 0;
+    padding-right: 0;
+}
+
+/* Wraps avatar-cell + name so clicking either opens the player's profile.
+   display:flex here (instead of the row) is what lets .avatar-cell stay
+   fixed-size and .name still flex:1 to fill the remaining space, exactly
+   as when they were direct children of .leaderboard-row. */
+.leaderboard-player-link {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    min-width: 0;
+    color: inherit;
+    text-decoration: none;
+}
+
+.leaderboard-avatar {
+    --avatar-size: 32px;
+    position: relative;
+    width: var(--avatar-size);
+    height: var(--avatar-size);
+    background-size: calc(var(--avatar-size) * 8) calc(var(--avatar-size) * 8);
+    background-position: calc(var(--avatar-size) * -1) calc(var(--avatar-size) * -1);
+    border-radius: 8px;
+    background-color: rgb(45, 45, 45);
+    image-rendering: pixelated;
+    overflow: hidden;
+}
+
+/* Skins have two head layers: the base face (cropped above) and a second
+   "hat" overlay (hair, glasses, etc.) at UV (40,8)-(48,16) that most
+   players actually use — without it the face renders bald/blank. inherit
+   pulls the same skin image + scale from the host element (inline
+   background-image doesn't apply to ::before on its own), just shifted
+   to the overlay's UV offset. */
+.leaderboard-avatar::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: inherit;
+    background-size: inherit;
+    background-position: calc(var(--avatar-size) * -5) calc(var(--avatar-size) * -1);
+    image-rendering: inherit;
+}
+
+.leaderboard-avatar-loading {
+    animation: leaderboard-avatar-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes leaderboard-avatar-pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+
+.leaderboard .name {
+    width: 140px;
+    font-weight: 500;
+    flex-shrink: 0;
+    color: white;
+    margin-left: 12px;
+    position: relative;
+    display: flex;
+    align-items: center;
+    min-width: 0;
+}
+
+/* Truncation lives on the inner text element, not .name itself, so the
+   particle effect (an absolutely-positioned sibling) can float outside
+   the nickname's box instead of being clipped by overflow:hidden. */
+.leaderboard .name-text {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    min-width: 0;
+    max-width: 100%;
+}
+
+.leaderboard .time {
+    width: 100px;
+    font-size: 0.9em;
+    color: rgb(180,180,180);
+    text-align: right;
+    flex-shrink: 0;
+    white-space: nowrap;
+}
+
+.leaderboard .votes {
+    width: 70px;
+    font-size: 0.9em;
+    color: rgb(180,180,180);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 5px;
+}
+
+.leaderboard .votes-icon {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+}
+
+.leaderboard .lb-empty {
+    padding: 20px;
+    text-align: center;
+    color: #888;
+}
+
+/* The homepage widget shows a fixed 5 rows, not a scrollable list — so it
+   can render each one bigger and doesn't need its own inner scrollbar. */
+.lb .leaderboard-scroll {
+    max-height: none;
+    overflow-y: visible;
+}
+
+.lb .leaderboard-row {
+    min-height: 76px;
+    border-radius: 0;
+}
+
+.lb .leaderboard-row:first-child {
+    border-radius: 15px 15px 0 0;
+}
+
+.lb .leaderboard-row:last-child {
+    border-radius: 0 0 15px 15px;
+}
+
+.lb .leaderboard .rank-cell {
+    font-size: 24px;
+    font-weight: 900;
+}
+
+.lb .leaderboard-avatar {
+    --avatar-size: 52px;
+    border-radius: 12px;
+}
+
+.lb .leaderboard .name {
+    font-size: 23px;
+    width: auto;
+    flex: 1;
+    color: white;
+}
+
+.lb .leaderboard-row {
+    padding-right: 56px;
+}
+
+.lb .leaderboard .time,
+.lb .leaderboard .votes {
+    font-size: 21px;
+}
+
+.lb .leaderboard .time {
+    white-space: nowrap;
+}
+
+.lb .leaderboard .votes-icon {
+    width: 24px;
+    height: 24px;
+}
+
+/* Placed after the desktop sizing rules above (not inside them) — at equal
+   specificity, CSS breaks ties by source order, not by which media query
+   matches, so a mobile override earlier in the file loses to a later
+   unconditional rule. Keeping these last is what actually lets them win
+   on small screens. */
+@media (max-width: 768px) {
+    .lb .leaderboard-row > div,
+    .lb .leaderboard-row > a {
+        padding: 6px 4px;
+    }
+
+    .lb .leaderboard-row {
+        padding-right: 16px;
+        min-height: 62px;
+    }
+
+    .lb .leaderboard .rank-cell {
+        width: 22px;
+        font-size: 19px;
+        margin: 0 7px;
+    }
+
+    .lb .leaderboard-avatar {
+        --avatar-size: 41px;
+        border-radius: 8px;
+    }
+
+    .lb .leaderboard .name {
+        font-size: 14px;
+        margin-left: 10px;
+    }
+
+    .lb .leaderboard .time,
+    .lb .leaderboard .votes {
+        font-size: 13px;
+    }
+
+    .lb .leaderboard .votes {
+        width: auto;
+        gap: 4px;
+    }
+
+    .lb .leaderboard .time {
+        width: auto;
+    }
+
+    .lb .leaderboard .votes-icon {
+        width: 16px;
+        height: 16px;
+    }
+}
+
+.lb-full-link {
+    margin-top: 30px;
+    white-space: nowrap;
+    width: auto;
+}
+
+.leaderboard-page {
+    max-width: 720px;
+    margin: 5vh auto;
+    padding: 0 20px;
+}
+
+.leaderboard-page-title {
+    color: white;
+    font-family: "Minecraft", sans-serif;
+    font-size: 32px;
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+/* No inner max-height here (unlike the homepage widget) — the row list
+   flows in the page itself so the whole page scrolls normally, which is
+   also what lets the fixed nav's scroll-blur (.nav-scroll-blur) trigger. */
+.leaderboard-page .leaderboard-scroll {
+    max-height: none;
+    overflow-y: visible;
+}
+
+.leaderboard-page .name {
+    width: auto;
+    flex: 1;
+}
+
+.leaderboard-sort-bar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: center;
+    margin-bottom: 24px;
+}
+
+.leaderboard-sort-btn {
+    background: rgba(20, 20, 20, 0.55);
+    border: 2px solid rgba(255, 255, 255, 0.15);
+    border-radius: 50px;
+    color: rgb(190, 190, 190);
+    padding: 8px 16px;
+    font-size: 13px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.leaderboard-sort-btn:hover {
+    color: white;
+}
+
+.leaderboard-sort-btn.active {
+    color: #FFD139;
+    border-color: #FFD139;
+}
+
+.leaderboard-page-empty {
+    text-align: center;
+    color: #888;
+    padding: 40px 0;
+}
+
+.leaderboard-load-more {
+    display: block;
+    margin: 24px auto 0 auto;
+    background: rgba(20, 20, 20, 0.55);
+    border: 2px solid rgba(255, 255, 255, 0.15);
+    border-radius: 50px;
+    color: rgb(190, 190, 190);
+    padding: 10px 24px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.leaderboard-load-more:hover {
+    color: #FFD139;
+    border-color: #FFD139;
+}
+
+/* --- /leaderboard page: sidebar + card list --- */
+
+.lb2-layout {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 24px;
+    width: 100%;
+    max-width: 1400px;
+    margin: 5vh auto;
+    padding: 0 20px 40px 20px;
+    align-items: start;
+    box-sizing: border-box;
+}
+
+.lb2-sidebar {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    padding: 24px;
+    position: sticky;
+    top: 100px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.lb2-sidebar-title {
+    color: white;
+    font-family: "Minecraft", sans-serif;
+    font-size: 20px;
+    letter-spacing: 1px;
+    margin: 0 0 -4px 0;
+    padding-bottom: 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.lb2-search {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 12px;
+    padding: 10px 14px;
+    color: rgb(150, 150, 150);
+}
+
+.lb2-search input {
+    background: transparent;
+    border: none;
+    outline: none;
+    color: white;
+    font-size: 14px;
+    width: 100%;
+}
+
+.lb2-search input::placeholder {
+    color: rgb(130, 130, 130);
+}
+
+.lb2-search-top {
+    margin-bottom: 20px;
+    padding: 14px 18px;
+    font-size: 16px;
+}
+
+.lb2-search-top input {
+    font-size: 16px;
+}
+
+.lb2-group-label {
+    display: block;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: rgb(150, 150, 150);
+    margin-bottom: 10px;
+}
+
+/* 5 icons: alphabetical / by-stat (mode), ascending / descending
+   (direction), and a reset — a quick way to flip sort mode or direction
+   without hunting through the stat list below. */
+.lb2-quick-sort {
+    display: flex;
+    gap: 8px;
+}
+
+.lb2-icon-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    background: rgba(20, 20, 20, 0.55);
+    border: 2px solid rgba(255, 255, 255, 0.15);
+    border-radius: 10px;
+    color: rgb(190, 190, 190);
+    cursor: pointer;
+    transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.lb2-icon-btn:hover {
+    color: white;
+}
+
+.lb2-icon-btn.active {
+    color: #FFD139;
+    border-color: #FFD139;
+}
+
+.lb2-sort-dropdown {
+    position: relative;
+}
+
+.lb2-sort-dropdown-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    background: rgba(20, 20, 20, 0.55);
+    border: 2px solid rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    padding: 10px 14px;
+    color: white;
+    font-size: 14px;
+    cursor: pointer;
+    transition: border-color 0.2s ease;
+}
+
+.lb2-sort-dropdown-toggle:hover {
+    border-color: #FFD139;
+}
+
+.lb2-sort-dropdown-toggle span {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.lb2-sort-dropdown-toggle .fa-chevron-down {
+    color: rgb(150, 150, 150);
+    font-size: 12px;
+    transition: transform 0.2s ease;
+}
+
+.lb2-sort-dropdown-toggle .fa-chevron-down.open {
+    transform: rotate(180deg);
+}
+
+.lb2-sort-dropdown-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    right: 0;
+    background: rgba(25, 25, 25, 0.98);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 12px;
+    padding: 6px;
+    display: none;
+    flex-direction: column;
+    z-index: 20;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    max-height: 320px;
+    overflow-y: auto;
+}
+
+.lb2-sort-dropdown-menu.open {
+    display: flex;
+}
+
+.lb2-sort-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: none;
+    border: none;
+    border-radius: 8px;
+    padding: 9px 10px;
+    color: rgb(190, 190, 190);
+    font-size: 14px;
+    text-align: left;
+    cursor: pointer;
+    transition: color 0.2s ease, background-color 0.2s ease;
+}
+
+.lb2-sort-item i {
+    width: 16px;
+    text-align: center;
+    color: rgb(130, 130, 130);
+}
+
+.lb2-option-icon-img {
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
+}
+
+.lb2-sort-item:hover {
+    background: rgba(255, 255, 255, 0.04);
+    color: white;
+}
+
+.lb2-sort-item.active {
+    background: rgba(255, 209, 57, 0.1);
+    color: #FFD139;
+}
+
+.lb2-sort-item.active i {
+    color: #FFD139;
+}
+
+.lb2-load-error {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    background: rgba(255, 90, 90, 0.1);
+    border: 1px solid rgba(255, 90, 90, 0.3);
+    border-radius: 12px;
+    padding: 12px 16px;
+    color: rgb(255, 150, 150);
+    font-size: 14px;
+    margin-bottom: 16px;
+}
+
+.lb2-load-error button {
+    background: rgba(20, 20, 20, 0.55);
+    border: 2px solid rgba(255, 150, 150, 0.4);
+    border-radius: 50px;
+    color: rgb(255, 150, 150);
+    padding: 6px 16px;
+    font-size: 13px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.lb2-load-error button:hover {
+    color: white;
+    border-color: white;
+}
+
+.lb2-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.lb2-card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: #2d2d2d;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 16px;
+    padding: 14px 20px;
+    transition: border-color 0.2s ease;
+}
+
+.lb2-card:hover {
+    border-color: rgba(255, 209, 57, 0.3);
+}
+
+.lb2-rank {
+    color: rgb(130, 130, 130);
+    font-weight: 700;
+    font-size: 16px;
+    width: 34px;
+    flex-shrink: 0;
+}
+
+.lb2-card .leaderboard-avatar {
+    flex-shrink: 0;
+}
+
+.lb2-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.lb2-name {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.lb2-name a {
+    color: white;
+    font-weight: 700;
+    font-size: 17px;
+    text-decoration: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.lb2-name a:hover {
+    color: #FFD139;
+}
+
+.lb2-badge {
+    font-size: 13px;
+    flex-shrink: 0;
+}
+
+.lb2-badge-owner {
+    color: #FFD139;
+}
+
+.lb2-badge-sponsor {
+    color: #C0C0C0;
+}
+
+.lb2-lastseen {
+    color: rgb(140, 140, 140);
+    font-size: 13px;
+    margin-top: 2px;
+}
+
+.lb2-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: white;
+    font-weight: 700;
+    font-size: 22px;
+    padding: 0 4px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.lb2-pill-icon {
+    width: 22px;
+    height: 22px;
+}
+
+@media (max-width: 900px) {
+    .lb2-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .lb2-sidebar {
+        position: static;
+    }
+}
+
+@media (max-width: 640px) {
+    .lb2-layout {
+        padding: 0 12px 30px 12px;
+    }
+
+    .lb2-card {
+        gap: 12px;
+        padding: 12px 14px;
+    }
+
+    .lb2-rank {
+        width: 24px;
+        font-size: 14px;
+    }
+
+    .lb2-name a {
+        font-size: 15px;
+    }
+
+    .lb2-pill {
+        font-size: 16px;
+        padding: 0;
+    }
+
+    .lb2-pill-icon {
+        width: 18px;
+        height: 18px;
+    }
+}
+/* ----------------------------- */
+header nav {
+    position: fixed;
+    top: 12px;
+    left: 20px;
+    right: 20px;
+    z-index: 1001;
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    /* nav spans almost the full width, but only the plate and the
+       auth widget actually have visible content — without this, the
+       transparent space between them would still swallow clicks meant
+       for whatever's underneath (e.g. the map's own controls). */
+    pointer-events: none;
+}
+
+header nav .container-text,
+header nav .auth-widget {
+    pointer-events: auto;
+}
+
+/* Below ~1080px of scroll (past the hero on most screens), scrolled-up
+   content would otherwise butt right up against the fixed nav with no
+   separation — this fades in a blurred gradient scrim behind it. */
+.nav-scroll-blur {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 160px;
+    z-index: 999;
+    pointer-events: none;
+    background: linear-gradient(to bottom, rgba(20, 20, 20, 0.8), transparent);
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    -webkit-mask-image: linear-gradient(to bottom, black, transparent);
+    mask-image: linear-gradient(to bottom, black, transparent);
+    opacity: 0;
+    transition: opacity 2s ease;
+}
+
+.nav-scroll-blur.visible {
+    opacity: 1;
+}
+
+.container-text {
+    grid-column: 2;
+    display: flex;
+    justify-content: center;
+}
+
+.auth-widget {
+    grid-column: 3;
+    justify-self: end;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+}
+
+.cart-badge {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    font-size: 18px;
+    text-decoration: none;
+    transition: all 0.2s ease;
+}
+
+.cart-badge:hover {
+    border-color: #ffd900e0;
+    color: #ffd900e0;
+}
+
+.shop-cart-shortcut {
+    position: fixed;
+    top: 90px;
+    right: 20px;
+    z-index: 900;
+    background: rgba(20, 20, 20, 0.55);
+    border-radius: 50%;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+}
+
+.cart-count {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    background: linear-gradient(to top left, #FFD139 0%, #FFBD3A 50%, #FF9900 100%);
+    color: black;
+    font-size: 12px;
+    font-weight: 800;
+    min-width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+}
+
+.discord-login-btn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 26px;
+    border: none;
+    border-radius: 18px;
+    background: linear-gradient(180deg, #6d78f6 0%, #5865f2 100%);
+    color: white;
+    font-family: "Ubuntu Sans", sans-serif;
+    font-weight: 800;
+    letter-spacing: 0;
+    font-size: 19px;
+    line-height: 1;
+    white-space: nowrap;
+    cursor: pointer;
+    box-shadow:
+        0 5px 0 #3c45a5,
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+.discord-login-btn span {
+    display: flex;
+    align-items: center;
+}
+
+.discord-login-btn:hover {
+    background: linear-gradient(180deg, #7b85f7 0%, #6672f5 100%);
+    transform: translateY(-2px);
+    box-shadow:
+        0 7px 0 #3c45a5,
+        0 0 36px 6px rgba(88, 101, 242, 0.7),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.discord-login-btn:active {
+    transform: translateY(3px);
+    box-shadow:
+        0 2px 0 #3c45a5,
+        0 0 20px 3px rgba(88, 101, 242, 0.5),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+}
+
+.user-menu {
+    position: relative;
+}
+
+.user-pill {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 10px 10px 22px;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    background: rgba(20, 20, 20, 0.55);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    color: white;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    font-family: inherit;
+    font-size: inherit;
+    cursor: pointer;
+}
+
+/* Generic pulse for any loading placeholder — layer it onto an element that
+   already has its own background/shape (a real card's classes, e.g.) or
+   pair it with a shape class like .user-menu-skeleton below. */
+.skeleton-pulse {
+    animation: skeleton-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes skeleton-pulse {
+    0%, 100% { opacity: 0.6; }
+    50% { opacity: 1; }
+}
+
+/* Matches .user-pill's box roughly (same border/radius/height) so there's no
+   layout jump once UserMenu's DB lookups resolve and replace this. */
+.user-menu-skeleton {
+    width: 140px;
+    height: 46px;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    background: rgba(20, 20, 20, 0.55);
+    box-sizing: border-box;
+}
+
+.user-pill:hover {
+    border-color: #ffd900e0;
+}
+
+.user-dropdown {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+    min-width: 180px;
+    background: rgba(35, 35, 35, 0.9);
+    border: 2px solid rgba(255, 255, 255, 0.15);
+    border-radius: 16px;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-6px);
+    transition: all 0.2s ease;
+    z-index: 20;
+}
+
+.user-dropdown.open {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.user-dropdown a {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border-radius: 10px;
+    color: white;
+    text-decoration: none;
+    font-size: 16px;
+    font-weight: 600;
+    transition: background 0.2s ease;
+}
+
+.user-dropdown a:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: #ffd900e0;
+}
+
+.user-dropdown a i {
+    width: 18px;
+    text-align: center;
+    color: #FFD139;
+}
+
+.user-dropdown-divider {
+    height: 1px;
+    margin: 4px 6px;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.dropdown-signout {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    border: none;
+    border-radius: 10px;
+    background: transparent;
+    color: #ff6b6b;
+    text-decoration: none;
+    font-size: 16px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: background 0.2s ease;
+    width: 100%;
+    text-align: left;
+}
+
+.dropdown-signout i {
+    width: 18px;
+    text-align: center;
+}
+
+.dropdown-signout:hover {
+    background: rgba(255, 107, 107, 0.12);
+}
+
+.signout-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+    padding: 20px;
+}
+
+.signout-modal {
+    background: rgb(30, 30, 30);
+    border: 2px solid rgba(255, 255, 255, 0.15);
+    border-radius: 20px;
+    padding: 30px;
+    max-width: 400px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+}
+
+.signout-modal h3 {
+    color: white;
+    font-size: 24px;
+    margin-bottom: 12px;
+}
+
+.signout-modal p {
+    color: rgb(190, 190, 190);
+    font-size: 16px;
+    margin-bottom: 24px;
+    line-height: 1.5;
+}
+
+.signout-modal-actions {
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+}
+
+.signout-cancel,
+.signout-confirm {
+    flex: 1;
+    padding: 12px 20px;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.signout-cancel {
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    background: transparent;
+    color: white;
+}
+
+.signout-cancel:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.signout-confirm {
+    border: none;
+    background: #ff5555;
+    color: white;
+}
+
+.signout-confirm:hover {
+    background: #ff3333;
+}
+
+.signout-cancel:disabled,
+.signout-confirm:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+
+
+.user-pill .nick {
+    font-weight: 600;
+    font-size: 17px;
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.user-pill .avatar {
+    width: 42px;
+    height: 42px;
+    min-width: 42px;
+    border-radius: 50%;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #444;
+}
+
+.user-pill .avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+@media (max-width: 1024px) {
+    /* Re-stated here (not just at the top of the file) because this rule
+       must come after the base .container-text{display:flex} declaration
+       further down in the cascade, or that later rule wins and the plate
+       never actually hides. */
+    .container-text {
+        display: none;
+    }
+
+    header nav {
+        top: 15px;
+        right: 70px;
+    }
+
+    .auth-widget {
+        gap: 8px;
+    }
+
+    .cart-badge {
+        width: 36px;
+        height: 36px;
+        font-size: 15px;
+    }
+
+    /* The Discord login/profile button moves into the hamburger menu on
+       small screens (see .mobile-menu-auth) — hide the top-right copy. */
+    .auth-widget-usermenu {
+        display: none;
+    }
+}
+
+.mobile-menu-auth {
+    display: none;
+}
+
+@media (max-width: 1024px) {
+    .mobile-menu-auth {
+        display: flex;
+        justify-content: center;
+        margin-top: 40px;
+        padding-top: 30px;
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+}
+/* ----------------------------- */
+.shop-categories {
+    display: flex;
+    justify-content: center;
+    gap: 50px;
+    flex-wrap: wrap;
+    padding: 40px 10%;
+}
+
+.shop-category-card {
+    position: relative;
+    background: rgb(35, 35, 35);
+    border-radius: 36px;
+    padding: 60px 50px;
+    width: 420px;
+    text-align: center;
+    text-decoration: none;
+    color: white;
+    transition: all 0.3s ease;
+    box-shadow: 0px 0px 10px 0px rgba(0,0,0,0.1);
+}
+
+.shop-category-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 25px rgba(255, 255, 255, 0.2);
+}
+
+.shop-category-card i {
+    font-size: 4.5em;
+    color: #FFD139;
+    margin-bottom: 24px;
+}
+
+.shop-category-card h2 {
+    margin-bottom: 12px;
+    font-size: 1.6em;
+}
+
+.shop-category-card p {
+    font-size: 1.1em;
+}
+
+.shop-category-card-disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.shop-category-card-disabled:hover {
+    transform: none;
+    box-shadow: 0px 0px 10px 0px rgba(0,0,0,0.1);
+}
+
+.shop-category-badge {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    background: rgba(20, 20, 20, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    padding: 5px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.03em;
+    color: #FFD139;
+}
+
+@media (max-width: 480px) {
+    .shop-category-card {
+        width: 100%;
+        padding: 40px 30px;
+    }
+}
+
+.product-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 30px;
+    width: 100%;
+    margin: 20px 0;
+}
+
+.product-card {
+    background: rgb(35, 35, 35);
+    border-radius: 20px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    box-shadow: 0px 0px 10px 0px rgba(0,0,0,0.1);
+}
+
+.product-card img {
+    width: 100%;
+    height: 160px;
+    object-fit: cover;
+    border-radius: 14px;
+}
+
+.product-card h3 {
+    color: white;
+    font-size: 22px;
+}
+
+.product-card p {
+    font-size: 16px;
+    color: rgb(190, 190, 190);
+    flex-grow: 1;
+}
+
+.product-card .price {
+    font-size: 22px;
+    font-weight: 800;
+    background: linear-gradient(to top left, #FFD139 0%, #FFBD3A 50%, #FF9900 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.product-card .add-to-cart {
+    padding: 12px 20px;
+    border: none;
+    border-radius: 8px;
+    background: linear-gradient(to top left, #FFD139 0%, #FFBD3A 50%, #FF9900 100%);
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.product-card .add-to-cart:hover {
+    transform: translateY(-2px);
+    opacity: 0.9;
+}
+
+.product-card .add-to-cart:disabled {
+    opacity: 0.6;
+    cursor: default;
+    transform: none;
+}
+
+.empty-state {
+    text-align: center;
+    color: #888;
+    padding: 60px 20px;
+    font-size: 20px;
+}
+
+/* ----------------------------- */
+/* No .box2 plate behind this page — the header sits directly on the page
+   background, and .donate-builder's own cards (see below) provide all the
+   visual structure underneath it. */
+.donate-page {
+    margin: 3vh 10%;
+}
+
+.donate-header {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    margin-bottom: 16px;
+}
+
+.donate-header h2 {
+    margin: 0;
+    color: white;
+    font-size: 35px;
+    font-family: "Ubuntu Sans", sans-serif;
+    text-align: center;
+}
+
+.donate-header p {
+    margin-top: 15px;
+    text-align: center;
+    padding: 0 2rem;
+    color: #c8c8c8;
+}
+
+@media (max-width: 768px) {
+    .donate-page {
+        margin: 3vh 5%;
+    }
+}
+
+.donate-signin-prompt {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    padding: 40px 0;
+}
+
+.donate-builder {
+    display: grid;
+    grid-template-columns: 320px 1fr 280px;
+    gap: 30px;
+    width: 100%;
+    /* Stretch (the grid default) rather than start — lets the two shorter
+       columns grow to match the tallest one (usually the symbol column, its
+       height mostly fixed by the grid's max-height) so all three line up
+       along both the top and bottom edges instead of the shorter columns
+       trailing off early. */
+}
+
+.donate-col {
+    /* body never sets a text color, so anything here without its own
+       explicit color (the h3 headings, notably) was falling back to the
+       browser default — plain black — instead of white. */
+    color: white;
+    background: rgb(45, 45, 45);
+    border-radius: 24px;
+    padding: 22px;
+    box-sizing: border-box;
+    box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.1);
+}
+
+.donate-col h3 {
+    margin: 0 0 4px;
+    font-family: "Minecraft", sans-serif;
+    /* This font's own line-height leaves a lot of space below the glyphs by
+       default — without pinning it to 1, the visible gap under the heading
+       is much bigger than the margin above alone suggests. */
+    line-height: 1;
+}
+
+.donate-col h4 {
+    margin: 18px 0 6px;
+    font-family: "Minecraft", sans-serif;
+    font-size: 14px;
+    color: rgb(180, 180, 180);
+}
+
+.donate-col-hint {
+    margin: 0 0 14px;
+    color: rgb(150, 150, 150);
+    font-size: 12px;
+}
+
+.donate-col-symbol.disabled {
+    opacity: 0.45;
+}
+
+.donate-col-preview {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    background: none;
+    box-shadow: none;
+    padding: 0;
+}
+
+/* .profile-nick-badge.donate-nick-badge (both classes) rather than plain
+   .donate-nick-badge — .profile-nick-badge's own `padding: 10px 26px`
+   shorthand has equal specificity and sits later in the file, so a
+   single-class selector here was silently losing the padding-right to it. */
+.profile-nick-badge.donate-nick-badge {
+    grid-column: unset;
+    grid-row: unset;
+    gap: 10px;
+    /* Anchor point for .donate-icon-preview below — taking the icon out of
+       flow (position: absolute) is what actually decouples "however big
+       the icon needs to look" from "the pill's own height": no font-size
+       or padding on the icon can stretch the badge anymore, no matter what
+       it's set to, because it no longer participates in the row's layout
+       at all. Extra right padding reserves room so the nickname text never
+       runs underneath it. */
+    position: relative;
+    padding-right: 52px;
+}
+
+/* No tier picked yet => no icon rendered — fall back to the base
+   .profile-nick-badge's own symmetric 26px side padding instead of
+   reserving room for an icon that isn't there. */
+.profile-nick-badge.donate-nick-badge.no-icon {
+    padding-right: 26px;
+}
+
+/* Same specificity issue — this span also matches .profile-nick-badge span
+   (display:inline-block + a different translateY, meant for the nickname
+   text's own font baseline), which has higher specificity than a plain
+   .donate-icon-preview class selector and was winning, silently dropping
+   this rule's position/transform entirely. */
+.donate-nick-badge .donate-icon-preview {
+    /* Not every symbol in the picker has a glyph in the Minecraft font
+       (.profile-nick-badge sets it for the nickname text) — force the
+       system font stack here so every symbol actually renders. The
+       characters themselves carry a U+FE0E text-presentation selector
+       (see lib/minecraft-symbols.ts) so they don't get drawn via the
+       color-emoji font — that font's oversized glyph box was the real
+       reason no amount of translateY tuning looked right. */
+    position: absolute;
+    top: 50%;
+    right: 18px;
+    transform: translateY(-50%);
+    font-family: sans-serif;
+    font-size: 28px;
+    line-height: 1;
+}
+
+.donate-skin-card {
+    width: 280px;
+}
+
+/* Keeps the badge/skin/info cluster grouped at the top (their own gap:14
+   from .donate-col-preview is enough) while sending the leftover space
+   from the column stretch above to push just the continue button down to
+   the shared bottom line. */
+.donate-col-preview .donate-continue-btn {
+    margin-top: auto;
+}
+
+/* Placeholder for donate-tier details — no real content behind it yet, see
+   /shop/sponsorship/info. Deliberately chunky/square rather than a thin
+   pill like the other buttons here, so it reads as its own "info block"
+   between the skin card and the continue button. */
+.donate-info-btn {
+    width: 280px;
+    height: 90px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    background: rgb(45, 45, 45);
+    border: 2px solid rgba(255, 255, 255, 0.15);
+    border-radius: 18px;
+    color: white;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.donate-info-btn i {
+    font-size: 26px;
+    color: #FFD139;
+}
+
+.donate-info-btn:hover {
+    border-color: #FFD139;
+    transform: translateY(-2px);
+}
+
+/* Recipient picker (see components/shop/RecipientPicker) — a gift-toggle
+   button that expands into a nickname search, sitting between the info
+   button and "Продовжити" so choosing someone else is a deliberate extra
+   step rather than an easy default to fat-finger. */
+.donate-recipient {
+    width: 280px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.donate-recipient-toggle {
+    width: 100%;
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgb(45, 45, 45);
+    border: 2px solid rgba(255, 255, 255, 0.15);
+    border-radius: 14px;
+    padding: 10px 14px;
+    color: white;
+    font-size: 13px;
+    cursor: pointer;
+    transition: border-color 0.2s ease;
+}
+
+.donate-recipient-toggle:hover {
+    border-color: #FFD139;
+}
+
+.donate-recipient-toggle i:first-child {
+    color: #FFD139;
+}
+
+.donate-recipient-toggle span {
+    flex: 1;
+    text-align: left;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.donate-recipient-toggle i:last-child {
+    font-size: 11px;
+    color: rgb(150, 150, 150);
+}
+
+.donate-recipient-clear {
+    background: none;
+    border: none;
+    color: rgb(150, 150, 150);
+    font-size: 12px;
+    text-decoration: underline;
+    cursor: pointer;
+    padding: 0;
+}
+
+.donate-recipient-clear:hover {
+    color: white;
+}
+
+.donate-recipient-search {
+    position: relative;
+}
+
+.donate-recipient-search input {
+    width: 100%;
+    box-sizing: border-box;
+    background: rgb(35, 35, 35);
+    border: 2px solid #FFD139;
+    border-radius: 14px;
+    padding: 10px 14px;
+    color: white;
+    font-size: 13px;
+}
+
+.donate-recipient-dropdown {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    max-height: 200px;
+    overflow-y: auto;
+    background: rgb(35, 35, 35);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    padding: 6px;
+    z-index: 10;
+}
+
+.donate-recipient-dropdown button {
+    display: block;
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 10px;
+    color: white;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.donate-recipient-dropdown button:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.donate-payment-recipient {
+    margin: 4px 0 0;
+    font-size: 13px;
+    color: rgb(180, 180, 180);
+}
+
+.donate-payment-recipient b {
+    color: #FFD139;
+}
+
+.donate-continue-btn {
+    width: 280px;
+    padding: 14px 16px;
+    border: none;
+    border-radius: 14px;
+    background: linear-gradient(to top left, #FFD139 0%, #FFBD3A 50%, #FF9900 100%);
+    color: white;
+    text-decoration: none;
+    font-family: "Minecraft", sans-serif;
+    font-weight: 800;
+    font-size: 16px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-block;
+}
+
+.donate-continue-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+    opacity: 0.9;
+}
+
+.donate-continue-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.donate-payment-error {
+    margin: 0;
+    color: #FF5555;
+    font-size: 13px;
+    text-align: center;
+}
+
+.donate-payment-code {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    background: rgba(20, 20, 20, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 14px;
+    padding: 12px 14px 12px 20px;
+    font-size: 14px;
+    color: rgb(200, 200, 200);
+}
+
+.donate-payment-code span {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.donate-payment-code strong {
+    font-family: "Minecraft", sans-serif;
+    font-size: 18px;
+    color: #FFD139;
+    letter-spacing: 1px;
+}
+
+.donate-payment-copy {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 10px;
+    padding: 8px 14px;
+    color: white;
+    font-size: 13px;
+    cursor: pointer;
+    transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.donate-payment-copy:hover {
+    border-color: #FFD139;
+    background: rgba(255, 255, 255, 0.14);
+}
+
+.donate-payment-copy i {
+    color: #FFD139;
+}
+
+.donate-payment-status {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: rgb(200, 200, 200);
+    font-size: 14px;
+}
+
+.donate-payment-status.pending i {
+    color: #FFD139;
+}
+
+.donate-payment-status.paid {
+    flex-direction: column;
+    color: #4caf50;
+    font-weight: 600;
+}
+
+.donate-payment-status.expired {
+    flex-direction: column;
+    color: #FF5555;
+    font-weight: 600;
+    text-align: center;
+}
+
+.donate-payment-status.expired i {
+    color: #FF5555;
+}
+
+/* Site-wide "resume payment?" card (see components/shop/ResumeDonatePrompt)
+   — bottom-right, above everything else, so it reads as a passive nudge
+   rather than blocking whatever page someone's actually looking at. */
+.resume-donate-prompt {
+    position: fixed;
+    right: 20px;
+    bottom: 20px;
+    z-index: 500;
+    width: 300px;
+    max-width: calc(100vw - 40px);
+    background: rgb(35, 35, 35);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 18px;
+    padding: 16px 18px;
+    box-shadow: 0px 4px 20px 0px rgba(0, 0, 0, 0.4);
+    color: rgb(220, 220, 220);
+    font-size: 14px;
+}
+
+.resume-donate-prompt p {
+    margin: 0 0 12px;
+    line-height: 1.4;
+}
+
+.resume-donate-prompt b {
+    color: #ffd139;
+}
+
+.resume-donate-prompt-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.resume-donate-prompt-yes,
+.resume-donate-prompt-no {
+    flex: 1;
+    border: none;
+    border-radius: 10px;
+    padding: 8px 0;
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+}
+
+.resume-donate-prompt-yes {
+    background: linear-gradient(to top left, #ffd139 0%, #ffbd3a 50%, #ff9900 100%);
+    color: white;
+}
+
+.resume-donate-prompt-no {
+    background: rgba(255, 255, 255, 0.08);
+    color: white;
+}
+
+.resume-donate-prompt-yes:hover,
+.resume-donate-prompt-no:hover {
+    opacity: 0.85;
+}
+
+/* Capped height + scroll rather than letting 400+ symbols push the page
+   tall enough to show the footer on load — only this grid scrolls, the
+   column header/hint and the color row below it stay put. */
+.donate-symbol-grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 6px;
+    max-height: 460px;
+    overflow-y: auto;
+    padding-right: 4px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+}
+
+.donate-symbol-btn {
+    aspect-ratio: 1 / 1;
+    background: rgb(35, 35, 35);
+    border: 2px solid transparent;
+    border-radius: 8px;
+    color: white;
+    font-family: sans-serif;
+    font-size: 40px;
+    cursor: pointer;
+    transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.donate-symbol-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+}
+
+.donate-symbol-btn.active {
+    border-color: #FFD139;
+}
+
+.donate-symbol-btn:disabled {
+    cursor: not-allowed;
+}
+
+.donate-color-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.donate-color-btn {
+    width: 26px;
+    height: 26px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    cursor: pointer;
+    transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.donate-color-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+}
+
+.donate-color-btn.active {
+    border-color: white;
+}
+
+.donate-color-btn:disabled {
+    cursor: not-allowed;
+}
+
+.donate-col-tiers {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+    background: none;
+    box-shadow: none;
+    padding: 0;
+    /* Once .donate-builder stretches this column taller than its two cards'
+       own content, spread the leftover space between them instead of
+       leaving it stranded below — keeps the second card's bottom edge on
+       the same line as the other columns'. */
+    align-content: space-between;
+}
+
+.donate-tier-card {
+    color: white;
+    background: rgb(45, 45, 45);
+    border: 2px solid transparent;
+    border-radius: 24px;
+    padding: 20px 16px;
+    box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 6px;
+    transition: border-color 0.2s ease;
+}
+
+.donate-tier-card.selected {
+    border-color: #FFD139;
+}
+
+.donate-tier-icon {
+    font-family: sans-serif;
+    font-size: 34px;
+    line-height: 1;
+}
+
+.donate-tier-card h3 {
+    margin: 0;
+}
+
+.donate-tier-price {
+    color: #FFD139;
+    font-weight: 700;
+    font-size: 14px;
+    margin-bottom: 4px;
+}
+
+.donate-tier-perks {
+    list-style: none;
+    margin: 0 0 8px;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    width: 100%;
+    font-size: 14px;
+}
+
+.donate-tier-perks li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-align: left;
+}
+
+.donate-tier-perks li.has {
+    color: rgb(220, 220, 220);
+}
+
+.donate-tier-perks li.missing {
+    color: rgb(110, 110, 110);
+}
+
+.donate-tier-perks li.has i {
+    color: #4caf50;
+}
+
+.donate-tier-perks li.missing i {
+    color: rgb(90, 90, 90);
+}
+
+.donate-tier-perks li i {
+    width: 14px;
+    flex-shrink: 0;
+    font-size: 11px;
+}
+
+.donate-tier-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    background: rgba(20, 20, 20, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    color: white;
+    padding: 8px 14px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: border-color 0.2s ease;
+    margin-top: auto;
+}
+
+.donate-tier-toggle:hover {
+    border-color: #FFD139;
+}
+
+@media (max-width: 1024px) {
+    .donate-builder {
+        grid-template-columns: 1fr;
+    }
+
+    .donate-col-tiers {
+        grid-template-columns: 1fr;
+    }
+}
+
+.cart-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 100%;
+}
+
+.cart-row {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    background: rgb(45, 45, 45);
+    border-radius: 16px;
+    padding: 16px 20px;
+}
+
+.cart-row img {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 10px;
+}
+
+.cart-row .info {
+    flex: 1;
+    text-align: left;
+}
+
+.cart-row .info .name {
+    color: white;
+    font-weight: 600;
+    font-size: 18px;
+}
+
+.cart-row .info .unit-price {
+    color: #999;
+    font-size: 14px;
+}
+
+.qty-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.qty-controls button {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 2px solid white;
+    background: transparent;
+    color: white;
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 1;
+}
+
+.cart-row .line-total {
+    min-width: 100px;
+    text-align: right;
+    color: white;
+    font-weight: 700;
+}
+
+.cart-row .remove-btn {
+    background: transparent;
+    border: none;
+    color: #cc4444;
+    cursor: pointer;
+    font-size: 20px;
+}
+
+.cart-total {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding-top: 20px;
+    margin-top: 10px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    color: white;
+    font-size: 24px;
+    font-weight: 700;
+}
+
+.checkout-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    width: 100%;
+    max-width: 500px;
+}
+
+.checkout-form label {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    color: white;
+    font-size: 18px;
+    text-align: left;
+}
+
+.checkout-form input,
+.checkout-form textarea {
+    padding: 14px 16px;
+    border-radius: 10px;
+    border: 2px solid rgba(255,255,255,0.15);
+    background: rgb(25, 25, 25);
+    color: white;
+    font-size: 16px;
+    font-family: inherit;
+}
+
+.checkout-form input:focus,
+.checkout-form textarea:focus {
+    outline: none;
+    border-color: #ffd900e0;
+}
+
+.checkout-summary {
+    background: rgb(45, 45, 45);
+    border-radius: 16px;
+    padding: 20px;
+    width: 100%;
+    max-width: 500px;
+    text-align: left;
+}
+
+.checkout-summary .row {
+    display: flex;
+    justify-content: space-between;
+    color: rgb(200, 200, 200);
+    padding: 6px 0;
+}
+
+.checkout-summary .row.total {
+    color: white;
+    font-weight: 700;
+    font-size: 20px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    margin-top: 10px;
+    padding-top: 14px;
+}
+
+.form-error {
+    color: #ff6b6b;
+    font-size: 16px;
+}
+
+@media (max-width: 768px) {
+    .shop-categories {
+        padding: 20px 5%;
+    }
+
+    .cart-row {
+        flex-wrap: wrap;
+    }
+
+    .cart-row .line-total {
+        text-align: left;
+    }
+}
+/* ----------------------------- */
+.profile-layout {
+    display: grid;
+    grid-template-columns: 280px minmax(280px, 640px);
+    grid-template-rows: auto 1fr auto auto auto;
+    column-gap: 40px;
+    row-gap: 14px;
+    justify-content: center;
+    margin: 5vh 10%;
+}
+
+.profile-nick-badge {
+    grid-column: 1;
+    grid-row: 1;
+    justify-self: center;
+}
+
+.profile-skin-card {
+    grid-column: 1;
+    grid-row: 2;
+    background: rgb(35, 35, 35);
+    border-radius: 30px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.1);
+    width: 280px;
+    overflow: hidden;
+}
+
+.skin-viewer-wrapper {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    height: 260px;
+    overflow: hidden;
+    transition: height 0.4s ease;
+}
+
+.skin-viewer-wrapper.expanded {
+    height: 407px;
+}
+
+.skin-viewer-wrapper canvas {
+    cursor: default;
+    transition: opacity 0.25s ease, transform 0.4s ease;
+    transform: translateY(19px);
+}
+
+.skin-viewer-wrapper.expanded canvas {
+    cursor: grab;
+    transform: translateY(0);
+}
+
+.skin-viewer-wrapper.expanded canvas:active {
+    cursor: grabbing;
+}
+
+.skin-viewer-wrapper canvas.skin-viewer-loading {
+    opacity: 0;
+}
+
+.skin-viewer-fallback-img {
+    max-width: 100%;
+    max-height: 100%;
+    margin: auto;
+    image-rendering: pixelated;
+}
+
+.profile-bio {
+    grid-column: 1;
+    grid-row: 3;
+    position: relative;
+    width: 280px;
+    box-sizing: border-box;
+    background: rgb(35, 35, 35);
+    border-radius: 20px;
+    padding: 14px 16px;
+    box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.1);
+    color: rgb(200, 200, 200);
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.profile-bio-text {
+    margin: 0;
+    word-wrap: break-word;
+    overflow-wrap: anywhere;
+}
+
+.profile-bio-placeholder {
+    margin: 0;
+    color: rgb(120, 120, 120);
+    font-style: italic;
+}
+
+/* Same outlined-pill look as the hero "Дізнатись більше" / support button
+   (.custom-button:last-child) — solid white border, transparent fill —
+   just scaled down to fit this 280px sidebar card instead of a full CTA. */
+/* No card behind this one — it's a direct grid child (see .profile-layout),
+   not wrapped in .profile-editor-actions, which only appears once editing
+   actually starts and there's a real form to contain. */
+.profile-edit-btn {
+    grid-column: 1;
+    grid-row: 5;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 280px;
+    box-sizing: border-box;
+    background: transparent;
+    border: 3px solid white;
+    border-radius: 8px;
+    color: white;
+    padding: 10px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+.profile-edit-btn:hover {
+    transform: translateY(-2px);
+    opacity: 0.9;
+}
+
+.profile-edit-btn:active {
+    transform: translateY(0);
+}
+
+.profile-bio textarea {
+    width: 100%;
+    background: rgb(45, 45, 45);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 10px;
+    color: white;
+    font-family: inherit;
+    font-size: 14px;
+    padding: 10px;
+    resize: none;
+    box-sizing: border-box;
+}
+
+.profile-bio textarea:focus {
+    outline: none;
+    border-color: rgba(255, 209, 57, 0.5);
+}
+
+.profile-bio-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 8px;
+    gap: 8px;
+}
+
+.profile-bio-counter {
+    font-size: 12px;
+    color: rgb(140, 140, 140);
+    white-space: nowrap;
+}
+
+.profile-bio-actions {
+    display: flex;
+    gap: 8px;
+}
+
+.profile-bio-actions button {
+    background: rgba(20, 20, 20, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    color: white;
+    padding: 4px 14px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: border-color 0.2s ease;
+}
+
+.profile-bio-actions button:hover {
+    border-color: #FFD139;
+}
+
+.profile-bio-error {
+    color: #ff6b6b;
+    font-size: 12px;
+    margin: 6px 0 0;
+}
+
+/* Sits below .profile-bio, its own box — just the enabled social icons,
+   shown to anyone (owner or visitor) whenever there's something to show. */
+.profile-social-icons-card {
+    grid-column: 1;
+    grid-row: 4;
+    width: 280px;
+    box-sizing: border-box;
+    background: rgb(35, 35, 35);
+    border-radius: 20px;
+    padding: 14px 16px;
+    box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.1);
+}
+
+/* Separate box, owner-only — holds the "Редагувати профіль" trigger in
+   normal state, and swaps to the Discord/Twitch/YouTube fields + save/
+   cancel when ProfileEditor is in edit mode. Deliberately its own card
+   rather than sharing one with the icons above. */
+.profile-editor-actions {
+    grid-column: 1;
+    grid-row: 5;
+    width: 280px;
+    box-sizing: border-box;
+    background: rgb(35, 35, 35);
+    border-radius: 20px;
+    padding: 14px 16px;
+    box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* Icons shown above the edit button once the owner has enabled them —
+   Discord is a static badge (identity comes from the linked OAuth
+   account), Twitch/YouTube are links out to whatever URL was saved. At
+   most 3 platforms, plain white so none of them stands out by color;
+   centered so 1-2 icons don't look stranded on one side, and 3 sit
+   evenly balanced in the middle. */
+.profile-social-icons {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+}
+
+.profile-social-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    background: rgb(45, 45, 45);
+    color: white;
+    font-size: 22px;
+    text-decoration: none;
+    transition: transform 0.2s ease;
+}
+
+.profile-social-icon:hover {
+    transform: translateY(-2px);
+}
+
+.profile-social-field {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgb(45, 45, 45);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+    padding: 8px 10px;
+    font-size: 13px;
+    color: rgb(200, 200, 200);
+}
+
+.profile-social-field i {
+    width: 16px;
+    text-align: center;
+    color: rgb(150, 150, 150);
+    flex-shrink: 0;
+}
+
+.profile-social-field input[type="text"] {
+    flex: 1;
+    min-width: 0;
+    background: none;
+    border: none;
+    color: white;
+    font-family: inherit;
+    font-size: 13px;
+}
+
+.profile-social-field input[type="text"]:focus {
+    outline: none;
+}
+
+.profile-social-field-checkbox {
+    cursor: pointer;
+}
+
+.profile-social-field-checkbox input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: #FFD139;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.profile-pronoun-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.profile-pronoun-label {
+    color: rgb(140, 140, 140);
+    font-size: 12px;
+}
+
+.profile-pronoun-options {
+    display: flex;
+    gap: 14px;
+}
+
+.profile-pronoun-option {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: rgb(200, 200, 200);
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.profile-pronoun-option input[type="radio"] {
+    width: 14px;
+    height: 14px;
+    accent-color: #FFD139;
+    cursor: pointer;
+}
+
+.skin-viewer-icon-btn {
+    position: absolute;
+    top: 14px;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: rgba(20, 20, 20, 0.55);
+    border: 2px solid rgba(255, 255, 255, 0.15);
+    color: rgb(200, 200, 200);
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.skin-viewer-icon-btn:hover {
+    color: white;
+}
+
+.skin-viewer-icon-btn:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.skin-viewer-icon-btn.active {
+    color: #FFD139;
+    border-color: #FFD139;
+}
+
+.skin-viewer-icon-btn-left {
+    left: 14px;
+}
+
+.skin-viewer-icon-btn-right {
+    right: 14px;
+}
+
+/* Sits in the same row as .profile-nick-badge (col 1) but in the right
+   column, which is otherwise empty there — lands directly above
+   .profile-stats-card with no extra row needed. */
+.profile-online-status {
+    grid-column: 2;
+    grid-row: 1;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding: 0px 30px 0px 30px;
+}
+
+.profile-online-text {
+    color: rgb(170, 170, 170);
+    font-size: 14px;
+}
+
+.profile-online-text.online {
+    color: #4caf50;
+    font-weight: 600;
+}
+
+.profile-online-text.online::before {
+    content: '';
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    margin-right: 8px;
+    border-radius: 50%;
+    background: #4caf50;
+}
+
+.profile-top-rank-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.profile-top-rank {
+    color: white;
+    font-size: 13px;
+    font-weight: 800;
+    font-family: "Minecraft", sans-serif;
+    /* Same Minecraft-font glyph-sits-high quirk as .profile-nick-badge span
+       and .stat-value — nudge down to look centered against the trophy. */
+    display: inline-block;
+    transform: translateY(6px);
+}
+
+.profile-top-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 18px;
+    opacity: 0.85;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.profile-top-link:hover {
+    opacity: 1;
+    transform: translateY(-2px);
+}
+
+.profile-stats-card {
+    grid-column: 2;
+    grid-row: 2;
+    background: rgb(35, 35, 35);
+    border-radius: 30px;
+    padding: 24px;
+    box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.1);
+    height: 260px;
+    box-sizing: border-box;
+    display: flex;
+}
+
+/* Sits below the stats card, in the same (right) column. Only rendered when
+   a profile actually has achievements, so it never affects the rows 3-5
+   already used by the left sidebar (bio/icons/edit button) on profiles that
+   don't have any yet. align-self: start keeps it from stretching down to
+   match the sidebar's full height when it's shorter than that. */
+.profile-achievements-card {
+    grid-column: 2;
+    grid-row: 3 / 6;
+    align-self: start;
+    background: rgb(35, 35, 35);
+    border-radius: 30px;
+    padding: 24px;
+    box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.1);
+    box-sizing: border-box;
+    width: 100%;
+}
+
+.profile-achievements-title {
+    margin: 0 0 16px;
+    color: white;
+    font-family: "Minecraft", sans-serif;
+    font-size: 16px;
+    font-weight: 800;
+}
+
+.achievements-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+}
+
+.achievement-card {
+    aspect-ratio: 1 / 1;
+    background: rgb(45, 45, 45);
+    border: 3px solid transparent;
+    border-radius: 18px;
+    box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.1);
+    box-sizing: border-box;
+    padding: 12px 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    overflow: hidden;
+    transition: transform 0.2s ease;
+}
+
+.achievement-card:hover {
+    transform: translateY(-4px);
+}
+
+.achievement-card-category {
+    color: rgb(170, 170, 170);
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    margin-bottom: auto;
+}
+
+.achievement-card-icon {
+    font-size: 2em;
+    line-height: 1;
+    margin: 8px 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.achievement-card-icon img {
+    width: 1.4em;
+    height: 1.4em;
+    object-fit: contain;
+}
+
+.achievement-card-title {
+    color: white;
+    font-size: 14px;
+    font-weight: 800;
+    font-family: "Minecraft", sans-serif;
+    word-wrap: break-word;
+    overflow-wrap: anywhere;
+}
+
+.achievement-card-subtitle {
+    color: rgb(170, 170, 170);
+    font-size: 11px;
+    margin-top: 4px;
+}
+
+.profile-nick-badge {
+    background: rgba(20, 20, 20, 0.55);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50px;
+    padding: 10px 26px;
+    color: white;
+    font-family: "Minecraft", sans-serif;
+    font-weight: 800;
+    font-size: 20px;
+    white-space: nowrap;
+    line-height: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+.profile-nick-badge span {
+    display: inline-block;
+    transform: translateY(6px);
+}
+
+/* Compound selectors (both classes / class+class rather than class+element)
+   so these reliably beat .profile-nick-badge / .profile-nick-badge span
+   above regardless of source order — see the earlier donate-icon-preview
+   bug this exact pattern was written to avoid. */
+.profile-nick-badge.profile-nick-badge-with-privilege {
+    position: relative;
+    padding-right: 52px;
+}
+
+.profile-nick-badge-with-privilege .profile-privilege-icon {
+    position: absolute;
+    top: 50%;
+    right: 18px;
+    transform: translateY(-50%);
+    font-family: sans-serif;
+    font-size: 22px;
+    line-height: 1;
+}
+
+.profile-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    gap: 16px;
+    flex: 1;
+}
+
+.stat-box {
+    background: rgb(45, 45, 45);
+    border-radius: 18px;
+    padding: 18px 12px;
+    text-align: center;
+    box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+.stat-box:hover {
+    transform: translateY(-4px);
+}
+
+.stat-box i {
+    font-size: 1.6em;
+    color: #FFD139;
+    margin-bottom: 10px;
+    display: block;
+    transform: translateY(7px);
+}
+
+.stat-icon-swords {
+    width: 1.6em;
+    height: 1.6em;
+    flex-shrink: 0;
+    color: #FFD139;
+    margin: 0 auto 10px;
+    display: block;
+    transform: translateY(7px);
+}
+
+.stat-box .stat-value {
+    color: white;
+    font-size: 20px;
+    font-weight: 800;
+    font-family: "Minecraft", sans-serif;
+    transform: translateY(7px);
+}
+
+@media (max-width: 768px) {
+    .profile-layout {
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto auto auto auto auto auto auto;
+        justify-content: stretch;
+        justify-items: center;
+        margin: 3vh 5%;
+        row-gap: 14px;
+    }
+
+    .profile-nick-badge {
+        grid-column: 1;
+        grid-row: 1;
+    }
+
+    .profile-skin-card {
+        grid-column: 1;
+        grid-row: 2;
+    }
+
+    .profile-bio {
+        grid-column: 1;
+        grid-row: 3;
+        width: 100%;
+        max-width: 400px;
+    }
+
+    .profile-social-icons-card {
+        grid-column: 1;
+        grid-row: 4;
+        width: 100%;
+        max-width: 400px;
+    }
+
+    .profile-editor-actions {
+        grid-column: 1;
+        grid-row: 5;
+        width: 100%;
+        max-width: 400px;
+    }
+
+    .profile-edit-btn {
+        grid-column: 1;
+        grid-row: 5;
+        width: 100%;
+        max-width: 400px;
+    }
+
+    .profile-online-status {
+        grid-column: 1;
+        grid-row: 6;
+        width: 100%;
+        max-width: 400px;
+        box-sizing: border-box;
+    }
+
+    .profile-stats-card {
+        grid-column: 1;
+        grid-row: 7;
+        height: auto;
+        width: 100%;
+        max-width: 400px;
+    }
+
+    .profile-stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .profile-achievements-card {
+        grid-column: 1;
+        grid-row: 8;
+        width: 100%;
+        max-width: 400px;
+    }
+
+    .achievements-grid {
+        gap: 10px;
+    }
+
+    .achievement-card {
+        padding: 10px 6px;
+    }
+
+    .achievement-card-title {
+        font-size: 12px;
+    }
+
+    .achievement-card-category {
+        font-size: 10px;
+    }
+
+    .achievement-card-icon {
+        font-size: 1.6em;
+        margin: 6px 0;
+    }
+}
+/* ----------------------------- */
+.gallery-page {
+    margin: 5vh 10%;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    color: white;
+}
+
+.gallery-page-header {
+    text-align: center;
+}
+
+.gallery-page-header h2 {
+    color: white;
+    font-size: 35px;
+    font-family: "Ubuntu Sans", sans-serif;
+    margin: 0;
+}
+
+.gallery-page-header p {
+    margin: 10px 0 0;
+    color: rgb(180, 180, 180);
+}
+
+.gallery-page-sort {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    color: rgb(170, 170, 170);
+    font-size: 14px;
+}
+
+.gallery-sort-btn {
+    background: rgba(255, 255, 255, 0.06);
+    border: 2px solid rgba(255, 255, 255, 0.15);
+    border-radius: 50px;
+    padding: 6px 16px;
+    color: white;
+    text-decoration: none;
+    font-size: 13px;
+    transition: border-color 0.2s ease;
+}
+
+.gallery-sort-btn:hover {
+    border-color: #FFD139;
+}
+
+.gallery-sort-btn.active {
+    border-color: #FFD139;
+    color: #FFD139;
+}
+
+.gallery-page-empty {
+    text-align: center;
+    color: rgb(150, 150, 150);
+}
+
+.gallery-page-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 20px;
+}
+
+.gallery-page-card {
+    background: rgb(35, 35, 35);
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.1);
+}
+
+.gallery-page-card img {
+    width: 100%;
+    height: 220px;
+    object-fit: cover;
+    display: block;
+}
+
+.gallery-page-card-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px 14px;
+    font-size: 13px;
+}
+
+.gallery-page-card-season {
+    color: #FFD139;
+    font-weight: 700;
+    font-size: 12px;
+}
+
+.gallery-page-card-desc {
+    color: rgb(210, 210, 210);
+}
+
+.gallery-page-card-author {
+    color: rgb(140, 140, 140);
+    font-size: 12px;
+}
+
+/* ----------------------------- */
+.admin-page {
+    margin: 5vh 10%;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.admin-header {
+    background: rgb(35, 35, 35);
+    border-radius: 30px;
+    padding: 24px 30px;
+    box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.1);
+}
+
+.admin-header p {
+    margin: 6px 0 0;
+    color: rgb(200, 200, 200);
+}
+
+.admin-section {
+    background: rgb(35, 35, 35);
+    border-radius: 30px;
+    padding: 24px 30px;
+    box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.1);
+}
+
+.admin-section > h3 {
+    margin: 0 0 18px;
+    font-family: "Minecraft", sans-serif;
+}
+
+.admin-achievements {
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+}
+
+.admin-luckperms {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-width: 340px;
+}
+
+.admin-luckperms-success {
+    color: #4caf50;
+    font-size: 12px;
+    margin: 0;
+}
+
+.admin-privileges {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.admin-privileges-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-width: 340px;
+}
+
+.admin-privileges-summary {
+    margin: 0;
+    color: rgb(170, 170, 170);
+    font-size: 13px;
+}
+
+.admin-gallery-pending {
+    color: #FFD139;
+    font-size: 13px;
+    margin: 0;
+}
+
+.admin-privilege-active {
+    color: #4caf50;
+}
+
+.admin-privilege-expired {
+    color: rgb(140, 140, 140);
+}
+
+/* Plain (non-absolutely-positioned) icon swatch for the admin audit list —
+   the donate builder's own .donate-icon-preview is absolute-positioned
+   against a nick badge, which doesn't apply here. */
+.donate-icon-preview-static {
+    font-family: sans-serif;
+    font-size: 22px;
+    line-height: 1;
+    flex-shrink: 0;
+    width: 32px;
+    text-align: center;
+}
+
+.admin-achievements-form {
+    display: flex;
+    gap: 30px;
+    flex-wrap: wrap;
+    align-items: flex-start;
+}
+
+.admin-form-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    flex: 1 1 320px;
+    max-width: 420px;
+}
+
+.admin-field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    color: rgb(200, 200, 200);
+    font-size: 13px;
+}
+
+.admin-field input[type="text"],
+.admin-field input[type="number"],
+.admin-field select {
+    background: rgb(45, 45, 45);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 10px;
+    color: white;
+    font-family: inherit;
+    font-size: 14px;
+    padding: 8px 10px;
+    box-sizing: border-box;
+}
+
+.admin-field input[type="text"]:focus,
+.admin-field input[type="number"]:focus,
+.admin-field select:focus {
+    outline: none;
+    border-color: rgba(255, 209, 57, 0.5);
+}
+
+.admin-field input[type="color"] {
+    width: 48px;
+    height: 32px;
+    border: none;
+    border-radius: 8px;
+    background: none;
+    padding: 0;
+    cursor: pointer;
+}
+
+.nickname-multiselect {
+    position: relative;
+}
+
+.nickname-multiselect-tags {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    background: rgb(45, 45, 45);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 10px;
+    padding: 6px 8px;
+    box-sizing: border-box;
+    min-height: 36px;
+}
+
+.nickname-multiselect-tags:focus-within {
+    border-color: rgba(255, 209, 57, 0.5);
+}
+
+.nickname-multiselect-tag {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(255, 209, 57, 0.15);
+    color: #FFD139;
+    border-radius: 6px;
+    padding: 3px 6px 3px 10px;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.nickname-multiselect-tag button {
+    background: none;
+    border: none;
+    color: inherit;
+    font-size: 15px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0 2px;
+}
+
+.nickname-multiselect-tags input {
+    flex: 1;
+    min-width: 100px;
+    background: none;
+    border: none;
+    color: white;
+    font-family: inherit;
+    font-size: 14px;
+    padding: 4px 2px;
+}
+
+.nickname-multiselect-tags input:focus {
+    outline: none;
+}
+
+.nickname-multiselect-dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    z-index: 10;
+    background: rgb(50, 50, 50);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 10px;
+    box-shadow: 0px 4px 14px 0px rgba(0, 0, 0, 0.4);
+    max-height: 220px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    padding: 4px;
+}
+
+.nickname-multiselect-dropdown button {
+    background: none;
+    border: none;
+    color: white;
+    text-align: left;
+    font-family: inherit;
+    font-size: 14px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.nickname-multiselect-dropdown button:hover {
+    background: rgba(255, 209, 57, 0.15);
+}
+
+.admin-radio-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+}
+
+/* Full symbol picker for the admin's manual grant form — same idea as
+   .donate-symbol-grid on the real builder (capped height + scroll rather
+   than 467 buttons pushing the page out), just smaller since this form is
+   narrower and admins don't need the buttons as big as buyers do. */
+.admin-symbol-grid {
+    display: grid;
+    grid-template-columns: repeat(10, 1fr);
+    gap: 4px;
+    max-width: 400px;
+    max-height: 200px;
+    overflow-y: auto;
+    padding-right: 4px;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
+}
+
+.admin-symbol-btn {
+    aspect-ratio: 1 / 1;
+    background: rgb(35, 35, 35);
+    border: 2px solid transparent;
+    border-radius: 6px;
+    color: white;
+    font-family: sans-serif;
+    font-size: 16px;
+    cursor: pointer;
+    transition: border-color 0.2s ease;
+}
+
+.admin-symbol-btn:hover {
+    border-color: rgba(255, 209, 57, 0.5);
+}
+
+.admin-symbol-btn.active {
+    border-color: #FFD139;
+}
+
+.admin-radio-row label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-weight: 400;
+    cursor: pointer;
+}
+
+.admin-checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.admin-form-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 6px;
+}
+
+.admin-form-actions button {
+    background: rgba(20, 20, 20, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    color: white;
+    padding: 6px 18px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: border-color 0.2s ease;
+}
+
+.admin-form-actions button:hover {
+    border-color: #FFD139;
+}
+
+.admin-form-preview {
+    flex: 0 0 200px;
+}
+
+.admin-form-preview-label {
+    margin: 0 0 8px;
+    color: rgb(170, 170, 170);
+    font-size: 12px;
+}
+
+.achievement-card-preview-wrap {
+    width: 180px;
+}
+
+.achievement-card-preview-wrap-sm {
+    width: 90px;
+    flex-shrink: 0;
+}
+
+.achievement-card-preview-wrap-sm .achievement-card-title {
+    font-size: 11px;
+}
+
+.achievement-card-preview-wrap-sm .achievement-card-category {
+    font-size: 9px;
+}
+
+.achievement-card-preview-wrap-sm .achievement-card-icon {
+    font-size: 1.4em;
+}
+
+.admin-achievements-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.admin-player-search {
+    background: rgb(45, 45, 45);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 10px;
+    color: white;
+    font-family: inherit;
+    font-size: 14px;
+    padding: 8px 12px;
+    box-sizing: border-box;
+    margin-bottom: 4px;
+}
+
+.admin-player-search:focus {
+    outline: none;
+    border-color: rgba(255, 209, 57, 0.5);
+}
+
+.admin-player-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    background: rgb(45, 45, 45);
+    border: none;
+    border-radius: 16px;
+    padding: 14px 18px;
+    color: white;
+    font-family: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.admin-player-row:hover {
+    transform: translateY(-2px);
+}
+
+.admin-player-row span {
+    color: rgb(170, 170, 170);
+    font-size: 13px;
+    white-space: nowrap;
+}
+
+.admin-player-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 4px;
+}
+
+.admin-player-header h4 {
+    margin: 0;
+    font-family: "Minecraft", sans-serif;
+    color: #FFD139;
+}
+
+.admin-player-header button {
+    background: rgba(20, 20, 20, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    color: white;
+    padding: 5px 14px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: border-color 0.2s ease;
+}
+
+.admin-player-header button:hover {
+    border-color: #FFD139;
+}
+
+.admin-achievements-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: rgb(45, 45, 45);
+    border-radius: 16px;
+    padding: 10px 16px;
+}
+
+.admin-achievements-row-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+    min-width: 0;
+    color: rgb(200, 200, 200);
+    font-size: 13px;
+}
+
+.admin-achievements-row-info b {
+    color: white;
+}
+
+.admin-achievements-row-actions {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+}
+
+.admin-achievements-row-actions button {
+    background: rgba(20, 20, 20, 0.55);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 20px;
+    color: white;
+    padding: 5px 14px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: border-color 0.2s ease;
+}
+
+.admin-achievements-row-actions button:hover {
+    border-color: #FFD139;
+}
+
+@media (max-width: 640px) {
+    .admin-page {
+        margin: 3vh 5%;
+    }
+
+    .admin-header,
+    .admin-section {
+        padding: 18px;
+    }
+
+    .admin-achievements-row {
+        flex-wrap: wrap;
+    }
+}
