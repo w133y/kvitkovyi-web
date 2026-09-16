@@ -2,7 +2,7 @@
 
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { createGalleryUploadSignature, type GalleryUploadSignature } from "@/lib/cloudinary";
+import { createGalleryUploadTarget, type GalleryUploadTarget } from "@/lib/r2";
 import { postGalleryModeration, postSeasonChangeConfirm } from "@/lib/gallery-discord";
 import { logError } from "@/lib/admin-log";
 import { revalidatePath } from "next/cache";
@@ -29,7 +29,7 @@ export async function getGallerySettings() {
   });
 }
 
-export type UploadSignatureResult = ({ ok: true } & GalleryUploadSignature) | { error: string };
+export type UploadTargetResult = ({ ok: true } & GalleryUploadTarget) | { error: string };
 
 // Step 1 of 2 for the site submission form (see finalizeGalleryPhotoSubmission
 // below for step 2). The photo itself is never sent through a server action
@@ -37,12 +37,13 @@ export type UploadSignatureResult = ({ ok: true } & GalleryUploadSignature) | { 
 // platform level (next.config.ts's own bodySizeLimit only governs Next's
 // own check on top of that, it can't raise Vercel's own ceiling), so a real
 // phone photo routinely failed with a 413 before any of our code even ran.
-// The browser instead POSTs the file straight to Cloudinary using the
-// signature this hands back, then calls finalizeGalleryPhotoSubmission with
-// just the resulting URL — a few bytes of JSON, nowhere near the limit.
-export async function getGalleryUploadSignature(): Promise<UploadSignatureResult> {
+// The browser instead PUTs the file straight to R2 using the presigned URL
+// this hands back, then calls finalizeGalleryPhotoSubmission with just the
+// resulting URL — a few bytes of JSON, nowhere near the limit.
+export async function getGalleryUploadTarget(contentType: string): Promise<UploadTargetResult> {
   const session = await auth();
   if (!session?.user) return { error: "Потрібно увійти через Discord" };
+  if (!contentType.startsWith("image/")) return { error: "Файл має бути зображенням" };
 
   const submittedToday = await countSubmittedToday(session.user.id);
   if (submittedToday >= SITE_DAILY_LIMIT) {
@@ -50,16 +51,16 @@ export async function getGalleryUploadSignature(): Promise<UploadSignatureResult
   }
 
   try {
-    return { ok: true, ...createGalleryUploadSignature() };
+    return { ok: true, ...(await createGalleryUploadTarget(contentType)) };
   } catch (err) {
-    await logError("getGalleryUploadSignature: failed", err);
+    await logError("getGalleryUploadTarget: failed", err);
     return { error: "Не вдалося підготувати завантаження" };
   }
 }
 
 export type FinalizeGalleryPhotoInput = {
   url: string;
-  publicId: string;
+  key: string;
   description?: string;
   season?: number;
   author?: string;
@@ -67,10 +68,10 @@ export type FinalizeGalleryPhotoInput = {
 
 export type SubmitGalleryPhotoResult = { ok: true } | { error: string };
 
-// Step 2: the photo is already on Cloudinary (uploaded directly from the
-// browser) by the time this runs — creates the DB row and posts it to the
+// Step 2: the photo is already on R2 (uploaded directly from the browser)
+// by the time this runs — creates the DB row and posts it to the
 // moderation channel. Re-checks the daily limit rather than trusting the
-// client not to call this directly after reusing an old signature.
+// client not to call this directly after reusing an old upload target.
 export async function finalizeGalleryPhotoSubmission(input: FinalizeGalleryPhotoInput): Promise<SubmitGalleryPhotoResult> {
   const session = await auth();
   if (!session?.user) return { error: "Потрібно увійти через Discord" };
@@ -80,12 +81,12 @@ export async function finalizeGalleryPhotoSubmission(input: FinalizeGalleryPhoto
     return { error: `Ви вже запропонували ${SITE_DAILY_LIMIT} фото сьогодні — спробуйте завтра` };
   }
 
-  // The url must actually be one Cloudinary just handed back for our own
-  // cloud — otherwise this endpoint would let anyone register an arbitrary
-  // external image URL as a "submission" with none of it ever touching
-  // Cloudinary (or our upload signature) at all.
-  const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
-  if (!input.url || !input.publicId || !cloudName || !input.url.includes(`res.cloudinary.com/${cloudName}/`)) {
+  // The url must actually be one our own R2 bucket just handed back —
+  // otherwise this endpoint would let anyone register an arbitrary
+  // external image URL as a "submission" with nothing ever touching R2 (or
+  // our upload target) at all.
+  const publicUrl = process.env.R2_PUBLIC_URL;
+  if (!input.url || !input.key || !publicUrl || input.url !== `${publicUrl}/${input.key}`) {
     return { error: "Невірне джерело фото" };
   }
 
@@ -104,7 +105,7 @@ export async function finalizeGalleryPhotoSubmission(input: FinalizeGalleryPhoto
   const photo = await prisma.galleryPhoto.create({
     data: {
       url: input.url,
-      cloudinaryPublicId: input.publicId,
+      storageKey: input.key,
       description,
       author,
       season,

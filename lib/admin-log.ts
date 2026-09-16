@@ -1,6 +1,6 @@
 // Server-side error log shown on /admin (see components/admin/AdminLog.tsx)
 // — every lib/*.ts file that talks to an external service (Discord,
-// Kinetic, Cloudinary, Donatello, the Minecraft MySQL DB) logs failures
+// Kinetic, Cloudflare R2, Donatello, the Minecraft MySQL DB) logs failures
 // through here instead of a bare console.error, so an admin can actually
 // see what's been failing without digging through Vercel's function logs.
 

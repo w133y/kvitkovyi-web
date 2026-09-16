@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { getGalleryUploadSignature, finalizeGalleryPhotoSubmission } from "@/lib/actions/gallery";
+import { getGalleryUploadTarget, finalizeGalleryPhotoSubmission } from "@/lib/actions/gallery";
 
 type Photo = { id: string; url: string; description: string | null; author: string | null };
 
@@ -125,38 +125,31 @@ function SubmitForm({
         return;
       }
 
-      // Step 1: a signature to upload straight to Cloudinary from the
-      // browser — the file itself never goes through our own server, which
-      // is what used to hit Vercel's 4.5MB serverless request-body ceiling
-      // (a platform limit, not something our own config could raise).
-      const sig = await getGalleryUploadSignature();
-      if ("error" in sig) {
-        setError(sig.error);
+      // Step 1: a presigned URL to PUT straight to R2 from the browser —
+      // the file itself never goes through our own server, which is what
+      // used to hit Vercel's 4.5MB serverless request-body ceiling (a
+      // platform limit, not something our own config could raise).
+      const target = await getGalleryUploadTarget(file.type);
+      if ("error" in target) {
+        setError(target.error);
         return;
       }
 
-      const uploadForm = new FormData();
-      uploadForm.append("file", file);
-      uploadForm.append("api_key", sig.apiKey);
-      uploadForm.append("timestamp", String(sig.timestamp));
-      uploadForm.append("signature", sig.signature);
-      uploadForm.append("folder", sig.folder);
-
-      const uploadRes = await fetch(`https://api.cloudinary.com/v1_1/${sig.cloudName}/image/upload`, {
-        method: "POST",
-        body: uploadForm,
+      const uploadRes = await fetch(target.uploadUrl, {
+        method: "PUT",
+        headers: { "Content-Type": file.type },
+        body: file,
       });
       if (!uploadRes.ok) {
         setError("Не вдалося завантажити фото — спробуйте ще раз");
         return;
       }
-      const uploaded = (await uploadRes.json()) as { secure_url: string; public_id: string };
 
       // Step 2: a small JSON call to actually record the submission and
       // post it for moderation, now that the photo has a URL.
       const result = await finalizeGalleryPhotoSubmission({
-        url: uploaded.secure_url,
-        publicId: uploaded.public_id,
+        url: target.publicUrl,
+        key: target.key,
         description: (formData.get("description") as string) || undefined,
         season: seasonLocked ? undefined : Number(formData.get("season")) || undefined,
         author: (formData.get("author") as string) || undefined,

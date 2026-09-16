@@ -7,7 +7,7 @@
 
 import nacl from "tweetnacl";
 import { prisma } from "@/lib/prisma";
-import { deleteGalleryPhoto } from "@/lib/cloudinary";
+import { deleteGalleryPhoto } from "@/lib/r2";
 import { postGalleryModeration, updateGalleryModeration, editSeasonChangeResult } from "@/lib/gallery-discord";
 import { getGallerySettings } from "@/lib/actions/gallery";
 import type { GalleryPhoto } from "@prisma/client";
@@ -229,7 +229,7 @@ async function handleGalleryButton(interaction: any, customId: string) {
     });
   } else if (action === "reject") {
     updated = await prisma.galleryPhoto.update({ where: { id: photoId }, data: { status: "REJECTED" } });
-    if (photo.cloudinaryPublicId) await deleteGalleryPhoto(photo.cloudinaryPublicId);
+    if (photo.storageKey) await deleteGalleryPhoto(photo.storageKey);
   } else if (action === "toggle_desc") {
     updated = await prisma.galleryPhoto.update({
       where: { id: photoId },

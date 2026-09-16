@@ -268,8 +268,8 @@ enum GalleryPhotoSource {
 model GalleryPhoto {
   id String @id @default(cuid())
 
-  url                String // Cloudinary secure_url
-  cloudinaryPublicId String? // null for LEGACY (never went through Cloudinary)
+  url        String // public R2 URL (or a Discord CDN attachment URL for DISCORD-sourced photos)
+  storageKey String? // R2 object key, for deletion — null for LEGACY/DISCORD (never uploaded to R2)
 
   description     String?
   // Moderators can hide a description without deleting it (a "toggle
