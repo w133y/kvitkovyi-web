@@ -2,18 +2,23 @@
 
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { uploadGalleryPhoto } from "@/lib/cloudinary";
+import { createGalleryUploadSignature, type GalleryUploadSignature } from "@/lib/cloudinary";
 import { postGalleryModeration, postSeasonChangeConfirm } from "@/lib/gallery-discord";
 import { logError } from "@/lib/admin-log";
 import { revalidatePath } from "next/cache";
 import type { GalleryPhoto } from "@prisma/client";
 
 const SITE_DAILY_LIMIT = 3;
-const MAX_PHOTO_BYTES = 10 * 1024 * 1024;
 
 function startOfTodayUtc(): Date {
   const now = new Date();
   return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+}
+
+async function countSubmittedToday(userId: string): Promise<number> {
+  return prisma.galleryPhoto.count({
+    where: { submittedByUserId: userId, source: "SITE", createdAt: { gte: startOfTodayUtc() } },
+  });
 }
 
 export async function getGallerySettings() {
@@ -24,63 +29,82 @@ export async function getGallerySettings() {
   });
 }
 
-export type SubmitGalleryPhotoResult = { ok: true } | { error: string };
+export type UploadSignatureResult = ({ ok: true } & GalleryUploadSignature) | { error: string };
 
-// Site submission form under the homepage slider — rate-limited to 3/day
-// per signed-in user. The Discord /gallery slash command (see the
-// interactions route) is a separate, unlimited path to the same moderation
-// queue.
-export async function submitGalleryPhoto(formData: FormData): Promise<SubmitGalleryPhotoResult> {
+// Step 1 of 2 for the site submission form (see finalizeGalleryPhotoSubmission
+// below for step 2). The photo itself is never sent through a server action
+// — Vercel's serverless functions hard-cap request bodies at 4.5MB at the
+// platform level (next.config.ts's own bodySizeLimit only governs Next's
+// own check on top of that, it can't raise Vercel's own ceiling), so a real
+// phone photo routinely failed with a 413 before any of our code even ran.
+// The browser instead POSTs the file straight to Cloudinary using the
+// signature this hands back, then calls finalizeGalleryPhotoSubmission with
+// just the resulting URL — a few bytes of JSON, nowhere near the limit.
+export async function getGalleryUploadSignature(): Promise<UploadSignatureResult> {
   const session = await auth();
   if (!session?.user) return { error: "Потрібно увійти через Discord" };
 
-  const file = formData.get("photo");
-  if (!(file instanceof File) || file.size === 0) {
-    return { error: "Оберіть фото" };
-  }
-  if (!file.type.startsWith("image/")) {
-    return { error: "Файл має бути зображенням" };
-  }
-  if (file.size > MAX_PHOTO_BYTES) {
-    return { error: "Фото завелике (максимум 10 МБ)" };
-  }
-
-  const submittedToday = await prisma.galleryPhoto.count({
-    where: {
-      submittedByUserId: session.user.id,
-      source: "SITE",
-      createdAt: { gte: startOfTodayUtc() },
-    },
-  });
+  const submittedToday = await countSubmittedToday(session.user.id);
   if (submittedToday >= SITE_DAILY_LIMIT) {
     return { error: `Ви вже запропонували ${SITE_DAILY_LIMIT} фото сьогодні — спробуйте завтра` };
+  }
+
+  try {
+    return { ok: true, ...createGalleryUploadSignature() };
+  } catch (err) {
+    await logError("getGalleryUploadSignature: failed", err);
+    return { error: "Не вдалося підготувати завантаження" };
+  }
+}
+
+export type FinalizeGalleryPhotoInput = {
+  url: string;
+  publicId: string;
+  description?: string;
+  season?: number;
+  author?: string;
+};
+
+export type SubmitGalleryPhotoResult = { ok: true } | { error: string };
+
+// Step 2: the photo is already on Cloudinary (uploaded directly from the
+// browser) by the time this runs — creates the DB row and posts it to the
+// moderation channel. Re-checks the daily limit rather than trusting the
+// client not to call this directly after reusing an old signature.
+export async function finalizeGalleryPhotoSubmission(input: FinalizeGalleryPhotoInput): Promise<SubmitGalleryPhotoResult> {
+  const session = await auth();
+  if (!session?.user) return { error: "Потрібно увійти через Discord" };
+
+  const submittedToday = await countSubmittedToday(session.user.id);
+  if (submittedToday >= SITE_DAILY_LIMIT) {
+    return { error: `Ви вже запропонували ${SITE_DAILY_LIMIT} фото сьогодні — спробуйте завтра` };
+  }
+
+  // The url must actually be one Cloudinary just handed back for our own
+  // cloud — otherwise this endpoint would let anyone register an arbitrary
+  // external image URL as a "submission" with none of it ever touching
+  // Cloudinary (or our upload signature) at all.
+  const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
+  if (!input.url || !input.publicId || !cloudName || !input.url.includes(`res.cloudinary.com/${cloudName}/`)) {
+    return { error: "Невірне джерело фото" };
   }
 
   const settings = await getGallerySettings();
   // Locked means locked — never trust the client's season value while an
   // admin has it locked, even if the field was somehow re-enabled/edited
   // client-side.
-  const seasonRaw = formData.get("season");
   const season =
-    !settings.seasonLocked && typeof seasonRaw === "string" && Number.isFinite(Number(seasonRaw)) && Number(seasonRaw) > 0
-      ? Math.floor(Number(seasonRaw))
+    !settings.seasonLocked && Number.isFinite(input.season) && (input.season as number) > 0
+      ? Math.floor(input.season as number)
       : settings.currentSeason;
 
-  const description = (formData.get("description") as string | null)?.trim() || null;
-  const author = (formData.get("author") as string | null)?.trim() || null;
-
-  let uploaded;
-  try {
-    uploaded = await uploadGalleryPhoto(file);
-  } catch (err) {
-    await logError("submitGalleryPhoto: upload failed", err);
-    return { error: "Не вдалося завантажити фото — спробуйте ще раз" };
-  }
+  const description = input.description?.trim() || null;
+  const author = input.author?.trim() || null;
 
   const photo = await prisma.galleryPhoto.create({
     data: {
-      url: uploaded.url,
-      cloudinaryPublicId: uploaded.publicId,
+      url: input.url,
+      cloudinaryPublicId: input.publicId,
       description,
       author,
       season,

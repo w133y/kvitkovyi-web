@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { submitGalleryPhoto } from "@/lib/actions/gallery";
+import { getGalleryUploadSignature, finalizeGalleryPhotoSubmission } from "@/lib/actions/gallery";
 
 type Photo = { id: string; url: string; description: string | null; author: string | null };
 
@@ -116,15 +116,66 @@ function SubmitForm({
     e.preventDefault();
     setSubmitting(true);
     setError(null);
-    const formData = new FormData(e.currentTarget);
-    const result = await submitGalleryPhoto(formData);
-    setSubmitting(false);
-    if ("error" in result) {
-      setError(result.error);
-      return;
+
+    try {
+      const formData = new FormData(e.currentTarget);
+      const file = formData.get("photo");
+      if (!(file instanceof File) || file.size === 0) {
+        setError("Оберіть фото");
+        return;
+      }
+
+      // Step 1: a signature to upload straight to Cloudinary from the
+      // browser — the file itself never goes through our own server, which
+      // is what used to hit Vercel's 4.5MB serverless request-body ceiling
+      // (a platform limit, not something our own config could raise).
+      const sig = await getGalleryUploadSignature();
+      if ("error" in sig) {
+        setError(sig.error);
+        return;
+      }
+
+      const uploadForm = new FormData();
+      uploadForm.append("file", file);
+      uploadForm.append("api_key", sig.apiKey);
+      uploadForm.append("timestamp", String(sig.timestamp));
+      uploadForm.append("signature", sig.signature);
+      uploadForm.append("folder", sig.folder);
+
+      const uploadRes = await fetch(`https://api.cloudinary.com/v1_1/${sig.cloudName}/image/upload`, {
+        method: "POST",
+        body: uploadForm,
+      });
+      if (!uploadRes.ok) {
+        setError("Не вдалося завантажити фото — спробуйте ще раз");
+        return;
+      }
+      const uploaded = (await uploadRes.json()) as { secure_url: string; public_id: string };
+
+      // Step 2: a small JSON call to actually record the submission and
+      // post it for moderation, now that the photo has a URL.
+      const result = await finalizeGalleryPhotoSubmission({
+        url: uploaded.secure_url,
+        publicId: uploaded.public_id,
+        description: (formData.get("description") as string) || undefined,
+        season: seasonLocked ? undefined : Number(formData.get("season")) || undefined,
+        author: (formData.get("author") as string) || undefined,
+      });
+      if ("error" in result) {
+        setError(result.error);
+        return;
+      }
+      setSuccess(true);
+      setTimeout(onDone, 2000);
+    } catch (err) {
+      // Anything unexpected throwing used to leave the button stuck on
+      // "Надсилання..." forever, since nothing after an unguarded await
+      // ever ran.
+      console.error("gallery submit failed", err);
+      setError("Не вдалося надіслати фото — спробуйте ще раз");
+    } finally {
+      setSubmitting(false);
     }
-    setSuccess(true);
-    setTimeout(onDone, 2000);
   }
 
   if (success) {

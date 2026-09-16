@@ -29,28 +29,28 @@ function sign(params: Record<string, string | number>, apiSecret: string): strin
 
 export type UploadedPhoto = { url: string; publicId: string };
 
-export async function uploadGalleryPhoto(file: Blob): Promise<UploadedPhoto> {
+// Vercel's serverless functions hard-cap request bodies at 4.5MB at the
+// platform level — next.config.ts's own bodySizeLimit can't override that,
+// it only governs Next's own check on top. Routing a real photo through a
+// server action to then re-upload it to Cloudinary meant anything over
+// ~4.3MB (accounting for multipart overhead) failed with a 413 before our
+// own code ever ran. Signed direct upload sidesteps this: the browser POSTs
+// the file straight to Cloudinary, never touching our server at all — this
+// only hands the client a short-lived signature to do that with.
+export type GalleryUploadSignature = {
+  cloudName: string;
+  apiKey: string;
+  timestamp: number;
+  signature: string;
+  folder: string;
+};
+
+export function createGalleryUploadSignature(): GalleryUploadSignature {
   const { cloudName, apiKey, apiSecret } = getConfig();
   const timestamp = Math.floor(Date.now() / 1000);
-  const signature = sign({ folder: "gallery", timestamp }, apiSecret);
-
-  const form = new FormData();
-  form.append("file", file);
-  form.append("api_key", apiKey);
-  form.append("timestamp", String(timestamp));
-  form.append("signature", signature);
-  form.append("folder", "gallery");
-
-  const res = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
-    method: "POST",
-    body: form,
-  });
-  if (!res.ok) {
-    await logError("cloudinary: upload failed", res.status, await res.text().catch(() => ""));
-    throw new Error("Не вдалося завантажити фото");
-  }
-  const data = (await res.json()) as { secure_url: string; public_id: string };
-  return { url: data.secure_url, publicId: data.public_id };
+  const folder = "gallery";
+  const signature = sign({ folder, timestamp }, apiSecret);
+  return { cloudName, apiKey, timestamp, signature, folder };
 }
 
 // Best-effort — called when an admin rejects/deletes a submission via the
