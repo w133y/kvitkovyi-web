@@ -22,6 +22,14 @@ model AdminLogEntry {
   @@index([createdAt])
 }
 
+// Singleton (id always "default") — whether logError() persists to
+// AdminLogEntry at all. Off doesn't touch the console.error() every call
+// site still does alongside it, only the DB write + /admin visibility.
+model AdminSettings {
+  id                  String  @id @default("default")
+  errorLoggingEnabled Boolean @default(true)
+}
+
 // --- Auth.js (NextAuth) required models ---
 // https://authjs.dev/getting-started/adapters/prisma
 

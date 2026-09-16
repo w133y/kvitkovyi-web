@@ -4,7 +4,7 @@ import { auth } from "@/lib/auth";
 import { listAchievements } from "@/lib/actions/achievements";
 import { listPrivileges } from "@/lib/actions/donate-privileges";
 import { getGallerySettings } from "@/lib/actions/gallery";
-import { getAdminLogs } from "@/lib/actions/admin-log";
+import { getAdminLogs, getErrorLoggingEnabled } from "@/lib/actions/admin-log";
 import AchievementsAdmin from "@/components/admin/AchievementsAdmin";
 import DonatePrivilegesAdmin from "@/components/admin/DonatePrivilegesAdmin";
 import GallerySettingsAdmin from "@/components/admin/GallerySettingsAdmin";
@@ -28,6 +28,7 @@ export default async function AdminPage() {
   const privileges = await listPrivileges();
   const gallerySettings = await getGallerySettings();
   const logs = await getAdminLogs();
+  const errorLoggingEnabled = await getErrorLoggingEnabled();
 
   return (
     <div className="admin-page">
@@ -59,7 +60,7 @@ export default async function AdminPage() {
 
       <div className="admin-section">
         <h3>Журнал помилок</h3>
-        <AdminLog initialLogs={logs} />
+        <AdminLog initialLogs={logs} initialEnabled={errorLoggingEnabled} />
       </div>
     </div>
   );

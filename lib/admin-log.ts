@@ -6,6 +6,22 @@
 
 import { prisma } from "@/lib/prisma";
 
+export async function getAdminSettings() {
+  return prisma.adminSettings.upsert({
+    where: { id: "default" },
+    update: {},
+    create: { id: "default" },
+  });
+}
+
+export async function setErrorLoggingEnabled(enabled: boolean): Promise<void> {
+  await prisma.adminSettings.upsert({
+    where: { id: "default" },
+    update: { errorLoggingEnabled: enabled },
+    create: { id: "default", errorLoggingEnabled: enabled },
+  });
+}
+
 // Same "prefix: what failed" convention every console.error call already
 // used before this existed — kept as one string rather than splitting into
 // a separate context field, since the message alone is already meaningful.
@@ -15,6 +31,9 @@ import { prisma } from "@/lib/prisma";
 export async function logError(message: string, ...extra: unknown[]): Promise<void> {
   console.error(message, ...extra);
   try {
+    const { errorLoggingEnabled } = await getAdminSettings();
+    if (!errorLoggingEnabled) return;
+
     const errorArg = extra.find((e): e is Error => e instanceof Error);
     const detail =
       extra.length === 0

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { getAdminLogs, clearAdminLogsAction } from "@/lib/actions/admin-log";
+import { getAdminLogs, clearAdminLogsAction, setErrorLoggingEnabledAction } from "@/lib/actions/admin-log";
 
 type LogEntry = {
   id: string;
@@ -20,8 +20,15 @@ function formatTime(d: string | Date) {
   });
 }
 
-export default function AdminLog({ initialLogs }: { initialLogs: LogEntry[] }) {
+export default function AdminLog({
+  initialLogs,
+  initialEnabled,
+}: {
+  initialLogs: LogEntry[];
+  initialEnabled: boolean;
+}) {
   const [logs, setLogs] = useState(initialLogs);
+  const [enabled, setEnabled] = useState(initialEnabled);
   const [pending, startTransition] = useTransition();
 
   function refresh() {
@@ -39,8 +46,21 @@ export default function AdminLog({ initialLogs }: { initialLogs: LogEntry[] }) {
     });
   }
 
+  function toggleEnabled() {
+    const next = !enabled;
+    setEnabled(next);
+    startTransition(async () => {
+      await setErrorLoggingEnabledAction(next);
+    });
+  }
+
   return (
     <div className="admin-log">
+      <label className="admin-checkbox-label">
+        <input type="checkbox" checked={enabled} onChange={toggleEnabled} disabled={pending} />
+        Записувати помилки в журнал
+      </label>
+
       <div className="admin-form-actions">
         <button type="button" onClick={refresh} disabled={pending}>
           <i className="fa-solid fa-arrows-rotate"></i> Оновити
@@ -51,7 +71,11 @@ export default function AdminLog({ initialLogs }: { initialLogs: LogEntry[] }) {
       </div>
 
       <p className="admin-privileges-summary">
-        {logs.length === 0 ? "Помилок немає." : `Останні ${logs.length} записів.`}
+        {!enabled
+          ? "Журнал вимкнено — нові помилки не записуються."
+          : logs.length === 0
+            ? "Помилок немає."
+            : `Останні ${logs.length} записів.`}
       </p>
 
       <div className="admin-log-list">
