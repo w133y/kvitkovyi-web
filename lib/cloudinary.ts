@@ -4,6 +4,7 @@
 // Discord CDN attachment URL, since Discord already hosts those.
 
 import crypto from "crypto";
+import { logError } from "@/lib/admin-log";
 
 function getConfig() {
   const cloudName = process.env.CLOUDINARY_CLOUD_NAME;
@@ -45,7 +46,7 @@ export async function uploadGalleryPhoto(file: Blob): Promise<UploadedPhoto> {
     body: form,
   });
   if (!res.ok) {
-    console.error("cloudinary: upload failed", res.status, await res.text().catch(() => ""));
+    await logError("cloudinary: upload failed", res.status, await res.text().catch(() => ""));
     throw new Error("Не вдалося завантажити фото");
   }
   const data = (await res.json()) as { secure_url: string; public_id: string };
@@ -71,9 +72,9 @@ export async function deleteGalleryPhoto(publicId: string): Promise<void> {
       body: form,
     });
     if (!res.ok) {
-      console.error("cloudinary: delete failed", res.status, await res.text().catch(() => ""));
+      await logError("cloudinary: delete failed", res.status, await res.text().catch(() => ""));
     }
   } catch (err) {
-    console.error("cloudinary: delete error", err);
+    await logError("cloudinary: delete error", err);
   }
 }

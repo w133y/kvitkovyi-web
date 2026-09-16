@@ -1,5 +1,6 @@
 import mysql from "mysql2/promise";
 import crypto from "crypto";
+import { logError } from "@/lib/admin-log";
 
 // Read-only access to the Minecraft server's existing MySQL DB (populated by
 // server plugins). Never write to this DB — new site data belongs in the
@@ -109,7 +110,7 @@ export async function getLeaderboard(limit = 67): Promise<LeaderboardEntry[]> {
       };
     });
   } catch (err) {
-    console.error("mc-db: getLeaderboard failed", err);
+    await logError("mc-db: getLeaderboard failed", err);
     return [];
   }
 }
@@ -128,7 +129,7 @@ export async function searchPlayerNicknames(query: string, limit = 20): Promise<
     );
     return rows.map((row) => row.nickname as string);
   } catch (err) {
-    console.error("mc-db: searchPlayerNicknames failed", err);
+    await logError("mc-db: searchPlayerNicknames failed", err);
     return [];
   }
 }
@@ -300,7 +301,7 @@ async function getLeaderboardPageUncached(
 
     return { entries, total, error: false };
   } catch (err) {
-    console.error("mc-db: getLeaderboardPage failed", err);
+    await logError("mc-db: getLeaderboardPage failed", err);
     // error:true (rather than just an empty result) lets the API route
     // return a non-200 status, so the client can tell "the query genuinely
     // matched nothing" apart from "the request failed" instead of both
@@ -359,7 +360,7 @@ export async function getNicknamesForDiscordIds(discordIds: string[]): Promise<S
 
     return result;
   } catch (err) {
-    console.error("mc-db: getNicknamesForDiscordIds failed", err);
+    await logError("mc-db: getNicknamesForDiscordIds failed", err);
     return new Set();
   }
 }
@@ -424,7 +425,7 @@ export async function getDiscordLink(discordId: string): Promise<DiscordLink | n
     discordLinkCache.set(discordId, result);
     return result;
   } catch (err) {
-    console.error("mc-db: getDiscordLink failed", err);
+    await logError("mc-db: getDiscordLink failed", err);
     return null;
   }
 }
@@ -454,7 +455,7 @@ export async function getDiscordIdForPlayer(uuid: string, nickname: string): Pro
     );
     return offlineRows.length > 0 ? (offlineRows[0].discord as string) : null;
   } catch (err) {
-    console.error("mc-db: getDiscordIdForPlayer failed", err);
+    await logError("mc-db: getDiscordIdForPlayer failed", err);
     return null;
   }
 }
@@ -474,7 +475,7 @@ export async function getDiscordIdForNickname(nickname: string): Promise<string 
     const uuid = rows.length > 0 ? (rows[0].uuid as string) : "";
     return getDiscordIdForPlayer(uuid, nickname);
   } catch (err) {
-    console.error("mc-db: getDiscordIdForNickname failed", err);
+    await logError("mc-db: getDiscordIdForNickname failed", err);
     return null;
   }
 }
@@ -493,7 +494,7 @@ export async function getPlaytimeByNickname(nickname: string): Promise<PlaytimeE
     const totalMinutes = Math.round(rows[0].playtime / 20 / 60);
     return { hours: Math.floor(totalMinutes / 60), minutes: totalMinutes % 60 };
   } catch (err) {
-    console.error("mc-db: getPlaytimeByNickname failed", err);
+    await logError("mc-db: getPlaytimeByNickname failed", err);
     return null;
   }
 }
@@ -585,7 +586,7 @@ export async function getPlayerProfileByNickname(
     profileCache.set(nickname, profile);
     return profile;
   } catch (err) {
-    console.error("mc-db: getPlayerProfileByNickname failed", err);
+    await logError("mc-db: getPlayerProfileByNickname failed", err);
     return null;
   }
 }
@@ -616,7 +617,7 @@ export async function getPlaytimeRank(nickname: string): Promise<number | null> 
     playtimeRankCache.set(nickname, rank);
     return rank;
   } catch (err) {
-    console.error("mc-db: getPlaytimeRank failed", err);
+    await logError("mc-db: getPlaytimeRank failed", err);
     return null;
   }
 }
@@ -650,7 +651,7 @@ export async function getSkinsRestorerSkin(uuid: string): Promise<SkinsRestorerS
     skinCache.set(uuid, result);
     return result;
   } catch (err) {
-    console.error("mc-db: getSkinsRestorerSkin failed", err);
+    await logError("mc-db: getSkinsRestorerSkin failed", err);
     return null;
   }
 }

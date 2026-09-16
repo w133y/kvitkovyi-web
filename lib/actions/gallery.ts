@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { uploadGalleryPhoto } from "@/lib/cloudinary";
 import { postGalleryModeration, postSeasonChangeConfirm } from "@/lib/gallery-discord";
+import { logError } from "@/lib/admin-log";
 import { revalidatePath } from "next/cache";
 import type { GalleryPhoto } from "@prisma/client";
 
@@ -72,7 +73,7 @@ export async function submitGalleryPhoto(formData: FormData): Promise<SubmitGall
   try {
     uploaded = await uploadGalleryPhoto(file);
   } catch (err) {
-    console.error("submitGalleryPhoto: upload failed", err);
+    await logError("submitGalleryPhoto: upload failed", err);
     return { error: "Не вдалося завантажити фото — спробуйте ще раз" };
   }
 

@@ -5,6 +5,8 @@
 // app/api/discord/interactions/route.ts for the other half — handling
 // clicks on the buttons/slash commands this file sends out.
 
+import { logError } from "@/lib/admin-log";
+
 const DISCORD_API = "https://discord.com/api/v10";
 
 function getBotToken(): string {
@@ -63,13 +65,13 @@ export async function sendDiscordMessage(
       body: JSON.stringify(payload),
     });
     if (!res.ok) {
-      console.error("discord: sendDiscordMessage failed", res.status, await res.text().catch(() => ""));
+      await logError("discord: sendDiscordMessage failed", res.status, await res.text().catch(() => ""));
       return null;
     }
     const data = (await res.json()) as { id: string };
     return data.id;
   } catch (err) {
-    console.error("discord: sendDiscordMessage error", err);
+    await logError("discord: sendDiscordMessage error", err);
     return null;
   }
 }
@@ -89,10 +91,10 @@ export async function editDiscordMessage(
       body: JSON.stringify(payload),
     });
     if (!res.ok) {
-      console.error("discord: editDiscordMessage failed", res.status, await res.text().catch(() => ""));
+      await logError("discord: editDiscordMessage failed", res.status, await res.text().catch(() => ""));
     }
   } catch (err) {
-    console.error("discord: editDiscordMessage error", err);
+    await logError("discord: editDiscordMessage error", err);
   }
 }
 
@@ -109,10 +111,10 @@ export async function addGuildMemberRole(userId: string, roleId: string): Promis
       { method: "PUT", headers: { Authorization: `Bot ${getBotToken()}` } }
     );
     if (!res.ok && res.status !== 204) {
-      console.error("discord: addGuildMemberRole failed", res.status, await res.text().catch(() => ""));
+      await logError("discord: addGuildMemberRole failed", res.status, await res.text().catch(() => ""));
     }
   } catch (err) {
-    console.error("discord: addGuildMemberRole error", err);
+    await logError("discord: addGuildMemberRole error", err);
   }
 }
 
@@ -123,9 +125,9 @@ export async function removeGuildMemberRole(userId: string, roleId: string): Pro
       { method: "DELETE", headers: { Authorization: `Bot ${getBotToken()}` } }
     );
     if (!res.ok && res.status !== 204) {
-      console.error("discord: removeGuildMemberRole failed", res.status, await res.text().catch(() => ""));
+      await logError("discord: removeGuildMemberRole failed", res.status, await res.text().catch(() => ""));
     }
   } catch (err) {
-    console.error("discord: removeGuildMemberRole error", err);
+    await logError("discord: removeGuildMemberRole error", err);
   }
 }

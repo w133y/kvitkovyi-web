@@ -3,6 +3,8 @@
 // buyer's order code (see lib/actions/donate-order.ts). Donatello has no
 // webhook, so this is the only way to confirm a donation went through.
 
+import { logError } from "@/lib/admin-log";
+
 export type DonatelloDonate = {
   pubId: string;
   clientName: string;
@@ -30,7 +32,7 @@ export async function fetchRecentDonates(size = 30): Promise<DonatelloDonate[]> 
 
   if (!res.ok) {
     const body = await res.text().catch(() => "");
-    console.error("donatello: fetchRecentDonates failed", res.status, body);
+    await logError("donatello: fetchRecentDonates failed", res.status, body);
     throw new Error(`Не вдалося отримати список донатів (${res.status})`);
   }
 

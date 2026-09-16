@@ -5,6 +5,8 @@
 // must build its own command from validated, narrow inputs — never pass
 // through free-text from a client request unescaped.
 
+import { logError } from "@/lib/admin-log";
+
 function getConfig() {
   const baseUrl = process.env.KINETIC_API_BASE_URL;
   const token = process.env.KINETIC_API_TOKEN;
@@ -30,7 +32,7 @@ export async function sendServerCommand(command: string): Promise<void> {
 
   if (!res.ok) {
     const body = await res.text().catch(() => "");
-    console.error("kinetic: sendServerCommand failed", res.status, body);
+    await logError("kinetic: sendServerCommand failed", res.status, body);
     throw new Error(`Не вдалося надіслати команду на сервер (${res.status})`);
   }
 }

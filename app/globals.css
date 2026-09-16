@@ -4943,6 +4943,67 @@ header nav .auth-widget {
     cursor: pointer;
 }
 
+.admin-log {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.admin-log-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    max-height: 500px;
+    overflow-y: auto;
+}
+
+.admin-log-row {
+    background: rgb(45, 45, 45);
+    border-radius: 12px;
+    padding: 10px 16px;
+}
+
+.admin-log-row-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.admin-log-message {
+    color: #ff8080;
+    font-size: 13px;
+    word-break: break-word;
+}
+
+.admin-log-time {
+    color: rgb(140, 140, 140);
+    font-size: 12px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.admin-log-detail {
+    margin-top: 6px;
+}
+
+.admin-log-detail summary {
+    color: rgb(170, 170, 170);
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.admin-log-detail pre {
+    margin: 6px 0 0;
+    padding: 8px 10px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 8px;
+    color: rgb(200, 200, 200);
+    font-size: 11px;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
 .admin-form-actions {
     display: flex;
     gap: 10px;

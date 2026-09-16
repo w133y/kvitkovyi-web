@@ -1,4 +1,5 @@
 import { getSkinsRestorerSkin } from "./mc-db";
+import { logError } from "@/lib/admin-log";
 
 // Resolves a player's actual skin texture, keyed by UUID. We used to rely on
 // crafatar.com (a third-party render cache) but its storage backend has been
@@ -66,7 +67,7 @@ export async function getSkinTexture(uuid: string): Promise<SkinTexture | null> 
 
     return decodeTextureValue(texturesProp.value);
   } catch (err) {
-    console.error("mojang-skin: getSkinTexture failed", err);
+    await logError("mojang-skin: getSkinTexture failed", err);
     return null;
   }
 }

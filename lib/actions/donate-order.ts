@@ -7,6 +7,7 @@ import { getDiscordLink, getPlaytimeByNickname, searchPlayerNicknames } from "@/
 import { fetchRecentDonates } from "@/lib/donatello";
 import { grantDonatePrivilegeInGame } from "@/lib/donate-privilege-grants";
 import { logDonateOrderCreated, logDonateOrderPaid, logDonateOrderExpired } from "@/lib/donate-order-log";
+import { logError } from "@/lib/admin-log";
 import type { DonateOrder } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
@@ -204,7 +205,7 @@ export async function checkDonateOrderPayment(orderId: string): Promise<CheckDon
     // donatelloPubId is @unique — this would only throw if that same
     // donation somehow got claimed by another order first, which the
     // per-order random code should make effectively impossible.
-    console.error("checkDonateOrderPayment: claim failed", err);
+    await logError("checkDonateOrderPayment: claim failed", err);
     return { status: "PENDING" };
   }
   if (claim.count === 0) {
@@ -225,7 +226,7 @@ export async function checkDonateOrderPayment(orderId: string): Promise<CheckDon
   } catch (err) {
     // Order is already marked PAID above, so the buyer isn't stuck even if
     // this fails — but it needs manual follow-up (grant via /admin).
-    console.error("checkDonateOrderPayment: privilege grant failed after marking paid", err);
+    await logError("checkDonateOrderPayment: privilege grant failed after marking paid", err);
   }
 
   // The actual in-game grant — DonatePrivilege above only drives the site's

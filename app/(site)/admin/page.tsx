@@ -4,9 +4,11 @@ import { auth } from "@/lib/auth";
 import { listAchievements } from "@/lib/actions/achievements";
 import { listPrivileges } from "@/lib/actions/donate-privileges";
 import { getGallerySettings } from "@/lib/actions/gallery";
+import { getAdminLogs } from "@/lib/actions/admin-log";
 import AchievementsAdmin from "@/components/admin/AchievementsAdmin";
 import DonatePrivilegesAdmin from "@/components/admin/DonatePrivilegesAdmin";
 import GallerySettingsAdmin from "@/components/admin/GallerySettingsAdmin";
+import AdminLog from "@/components/admin/AdminLog";
 
 export const metadata: Metadata = {
   title: "Панель — Квітковий",
@@ -25,6 +27,7 @@ export default async function AdminPage() {
   const achievements = await listAchievements();
   const privileges = await listPrivileges();
   const gallerySettings = await getGallerySettings();
+  const logs = await getAdminLogs();
 
   return (
     <div className="admin-page">
@@ -52,6 +55,11 @@ export default async function AdminPage() {
           pendingSeason={gallerySettings.pendingSeason}
           seasonLocked={gallerySettings.seasonLocked}
         />
+      </div>
+
+      <div className="admin-section">
+        <h3>Журнал помилок</h3>
+        <AdminLog initialLogs={logs} />
       </div>
     </div>
   );

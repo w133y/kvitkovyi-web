@@ -7,6 +7,21 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// A rolling log of server-side errors (failed Discord/Kinetic/Cloudinary/
+// Donatello/mc-db calls, mostly) shown on /admin — see lib/admin-log.ts.
+// Vercel's own function logs already have all of this, but they're not
+// something the admin can casually check from the site itself. Pruned back
+// to the newest ADMIN_LOG_MAX_ENTRIES rows opportunistically whenever the
+// admin panel loads (see listAdminLogs), not on every write.
+model AdminLogEntry {
+  id        String   @id @default(cuid())
+  message   String
+  detail    String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}
+
 // --- Auth.js (NextAuth) required models ---
 // https://authjs.dev/getting-started/adapters/prisma
 

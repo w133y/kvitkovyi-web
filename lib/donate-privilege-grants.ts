@@ -12,6 +12,7 @@ import { sendServerCommand } from "@/lib/kinetic";
 import { addGuildMemberRole, removeGuildMemberRole } from "@/lib/discord";
 import { getDiscordIdForNickname } from "@/lib/mc-db";
 import { logDonatePrivilegeRevoked, type DonatePrivilegeRevokeReason } from "@/lib/donate-order-log";
+import { logError } from "@/lib/admin-log";
 import { MINECRAFT_COLORS, FLORIST_SYMBOL, FLORIST_COLOR_HEX } from "@/lib/minecraft-symbols";
 import type { DonateTier } from "@prisma/client";
 
@@ -56,14 +57,14 @@ export async function grantDonatePrivilegeInGame(params: {
   iconColorHex: string | null;
 }) {
   if (!NICKNAME_RE.test(params.nickname)) {
-    console.error("donate-privilege-grants: refused grant, invalid nickname", params.nickname);
+    await logError("donate-privilege-grants: refused grant, invalid nickname", params.nickname);
     return;
   }
 
   try {
     await sendServerCommand(`lp user ${params.nickname} parent add ${TIER_LP_GROUP[params.tier]}`);
   } catch (err) {
-    console.error("donate-privilege-grants: group grant failed", err);
+    await logError("donate-privilege-grants: group grant failed", err);
   }
 
   const symbol = params.tier === "MECENAT" ? params.iconSymbol : FLORIST_SYMBOL;
@@ -75,7 +76,7 @@ export async function grantDonatePrivilegeInGame(params: {
     try {
       await sendServerCommand(`lp user ${params.nickname} meta setsuffix ${SUFFIX_PRIORITY} "${suffix}"`);
     } catch (err) {
-      console.error("donate-privilege-grants: suffix grant failed", err);
+      await logError("donate-privilege-grants: suffix grant failed", err);
     }
     // Belt-and-suspenders: an earlier build of this feature used a prefix
     // instead — clear any leftover one at this priority so a badge granted
@@ -83,7 +84,7 @@ export async function grantDonatePrivilegeInGame(params: {
     try {
       await sendServerCommand(`lp user ${params.nickname} meta removeprefix ${SUFFIX_PRIORITY}`);
     } catch (err) {
-      console.error("donate-privilege-grants: stale prefix cleanup failed", err);
+      await logError("donate-privilege-grants: stale prefix cleanup failed", err);
     }
   }
 
@@ -93,7 +94,7 @@ export async function grantDonatePrivilegeInGame(params: {
     if (discordId) {
       await addGuildMemberRole(discordId, roleId);
     } else {
-      console.error("donate-privilege-grants: no linked Discord account, skipped role grant for", params.nickname);
+      await logError("donate-privilege-grants: no linked Discord account, skipped role grant for", params.nickname);
     }
   }
 }
@@ -109,14 +110,14 @@ export async function revokeDonatePrivilegeInGame(params: {
   reason: DonatePrivilegeRevokeReason;
 }) {
   if (!NICKNAME_RE.test(params.nickname)) {
-    console.error("donate-privilege-grants: refused revoke, invalid nickname", params.nickname);
+    await logError("donate-privilege-grants: refused revoke, invalid nickname", params.nickname);
     return;
   }
 
   try {
     await sendServerCommand(`lp user ${params.nickname} parent remove ${TIER_LP_GROUP[params.tier]}`);
   } catch (err) {
-    console.error("donate-privilege-grants: group revoke failed", err);
+    await logError("donate-privilege-grants: group revoke failed", err);
   }
 
   const revokedRoleId = getTierRoleId(params.tier);
@@ -125,7 +126,7 @@ export async function revokeDonatePrivilegeInGame(params: {
     if (discordId) {
       await removeGuildMemberRole(discordId, revokedRoleId);
     } else {
-      console.error("donate-privilege-grants: no linked Discord account, skipped role revoke for", params.nickname);
+      await logError("donate-privilege-grants: no linked Discord account, skipped role revoke for", params.nickname);
     }
   }
 
@@ -148,13 +149,13 @@ export async function revokeDonatePrivilegeInGame(params: {
   try {
     await sendServerCommand(`lp user ${params.nickname} meta removesuffix ${SUFFIX_PRIORITY}`);
   } catch (err) {
-    console.error("donate-privilege-grants: suffix removal failed", err);
+    await logError("donate-privilege-grants: suffix removal failed", err);
   }
   // Same leftover-prefix cleanup as the grant path above.
   try {
     await sendServerCommand(`lp user ${params.nickname} meta removeprefix ${SUFFIX_PRIORITY}`);
   } catch (err) {
-    console.error("donate-privilege-grants: stale prefix cleanup failed", err);
+    await logError("donate-privilege-grants: stale prefix cleanup failed", err);
   }
 }
 
