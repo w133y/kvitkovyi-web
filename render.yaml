@@ -1,0 +1,83 @@
+databases:
+  - name: kvitkovyi-db
+    plan: free
+    postgresMajorVersion: "16"
+
+services:
+  - type: web
+    name: kvitkovyi
+    runtime: node
+    plan: free
+    buildCommand: npm install && npx prisma migrate deploy && npm run build
+    startCommand: npm run start
+    healthCheckPath: /
+    envVars:
+      # Matches the local dev Node version this project has actually been
+      # built and tested against this whole session.
+      - key: NODE_VERSION
+        value: 24.19.0
+      # Auth.js needs to trust Render's own Host header to work without a
+      # single hardcoded AUTH_URL (Render's free-tier URL isn't fixed until
+      # the service is actually created, and this also covers a later
+      # custom domain without a redeploy).
+      - key: AUTH_TRUST_HOST
+        value: "true"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: kvitkovyi-db
+          property: connectionString
+
+      # Everything below is a secret — Render prompts for each one in the
+      # dashboard on first deploy from this blueprint (sync: false), so none
+      # of the real values ever go into the repo. Copy each from the local
+      # .env (see the comments there for what each one is/where it's from).
+      - key: AUTH_SECRET
+        sync: false
+      - key: AUTH_DISCORD_ID
+        sync: false
+      - key: AUTH_DISCORD_SECRET
+        sync: false
+      - key: MC_DB_HOST
+        sync: false
+      - key: MC_DB_PORT
+        sync: false
+      - key: MC_DB_NAME
+        sync: false
+      - key: MC_DB_USER
+        sync: false
+      - key: MC_DB_PASSWORD
+        sync: false
+      - key: MC_DB_TABLE_PREFIX
+        sync: false
+      - key: MC_DB_SSL
+        sync: false
+      - key: KINETIC_API_BASE_URL
+        sync: false
+      - key: KINETIC_API_TOKEN
+        sync: false
+      - key: KINETIC_SERVER_ID
+        sync: false
+      - key: DONATELLO_API_KEY
+        sync: false
+      - key: DISCORD_BOT_TOKEN
+        sync: false
+      - key: DISCORD_GUILD_ID
+        sync: false
+      - key: DISCORD_ROLE_FLORIST
+        sync: false
+      - key: DISCORD_ROLE_MECENAT
+        sync: false
+      - key: DISCORD_DONATE_LOG_CHANNEL_ID
+        sync: false
+      - key: DISCORD_ADMIN_CONFIRM_CHANNEL_ID
+        sync: false
+      - key: DISCORD_PUBLIC_KEY
+        sync: false
+      - key: DISCORD_GALLERY_CHANNEL_ID
+        sync: false
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
