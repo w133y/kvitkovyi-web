@@ -8,7 +8,10 @@ services:
     name: kvitkovyi
     runtime: node
     plan: free
-    buildCommand: npm install && npx prisma migrate deploy && npm run build
+    # "npm run build" itself now runs prisma migrate deploy (see
+    # package.json) — platform-agnostic, so no Render-specific override
+    # needed here anymore.
+    buildCommand: npm install && npm run build
     startCommand: npm run start
     healthCheckPath: /
     envVars:
