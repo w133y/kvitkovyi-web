@@ -5722,11 +5722,30 @@ header nav .auth-widget {
    border-radius) — only the extra spacing/typography below is wiki-specific. */
 .wiki-welcome h2,
 .wiki-article h2 {
+    position: relative;
     color: white;
     font-family: "Ubuntu Sans", sans-serif;
-    margin: 0 0 16px;
+    font-size: 32px;
+    width: 100%;
+    margin: 0 0 28px;
+    padding-bottom: 18px;
+    box-sizing: border-box;
     text-align: left;
     align-self: flex-start;
+}
+
+/* A short, bold brand-gradient bar reads as a much more deliberate
+   "this is the title" marker than a thin full-width gray line did. */
+.wiki-welcome h2::after,
+.wiki-article h2::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 100%;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--brand-gradient);
 }
 
 .wiki-main .wiki-welcome,
