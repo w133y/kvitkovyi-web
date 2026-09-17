@@ -1,0 +1,1 @@
+ALTER TABLE "GalleryPhoto" ADD COLUMN "showAuthor" BOOLEAN NOT NULL DEFAULT true;

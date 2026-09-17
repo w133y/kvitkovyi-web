@@ -3,7 +3,8 @@
 import crypto from "crypto";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getDiscordLink, getPlaytimeByNickname, searchPlayerNicknames } from "@/lib/mc-db";
+import { getDiscordLink, getPlaytimeByNickname, searchPlayerNicknames, getUuidByNickname } from "@/lib/mc-db";
+import { getSkinTexture, STEVE_SKIN } from "@/lib/mojang-skin";
 import { fetchRecentDonates } from "@/lib/donatello";
 import { grantDonatePrivilegeInGame } from "@/lib/donate-privilege-grants";
 import { logDonateOrderCreated, logDonateOrderPaid, logDonateOrderExpired } from "@/lib/donate-order-log";
@@ -121,6 +122,23 @@ export async function searchDonateRecipients(query: string): Promise<string[]> {
   const trimmed = query.trim();
   if (!trimmed) return [];
   return searchPlayerNicknames(trimmed, 20);
+}
+
+export type RecipientSkin = { skinUrl: string; capeUrl: string | null; slim: boolean };
+
+// Lets the builder's skin preview actually show the gifted player, not just
+// their name in the picker pill — looks up their uuid (nicknames aren't
+// stored on the skin texture cache) then reuses the same Mojang lookup the
+// buyer's own preview is seeded with.
+export async function getRecipientSkin(nickname: string): Promise<RecipientSkin | { error: string }> {
+  const session = await auth();
+  if (!session?.user) return { error: "Потрібно увійти через Discord" };
+
+  const uuid = await getUuidByNickname(nickname.trim());
+  if (!uuid) return { error: "Гравця не знайдено" };
+
+  const texture = (await getSkinTexture(uuid)) ?? STEVE_SKIN;
+  return { skinUrl: texture.skinUrl, capeUrl: texture.capeUrl, slim: texture.slim };
 }
 
 // Read for the payment page — scoped to the order's own owner so one buyer

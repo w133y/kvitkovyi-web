@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { getLeaderboardBadges } from "@/lib/leaderboard-badges";
 import LeaderboardClient from "@/components/leaderboard/LeaderboardClient";
 
@@ -18,9 +19,20 @@ export default async function LeaderboardPage() {
   const badges = await getLeaderboardBadges();
 
   return (
-    <LeaderboardClient
-      initialOwners={[...badges.owners]}
-      initialSponsors={[...badges.sponsors]}
-    />
+    <>
+      <div className="leaderboard-back-wrap">
+        <Link href="/#leaderboard" className="back-link back-link-floating">
+          <i className="fa-solid fa-arrow-left"></i>
+          Назад
+        </Link>
+        <h2 className="leaderboard-top-title">
+          <b>Таблиця лідерів</b>
+        </h2>
+      </div>
+      <LeaderboardClient
+        initialOwners={[...badges.owners]}
+        initialSponsors={[...badges.sponsors]}
+      />
+    </>
   );
 }

@@ -117,6 +117,7 @@ model User {
   orders        Order[]
   donateOrders  DonateOrder[]
   galleryPhotos GalleryPhoto[]
+  wikiArticles  WikiArticle[]
 }
 
 // Keyed by Minecraft nickname (not User) so it survives a Discord relink and
@@ -279,6 +280,10 @@ model GalleryPhoto {
   // Shown bottom-right on hover, on the site only — LEGACY photos have none
   // by design (see lib/gallery-log.ts / the migration script).
   author          String?
+  // Same "hide without deleting" idea as showDescription — separate flag so
+  // a moderator can turn off just the author credit while keeping the
+  // description shown, or vice versa.
+  showAuthor      Boolean @default(true)
   season          Int
 
   source GalleryPhotoSource
@@ -396,4 +401,39 @@ model OrderItem {
 
   @@index([orderId])
   @@index([productId])
+}
+
+// Admin-authored, database-backed wiki — not literal Nextra (its file-based
+// .mdx model can't support in-app editing on Vercel's read-only production
+// filesystem), just matching its sidebar-of-categories look. See
+// docs/superpowers/specs/2026-09-17-wiki-design.md.
+model WikiCategory {
+  id       String        @id @default(cuid())
+  title    String
+  slug     String        @unique
+  order    Int           @default(0)
+  articles WikiArticle[]
+}
+
+model WikiArticle {
+  id         String @id @default(cuid())
+  title      String
+  slug       String @unique
+  // Markdown source, may include the toolbar's alignment wrapper
+  // (<div style="text-align:...">) — see lib/wiki-markdown.tsx for the
+  // constrained rehype-sanitize schema that's the only raw HTML allowed
+  // through on render.
+  content    String
+  categoryId String
+  category   WikiCategory @relation(fields: [categoryId], references: [id])
+  order      Int          @default(0)
+  published  Boolean      @default(true)
+
+  authorUserId String?
+  author       User?   @relation(fields: [authorUserId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([categoryId])
 }

@@ -214,6 +214,34 @@ async function handleGalleryButton(interaction: any, customId: string) {
     });
   }
 
+  if (action === "edit_author") {
+    const photo = await prisma.galleryPhoto.findUnique({ where: { id: photoId } });
+    if (!photo) return ephemeral("Фото не знайдено.");
+    return Response.json({
+      type: MODAL,
+      data: {
+        custom_id: `gallery:edit_author_modal:${photoId}`,
+        title: "Автор фото",
+        components: [
+          {
+            type: 1,
+            components: [
+              {
+                type: 4,
+                custom_id: "author",
+                style: 1,
+                label: "Автор",
+                value: photo.author ?? "",
+                required: false,
+                max_length: 40,
+              },
+            ],
+          },
+        ],
+      },
+    });
+  }
+
   if (!isModerator(interaction)) {
     return ephemeral("🚫 У вас немає прав для цієї дії.");
   }
@@ -235,6 +263,11 @@ async function handleGalleryButton(interaction: any, customId: string) {
       where: { id: photoId },
       data: { showDescription: !photo.showDescription },
     });
+  } else if (action === "toggle_author") {
+    updated = await prisma.galleryPhoto.update({
+      where: { id: photoId },
+      data: { showAuthor: !photo.showAuthor },
+    });
   } else {
     return ephemeral("Невідома дія.");
   }
@@ -247,9 +280,16 @@ async function handleGalleryButton(interaction: any, customId: string) {
 
 async function handleModalSubmit(interaction: any) {
   const customId: string = interaction.data?.custom_id ?? "";
-  if (!customId.startsWith("gallery:edit_desc_modal:")) {
-    return ephemeral("Невідома форма.");
+  if (customId.startsWith("gallery:edit_desc_modal:")) {
+    return handleEditDescModal(interaction, customId);
   }
+  if (customId.startsWith("gallery:edit_author_modal:")) {
+    return handleEditAuthorModal(interaction, customId);
+  }
+  return ephemeral("Невідома форма.");
+}
+
+async function handleEditDescModal(interaction: any, customId: string) {
   if (!isModerator(interaction)) {
     return ephemeral("🚫 У вас немає прав для цієї дії.");
   }
@@ -268,4 +308,24 @@ async function handleModalSubmit(interaction: any) {
 
   await updateGalleryModeration(updated);
   return ephemeral("✅ Опис оновлено.");
+}
+
+async function handleEditAuthorModal(interaction: any, customId: string) {
+  if (!isModerator(interaction)) {
+    return ephemeral("🚫 У вас немає прав для цієї дії.");
+  }
+
+  const photoId = customId.split(":")[2];
+  const author: string = interaction.data.components?.[0]?.components?.[0]?.value?.trim() || "";
+
+  const photo = await prisma.galleryPhoto.findUnique({ where: { id: photoId } });
+  if (!photo) return ephemeral("Фото не знайдено.");
+
+  const updated = await prisma.galleryPhoto.update({
+    where: { id: photoId },
+    data: { author: author || null },
+  });
+
+  await updateGalleryModeration(updated);
+  return ephemeral("✅ Автора оновлено.");
 }

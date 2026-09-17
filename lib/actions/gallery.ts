@@ -3,7 +3,7 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { createGalleryUploadTarget, type GalleryUploadTarget } from "@/lib/r2";
-import { postGalleryModeration, postSeasonChangeConfirm } from "@/lib/gallery-discord";
+import { postGalleryModeration, postSeasonChangeConfirm, updateGalleryModeration } from "@/lib/gallery-discord";
 import { logError } from "@/lib/admin-log";
 import { revalidatePath } from "next/cache";
 import type { GalleryPhoto } from "@prisma/client";
@@ -192,15 +192,41 @@ export async function getTodayGallery(): Promise<GalleryPhoto[]> {
 }
 
 export type GallerySort = "date" | "season";
+// A season number filters to that season regardless of source. "legacy"
+// filters to the pre-migration photos (source: LEGACY) instead — a stable
+// bucket independent of the season field, since after the server's next
+// reset (a couple months out) season numbering restarts at 1 and would
+// otherwise collide with whatever the legacy rows happen to be tagged with.
+export type GalleryFilter = number | "legacy" | undefined;
 
-export async function getAllGalleryPhotos(sort: GallerySort = "date"): Promise<GalleryPhoto[]> {
+export async function getAllGalleryPhotos(
+  sort: GallerySort = "date",
+  filter?: GalleryFilter
+): Promise<GalleryPhoto[]> {
   return prisma.galleryPhoto.findMany({
-    where: { status: "APPROVED" },
+    where: {
+      status: "APPROVED",
+      ...(filter === "legacy" ? { source: "LEGACY" } : {}),
+      ...(typeof filter === "number" ? { season: filter } : {}),
+    },
     orderBy:
       sort === "season"
         ? [{ season: "desc" }, { approvedAt: "desc" }]
         : [{ approvedAt: "desc" }, { createdAt: "desc" }],
   });
+}
+
+// Distinct season numbers among approved, non-legacy photos — legacy has
+// its own filter option (see GalleryFilter above) instead of being counted
+// as a season people would pick by number.
+export async function getGalleryPhotoSeasons(): Promise<number[]> {
+  const rows = await prisma.galleryPhoto.findMany({
+    where: { status: "APPROVED", source: { not: "LEGACY" } },
+    select: { season: true },
+    distinct: ["season"],
+    orderBy: { season: "asc" },
+  });
+  return rows.map((r) => r.season);
 }
 
 // --- Admin: season ---
@@ -257,4 +283,74 @@ export async function setSeasonLocked(locked: boolean): Promise<void> {
   });
   revalidatePath("/admin");
   revalidatePath("/");
+}
+
+// --- Admin: per-photo editing ---
+
+// Only photos that have gone through moderation — PENDING ones already have
+// their own queue in Discord (see lib/gallery-discord.ts), no need to
+// duplicate that here. Capped rather than paginated, same as the other
+// admin lists (achievements, players) — this isn't expected to run into
+// hundreds of photos any time soon.
+export async function listGalleryPhotosForAdmin(): Promise<GalleryPhoto[]> {
+  await requireAdmin();
+  return prisma.galleryPhoto.findMany({
+    where: { status: { in: ["APPROVED", "REJECTED"] } },
+    orderBy: [{ createdAt: "desc" }],
+    take: 200,
+  });
+}
+
+export type UpdateGalleryPhotoInput = {
+  season?: number;
+  description?: string | null;
+  author?: string | null;
+  showDescription?: boolean;
+  showAuthor?: boolean;
+  // "Visibility" reuses the existing status field — APPROVED shows in the
+  // gallery, REJECTED soft-hides it (same as the Discord moderation
+  // "Видалити" button) rather than adding a separate boolean for it.
+  visible?: boolean;
+};
+
+export type UpdateGalleryPhotoResult = { ok: true } | { error: string };
+
+// Direct edit, unlike proposeSeasonChange — this changes one photo's own
+// fields, not the site-wide default, so it doesn't need the Discord Yes/No
+// confirmation step. Still keeps the moderation message in sync if one
+// exists, so Discord doesn't show stale data after an admin-panel edit.
+export async function updateGalleryPhoto(
+  id: string,
+  input: UpdateGalleryPhotoInput
+): Promise<UpdateGalleryPhotoResult> {
+  await requireAdmin();
+
+  const photo = await prisma.galleryPhoto.findUnique({ where: { id } });
+  if (!photo) return { error: "Фото не знайдено" };
+
+  if (input.season !== undefined && (!Number.isFinite(input.season) || input.season <= 0)) {
+    return { error: "Невірний номер сезону" };
+  }
+
+  const updated = await prisma.galleryPhoto.update({
+    where: { id },
+    data: {
+      ...(input.season !== undefined && { season: Math.floor(input.season) }),
+      ...(input.description !== undefined && { description: input.description?.trim() || null }),
+      ...(input.author !== undefined && { author: input.author?.trim() || null }),
+      ...(input.showDescription !== undefined && { showDescription: input.showDescription }),
+      ...(input.showAuthor !== undefined && { showAuthor: input.showAuthor }),
+      ...(input.visible !== undefined && {
+        status: input.visible ? "APPROVED" : "REJECTED",
+        ...(input.visible && !photo.approvedAt && { approvedAt: new Date() }),
+      }),
+    },
+  });
+
+  await updateGalleryModeration(updated);
+
+  revalidatePath("/admin");
+  revalidatePath("/");
+  revalidatePath("/gallery");
+  return { ok: true };
 }

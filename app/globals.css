@@ -2,6 +2,35 @@
     box-sizing: border-box;
 }
 
+:root {
+    /* Brand accent (gold -> orange gradient used across buttons, prices,
+       highlighted borders) — was hand-copied at every call site, with a
+       drifting mix of #FFD139 and #ffd139 casing. */
+    --color-gold: #FFD139;
+    --color-gold-mid: #FFBD3A;
+    --color-orange: #FF9900;
+    --color-red: #FF5555;
+    --color-green: #4caf50;
+    --brand-gradient: linear-gradient(to top left, var(--color-gold) 0%, var(--color-gold-mid) 50%, var(--color-orange) 100%);
+
+    /* Shared margin/padding for the big rounded "info card" sections (.box,
+       .box2, .box3, .launcher-box, .support-box) — these used to each carry
+       their own slightly different numbers (10% vs 15% side margin, 10px vs
+       30px on mobile) so the sections didn't actually line up under each
+       other down the page. */
+    --section-margin-x: 10%;
+    --section-margin-y: 10vh;
+    --section-margin-x-mobile: 30px;
+    --section-margin-y-mobile: 3vh;
+    --section-padding: 30px;
+    --section-padding-mobile: 15px;
+
+    /* Full-bleed dark "band" sections (.line, .cards_bg) — no side margin,
+       just top/bottom padding for breathing room. Was 50px vs 40px between
+       the two, an inconsistency with no reason behind it. */
+    --band-padding-y: 50px;
+}
+
 a {
     color: inherit;
 }
@@ -85,7 +114,8 @@ header.header-map {
 
 }
 
-.menutext a {
+.menutext a,
+.menutext button {
     position: relative;
     display: flex;
     align-items: center;
@@ -99,9 +129,18 @@ header.header-map {
        down so they look vertically centered on the plate. */
     transform: translateY(7px);
     transition: color 0.3s ease, text-shadow 0.3s ease;
+    /* .menutext button only — the "already on this page" nav item (see
+       SiteHeader's NavItem) — needs the usual button reset since none of
+       the rest of this rule touches a real <button>'s own UA styling. */
+    background: none;
+    border: none;
+    font: inherit;
+    cursor: pointer;
 }
 .menutext a:hover,
-.menutext a.active {
+.menutext a.active,
+.menutext button:hover,
+.menutext button.active {
     color: #ffd900e0;
     text-shadow: 2px 0px 10px #ffa600;
     margin-right: 0vh;
@@ -189,7 +228,8 @@ header.header-map {
     text-align: center;
 }
 
-.mobile-menutext a {
+.mobile-menutext a,
+.mobile-menutext button {
     font-family: "Minecraft", sans-serif;
     font-weight: 600;
     color: white;
@@ -198,10 +238,16 @@ header.header-map {
     display: block;
     padding: 15px;
     transition: color 0.3s ease;
+    width: 100%;
+    background: none;
+    border: none;
+    cursor: pointer;
 }
 
 .mobile-menutext a:hover,
-.mobile-menutext a.active {
+.mobile-menutext a.active,
+.mobile-menutext button:hover,
+.mobile-menutext button.active {
     color: #ffd900e0;
 }
 
@@ -244,6 +290,25 @@ header .img img {
     animation: pulse 2s infinite alternate ease-in-out;
 }
 
+/* join.png is a wide, short title banner (1010x118), not the square
+   logo.png this slot is normally sized for — a bigger, mostly-flat
+   percentage works here at every width instead of shrinking down like the
+   logo does, since it barely adds height even scaled up on a phone.
+   "header .img .header-img-join" (not a bare .header-img-join class) is
+   what actually beats "header .img img"'s own max-width overrides inside
+   the breakpoints below — two classes outrank one class regardless of
+   which rule comes later in the file. */
+header .img .header-img-join {
+    width: 90%;
+    max-width: 1200px;
+}
+
+@media (max-width: 480px) {
+    header .img .header-img-join {
+        width: 92%;
+    }
+}
+
 @keyframes pulse {
     0% {
         transform: translate(-50%, -50%) scale(1);
@@ -272,7 +337,7 @@ header .img img {
     padding: 15px 40px;
     border: none;
     border-radius: 8px;
-    background: linear-gradient(to top left, #FFD139 0%, #FFBD3A 50%, #FF9900 100%);
+    background: var(--brand-gradient);
     color: white;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -351,6 +416,12 @@ body, html {
     overflow-x: hidden;
     width: 100%;
     position: relative;
+    /* Belt-and-suspenders for the nav's "skip past header" scroll — the JS
+       window.scrollTo({behavior:"smooth"}) call should already animate on
+       its own, but this covers browsers where that option is flaky. The
+       instant scrolls (landing on a fresh page) explicitly pass
+       behavior:"auto" to opt back out of this. */
+    scroll-behavior: smooth;
 }
 
 body {
@@ -402,7 +473,7 @@ body d {
 body b {
 	font-family: "Ubuntu Sans", sans-serif;
     background: #F7FF18;
-    background: linear-gradient(to top left, #FFD139 0%, #FFBD3A 50%, #FF9900 100%);
+    background: var(--brand-gradient);
 	-webkit-background-clip: text;
 	-webkit-text-fill-color: transparent;
 	font-weight: 800;
@@ -425,7 +496,7 @@ body p {
 }
 
 body .box {
-    margin: 10vh 10%;
+    margin: var(--section-margin-y) var(--section-margin-x);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -433,7 +504,7 @@ body .box {
     background: rgb(35, 35, 35);
     border-radius: 50px;
     box-shadow: 0px 0px 10px 0px rgba(0,0,0,0.1);
-    padding: 30px;
+    padding: var(--section-padding);
 }
 
 body .boximage {
@@ -465,8 +536,8 @@ body .boximage img {
     body .box {
         flex-direction: column-reverse;
 
-        margin: 3vh 10px;
-        padding: 15px;
+        margin: var(--section-margin-y-mobile) var(--section-margin-x-mobile);
+        padding: var(--section-padding-mobile);
     }
 
     body .boximage img {
@@ -480,14 +551,14 @@ body .boximage img {
 }
 
 .box3 {
-    margin: 10vh 10%;
+    margin: var(--section-margin-y) var(--section-margin-x);
     display: flex;
     flex-direction: column;
     align-items: center;
     background: rgb(35, 35, 35);
     border-radius: 50px;
     box-shadow: 0px 0px 10px 0px rgba(0,0,0,0.1);
-    padding: 30px;
+    padding: var(--section-padding);
 }
 
 .box3 > h2 {
@@ -528,8 +599,8 @@ body .boximage img {
 
 @media (max-width: 768px) {
     .box3 {
-        margin: 3vh 30px;
-        padding: 15px;
+        margin: var(--section-margin-y-mobile) var(--section-margin-x-mobile);
+        padding: var(--section-padding-mobile);
     }
 
     .rules-container {
@@ -577,7 +648,7 @@ body .boximage img {
 
 .feature i {
     font-size: 2em;
-    color: #FFD139;
+    color: var(--color-gold);
     margin-bottom: 15px;
 }
 
@@ -619,7 +690,7 @@ body .line {
   justify-content: center;
   flex-wrap: wrap;
   gap: 160px;
-  padding: 50px 10%;
+  padding: var(--band-padding-y) 10%;
 
 
 }
@@ -695,13 +766,17 @@ body .lb {
 
 body .box2 {
     background: rgb(35, 35, 35);
-    margin: 10vh 10%;
+    margin: var(--section-margin-y) var(--section-margin-x);
+    /* Same clearance as .lb2-sidebar's sticky offset — the fixed nav would
+       otherwise cover the top of this section when #leaderboard is jumped
+       to directly (the /leaderboard page's back link). */
+    scroll-margin-top: 100px;
     display: flex;
     flex-direction: column;
     align-items: center;
     border-radius: 50px;
     box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    padding: 30px;
+    padding: var(--section-padding);
     box-sizing: border-box;
     overflow: hidden;
 }
@@ -733,8 +808,8 @@ body .box2 {
 
 @media (max-width: 768px) {
     body .box2 {
-        margin: 3vh 30px;
-        padding: 15px;
+        margin: var(--section-margin-y-mobile) var(--section-margin-x-mobile);
+        padding: var(--section-padding-mobile);
         border-radius: 50px;
         max-width: none;
     }
@@ -754,6 +829,14 @@ body .box2 {
       flex-direction: column;
       align-items: center;
       gap: 20px;
+      /* Matches --section-margin-y-mobile so the gap above/below the gallery
+         reads the same as every other section on the page (Hero, the
+         leaderboard box, etc.) instead of butting straight up against the
+         carousel above it with no gap at all. */
+      margin: var(--section-margin-y-mobile) 0;
+      /* Clears the fixed nav when #gallery is jumped to directly (the
+         /gallery page's back link) — same 100px used elsewhere for this. */
+      scroll-margin-top: 100px;
       padding: 30px 30px;
       position: relative;
     }
@@ -825,10 +908,11 @@ body .box2 {
     }
 
     /* One row, one level, one design for every control under the gallery
-       (prev/next + the two page actions) — same look as .lb-full-link's
-       "Повний рейтинг" pill (.custom-button:last-child): solid white
-       border, transparent fill, bold white text. A small margin-top keeps
-       it from sitting flush against the photo. */
+       (prev/next + the two page actions) — the frosted dark pill used
+       everywhere else for this kind of secondary chrome (nav's user pill,
+       leaderboard sort buttons, admin actions), not a plain white outline
+       that doesn't match anything else on the page. A small margin-top
+       keeps it from sitting flush against the photo. */
     .gallery-controls-row {
       display: flex;
       flex-wrap: wrap;
@@ -843,21 +927,24 @@ body .box2 {
       align-items: center;
       justify-content: center;
       gap: 8px;
-      background: transparent;
-      border: 2px solid #ffffff;
-      border-radius: 8px;
+      background: rgba(20, 20, 20, 0.55);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-radius: 50px;
       padding: 10px 20px;
       color: white;
       text-decoration: none;
       font-size: 14px;
       font-weight: 600;
       cursor: pointer;
-      transition: transform 0.2s ease, opacity 0.2s ease;
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      transition: border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
     }
 
     .gallery-pill-btn:hover {
+      border-color: var(--color-gold);
+      color: var(--color-gold);
       transform: translateY(-2px);
-      opacity: 0.9;
     }
 
     .gallery-pill-btn:active {
@@ -875,7 +962,7 @@ body .box2 {
     .gallery-arrow-btn svg {
       width: 16px;
       height: 16px;
-      fill: #ffffff;
+      fill: currentColor;
     }
 
     /* Lightbox over the currently-shown photo rather than a block that
@@ -916,8 +1003,8 @@ body .box2 {
     }
 
     .gallery-submit-close:hover {
-      border-color: #FFD139;
-      color: #FFD139;
+      border-color: var(--color-gold);
+      color: var(--color-gold);
       transform: rotate(90deg);
     }
 
@@ -978,12 +1065,12 @@ body .box2 {
 
     .gallery-submit-error {
       margin: 0;
-      color: #FF5555;
+      color: var(--color-red);
       font-size: 13px;
     }
 
     .gallery-submit-btn {
-      background: linear-gradient(to top left, #FFD139 0%, #FFBD3A 50%, #FF9900 100%);
+      background: var(--brand-gradient);
       border: none;
       border-radius: 12px;
       color: white;
@@ -1011,7 +1098,7 @@ body .box2 {
       justify-content: center;
       align-items: center;
       text-align: center;
-      color: #4caf50;
+      color: var(--color-green);
       font-weight: 600;
       gap: 10px;
     }
@@ -1021,7 +1108,7 @@ body .box2 {
    image edges to a static row underneath it instead. */
 @media (min-width: 769px) {
     .slider-container {
-        margin: 0 10%;
+        margin: var(--section-margin-y) var(--section-margin-x);
         padding: 50px 0;
     }
 
@@ -1045,7 +1132,7 @@ body .box2 {
 }
 /* --------------- */
 .cards_bg {
-	padding: 40px 0 40px 0;
+	padding: var(--band-padding-y) 0;
 	background: rgb(10, 10, 10);
 }
  .unique-carousel-wrapper {
@@ -1266,7 +1353,7 @@ body .box2 {
     align-items: center;
     justify-content: center;
     gap: 10px;
-    background: linear-gradient(to top left, #FFD139 0%, #FFBD3A 50%, #FF9900 100%);
+    background: var(--brand-gradient);
     border: none;
     border-radius: 10px;
     color: white;
@@ -1282,7 +1369,7 @@ body .box2 {
     text-shadow: 0 2px 10px rgba(0, 0, 0, 30%);
 }
 .join-button:hover {
-    background: linear-gradient(to top left, #FFD139 0%, #FFBD3A 50%, #FF9900 100%);
+    background: var(--brand-gradient);
     transform: translateY(-2px);
     box-shadow: 0 5px 15px rgba(255, 153, 0, 0.4);
 }
@@ -1543,7 +1630,7 @@ body .box2 {
 }
 /* -----------------------------*/
 .launcher-box {
-    margin: 10vh 15%;
+    margin: var(--section-margin-y) var(--section-margin-x);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -1551,7 +1638,7 @@ body .box2 {
     background: rgb(35, 35, 35);
     border-radius: 50px;
     box-shadow: 0px 0px 10px 0px rgba(0,0,0,0.1);
-    padding: 30px;
+    padding: var(--section-padding);
 }
 
 .launcher-info {
@@ -1603,9 +1690,9 @@ body .box2 {
 /* Медіа-запит для маленьких екранів */
 @media (max-width: 768px) {
     .launcher-box {
-        margin: 5vh 15px;
+        margin: var(--section-margin-y-mobile) var(--section-margin-x-mobile);
         flex-direction: column;
-        padding: 20px;
+        padding: var(--section-padding-mobile);
         gap: 20px;
         overflow: visible;
     }
@@ -1630,11 +1717,6 @@ body .box2 {
 
 /* Додаткові оптимізації для дуже маленьких екранів */
 @media (max-width: 480px) {
-    .launcher-box {
-        margin: 3vh 10px;
-        padding: 15px;
-    }
-
     .launcher-info h2 {
         font-size: 2em;
     }
@@ -1709,7 +1791,7 @@ r {
     font-size: 15px;
 }
 
-.leaderboard .rank-1 { color: #FFD139; }
+.leaderboard .rank-1 { color: var(--color-gold); }
 .leaderboard .rank-2 { color: #C0C0C0; }
 .leaderboard .rank-3 { color: #CD7F32; }
 .leaderboard .rank-default { color: #888; }
@@ -1938,20 +2020,6 @@ r {
     width: auto;
 }
 
-.leaderboard-page {
-    max-width: 720px;
-    margin: 5vh auto;
-    padding: 0 20px;
-}
-
-.leaderboard-page-title {
-    color: white;
-    font-family: "Minecraft", sans-serif;
-    font-size: 32px;
-    text-align: center;
-    margin-bottom: 24px;
-}
-
 /* No inner max-height here (unlike the homepage widget) — the row list
    flows in the page itself so the whole page scrolls normally, which is
    also what lets the fixed nav's scroll-blur (.nav-scroll-blur) trigger. */
@@ -1992,8 +2060,8 @@ r {
 }
 
 .leaderboard-sort-btn.active {
-    color: #FFD139;
-    border-color: #FFD139;
+    color: var(--color-gold);
+    border-color: var(--color-gold);
 }
 
 .leaderboard-page-empty {
@@ -2016,8 +2084,8 @@ r {
 }
 
 .leaderboard-load-more:hover {
-    color: #FFD139;
-    border-color: #FFD139;
+    color: var(--color-gold);
+    border-color: var(--color-gold);
 }
 
 /* --- /leaderboard page: sidebar + card list --- */
@@ -2028,10 +2096,90 @@ r {
     gap: 24px;
     width: 100%;
     max-width: 1400px;
-    margin: 5vh auto;
+    /* Top margin moved to .leaderboard-back-wrap above it (see that class)
+       so the back link sits where this grid's own top margin used to be,
+       instead of pushing everything down an extra 5vh. */
+    margin: 0 auto 5vh;
     padding: 0 20px 40px 20px;
     align-items: start;
     box-sizing: border-box;
+}
+
+/* No absolute positioning this time — that kept landing wrong (measuring
+   from the wrong edge, or centering when it shouldn't) across three
+   attempts. Two plain stacked blocks in normal flow instead: the button on
+   its own line, left-aligned with the same padding the sidebar below it
+   uses, then the title centered on the next line. Nothing here depends on
+   guessing an offset. */
+/* Same pattern /gallery and /wiki use: the back button floats absolutely
+   over the top-left corner (via .back-link-floating) instead of taking up
+   its own row, so it never affects the title's own layout at all. */
+.leaderboard-back-wrap {
+    /* This is a direct child of .site-main, which is display:flex;
+       flex-direction:column — as a flex item, its auto left/right margins
+       (below) override align-items:stretch entirely and it shrinks to its
+       own content's width instead of filling the row, centering that small
+       box in the middle of the page. That's what was actually landing the
+       button and title on top of each other near center, not a positioning
+       bug in either of them. width:100% (which .wiki-layout/.lb2-layout
+       already both have) is what makes the auto margins center a
+       full-width-up-to-1400px box instead, like it should. */
+    width: 100%;
+    position: relative;
+    max-width: 1400px;
+    margin: 5vh auto 20px;
+    padding: 0 20px;
+    box-sizing: border-box;
+}
+
+/* .back-link-floating's generic left:0/top:0 measures from the padding
+   edge, ignoring this wrapper's own 20px padding — left:20px is what
+   actually lines it up with .lb2-sidebar's edge below instead of sitting
+   20px further out. */
+.leaderboard-back-wrap .back-link-floating {
+    left: 20px;
+    top: 0;
+}
+
+.leaderboard-top-title {
+    text-align: center;
+    color: white;
+    font-size: 35px;
+    font-family: "Ubuntu Sans", sans-serif;
+    margin: 0;
+}
+
+@media (max-width: 480px) {
+    .leaderboard-top-title {
+        font-size: 22px;
+    }
+}
+
+.back-link {
+    display: inline-flex;
+    align-items: center;
+    /* .gallery-page is a flex column with the default align-items: stretch
+       — without this, the pill would stretch to the column's full width
+       instead of sizing to its own content. */
+    align-self: flex-start;
+    gap: 8px;
+    padding: 8px 16px;
+    background: rgba(20, 20, 20, 0.55);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50px;
+    color: white;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 600;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    transition: border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+}
+
+.back-link:hover {
+    border-color: var(--color-gold);
+    color: var(--color-gold);
+    transform: translateX(-2px);
 }
 
 .lb2-sidebar {
@@ -2126,8 +2274,8 @@ r {
 }
 
 .lb2-icon-btn.active {
-    color: #FFD139;
-    border-color: #FFD139;
+    color: var(--color-gold);
+    border-color: var(--color-gold);
 }
 
 .lb2-sort-dropdown {
@@ -2150,7 +2298,7 @@ r {
 }
 
 .lb2-sort-dropdown-toggle:hover {
-    border-color: #FFD139;
+    border-color: var(--color-gold);
 }
 
 .lb2-sort-dropdown-toggle span {
@@ -2224,11 +2372,11 @@ r {
 
 .lb2-sort-item.active {
     background: rgba(255, 209, 57, 0.1);
-    color: #FFD139;
+    color: var(--color-gold);
 }
 
 .lb2-sort-item.active i {
-    color: #FFD139;
+    color: var(--color-gold);
 }
 
 .lb2-load-error {
@@ -2317,7 +2465,7 @@ r {
 }
 
 .lb2-name a:hover {
-    color: #FFD139;
+    color: var(--color-gold);
 }
 
 .lb2-badge {
@@ -2326,7 +2474,7 @@ r {
 }
 
 .lb2-badge-owner {
-    color: #FFD139;
+    color: var(--color-gold);
 }
 
 .lb2-badge-sponsor {
@@ -2490,7 +2638,7 @@ header nav .auth-widget {
     position: absolute;
     top: -6px;
     right: -6px;
-    background: linear-gradient(to top left, #FFD139 0%, #FFBD3A 50%, #FF9900 100%);
+    background: var(--brand-gradient);
     color: black;
     font-size: 12px;
     font-weight: 800;
@@ -2643,7 +2791,7 @@ header nav .auth-widget {
 .user-dropdown a i {
     width: 18px;
     text-align: center;
-    color: #FFD139;
+    color: var(--color-gold);
 }
 
 .user-dropdown-divider {
@@ -2745,7 +2893,7 @@ header nav .auth-widget {
 
 .signout-confirm {
     border: none;
-    background: #ff5555;
+    background: var(--color-red);
     color: white;
 }
 
@@ -2860,7 +3008,7 @@ header nav .auth-widget {
 
 .shop-category-card i {
     font-size: 4.5em;
-    color: #FFD139;
+    color: var(--color-gold);
     margin-bottom: 24px;
 }
 
@@ -2894,7 +3042,7 @@ header nav .auth-widget {
     font-size: 12px;
     font-weight: 600;
     letter-spacing: 0.03em;
-    color: #FFD139;
+    color: var(--color-gold);
 }
 
 @media (max-width: 480px) {
@@ -2943,7 +3091,7 @@ header nav .auth-widget {
 .product-card .price {
     font-size: 22px;
     font-weight: 800;
-    background: linear-gradient(to top left, #FFD139 0%, #FFBD3A 50%, #FF9900 100%);
+    background: var(--brand-gradient);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
@@ -2952,7 +3100,7 @@ header nav .auth-widget {
     padding: 12px 20px;
     border: none;
     border-radius: 8px;
-    background: linear-gradient(to top left, #FFD139 0%, #FFBD3A 50%, #FF9900 100%);
+    background: var(--brand-gradient);
     color: white;
     font-weight: 600;
     cursor: pointer;
@@ -3131,8 +3279,16 @@ header nav .auth-widget {
     line-height: 1;
 }
 
+.donate-skin-card-loading {
+    animation: skeleton-pulse 1.4s ease-in-out infinite;
+}
+
 .donate-skin-card {
-    width: 280px;
+    /* max-width caps it at the desktop column's design size; width:100% is
+       what lets it shrink instead of overflowing once .donate-builder's
+       column collapses to a phone-width single column (<=1024px). */
+    width: 100%;
+    max-width: 280px;
 }
 
 /* Keeps the badge/skin/info cluster grouped at the top (their own gap:14
@@ -3148,7 +3304,8 @@ header nav .auth-widget {
    pill like the other buttons here, so it reads as its own "info block"
    between the skin card and the continue button. */
 .donate-info-btn {
-    width: 280px;
+    width: 100%;
+    max-width: 280px;
     height: 90px;
     box-sizing: border-box;
     display: flex;
@@ -3169,11 +3326,11 @@ header nav .auth-widget {
 
 .donate-info-btn i {
     font-size: 26px;
-    color: #FFD139;
+    color: var(--color-gold);
 }
 
 .donate-info-btn:hover {
-    border-color: #FFD139;
+    border-color: var(--color-gold);
     transform: translateY(-2px);
 }
 
@@ -3182,7 +3339,8 @@ header nav .auth-widget {
    button and "Продовжити" so choosing someone else is a deliberate extra
    step rather than an easy default to fat-finger. */
 .donate-recipient {
-    width: 280px;
+    width: 100%;
+    max-width: 280px;
     display: flex;
     flex-direction: column;
     gap: 6px;
@@ -3205,11 +3363,11 @@ header nav .auth-widget {
 }
 
 .donate-recipient-toggle:hover {
-    border-color: #FFD139;
+    border-color: var(--color-gold);
 }
 
 .donate-recipient-toggle i:first-child {
-    color: #FFD139;
+    color: var(--color-gold);
 }
 
 .donate-recipient-toggle span {
@@ -3247,7 +3405,7 @@ header nav .auth-widget {
     width: 100%;
     box-sizing: border-box;
     background: rgb(35, 35, 35);
-    border: 2px solid #FFD139;
+    border: 2px solid var(--color-gold);
     border-radius: 14px;
     padding: 10px 14px;
     color: white;
@@ -3292,15 +3450,16 @@ header nav .auth-widget {
 }
 
 .donate-payment-recipient b {
-    color: #FFD139;
+    color: var(--color-gold);
 }
 
 .donate-continue-btn {
-    width: 280px;
+    width: 100%;
+    max-width: 280px;
     padding: 14px 16px;
     border: none;
     border-radius: 14px;
-    background: linear-gradient(to top left, #FFD139 0%, #FFBD3A 50%, #FF9900 100%);
+    background: var(--brand-gradient);
     color: white;
     text-decoration: none;
     font-family: "Minecraft", sans-serif;
@@ -3323,7 +3482,7 @@ header nav .auth-widget {
 
 .donate-payment-error {
     margin: 0;
-    color: #FF5555;
+    color: var(--color-red);
     font-size: 13px;
     text-align: center;
 }
@@ -3351,7 +3510,7 @@ header nav .auth-widget {
 .donate-payment-code strong {
     font-family: "Minecraft", sans-serif;
     font-size: 18px;
-    color: #FFD139;
+    color: var(--color-gold);
     letter-spacing: 1px;
 }
 
@@ -3371,12 +3530,12 @@ header nav .auth-widget {
 }
 
 .donate-payment-copy:hover {
-    border-color: #FFD139;
+    border-color: var(--color-gold);
     background: rgba(255, 255, 255, 0.14);
 }
 
 .donate-payment-copy i {
-    color: #FFD139;
+    color: var(--color-gold);
 }
 
 .donate-payment-status {
@@ -3388,24 +3547,24 @@ header nav .auth-widget {
 }
 
 .donate-payment-status.pending i {
-    color: #FFD139;
+    color: var(--color-gold);
 }
 
 .donate-payment-status.paid {
     flex-direction: column;
-    color: #4caf50;
+    color: var(--color-green);
     font-weight: 600;
 }
 
 .donate-payment-status.expired {
     flex-direction: column;
-    color: #FF5555;
+    color: var(--color-red);
     font-weight: 600;
     text-align: center;
 }
 
 .donate-payment-status.expired i {
-    color: #FF5555;
+    color: var(--color-red);
 }
 
 /* Site-wide "resume payment?" card (see components/shop/ResumeDonatePrompt)
@@ -3433,7 +3592,7 @@ header nav .auth-widget {
 }
 
 .resume-donate-prompt b {
-    color: #ffd139;
+    color: var(--color-gold);
 }
 
 .resume-donate-prompt-actions {
@@ -3454,7 +3613,7 @@ header nav .auth-widget {
 }
 
 .resume-donate-prompt-yes {
-    background: linear-gradient(to top left, #ffd139 0%, #ffbd3a 50%, #ff9900 100%);
+    background: var(--brand-gradient);
     color: white;
 }
 
@@ -3499,7 +3658,7 @@ header nav .auth-widget {
 }
 
 .donate-symbol-btn.active {
-    border-color: #FFD139;
+    border-color: var(--color-gold);
 }
 
 .donate-symbol-btn:disabled {
@@ -3540,14 +3699,20 @@ header nav .auth-widget {
     background: none;
     box-shadow: none;
     padding: 0;
-    /* Once .donate-builder stretches this column taller than its two cards'
-       own content, spread the leftover space between them instead of
-       leaving it stranded below — keeps the second card's bottom edge on
-       the same line as the other columns'. */
-    align-content: space-between;
+    /* .donate-builder stretches this column to match the tallest one (the
+       symbol picker) — center the card pair as a block within that full
+       height (equal empty space above and below) rather than space-between
+       (stretches the gap between the two cards themselves, which grew huge
+       and uneven) or start (leaves all the leftover height stranded below). */
+    align-content: center;
 }
 
 .donate-tier-card {
+    /* Now a <button> (the whole card is the toggle, not just a strip at the
+       bottom) — reset the parts a plain <div> got for free. */
+    width: 100%;
+    font-family: inherit;
+    cursor: pointer;
     color: white;
     background: rgb(45, 45, 45);
     border: 2px solid transparent;
@@ -3559,11 +3724,16 @@ header nav .auth-widget {
     align-items: center;
     text-align: center;
     gap: 6px;
-    transition: border-color 0.2s ease;
+    transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.donate-tier-card:hover {
+    border-color: rgba(255, 209, 57, 0.5);
+    transform: translateY(-2px);
 }
 
 .donate-tier-card.selected {
-    border-color: #FFD139;
+    border-color: var(--color-gold);
 }
 
 .donate-tier-icon {
@@ -3574,12 +3744,13 @@ header nav .auth-widget {
 
 .donate-tier-card h3 {
     margin: 0;
+    font-size: 20px;
 }
 
 .donate-tier-price {
-    color: #FFD139;
+    color: var(--color-gold);
     font-weight: 700;
-    font-size: 14px;
+    font-size: 16px;
     margin-bottom: 4px;
 }
 
@@ -3610,7 +3781,7 @@ header nav .auth-widget {
 }
 
 .donate-tier-perks li.has i {
-    color: #4caf50;
+    color: var(--color-green);
 }
 
 .donate-tier-perks li.missing i {
@@ -3621,27 +3792,6 @@ header nav .auth-widget {
     width: 14px;
     flex-shrink: 0;
     font-size: 11px;
-}
-
-.donate-tier-toggle {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    width: 100%;
-    background: rgba(20, 20, 20, 0.55);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 20px;
-    color: white;
-    padding: 8px 14px;
-    font-size: 13px;
-    cursor: pointer;
-    transition: border-color 0.2s ease;
-    margin-top: auto;
-}
-
-.donate-tier-toggle:hover {
-    border-color: #FFD139;
 }
 
 @media (max-width: 1024px) {
@@ -3842,7 +3992,8 @@ header nav .auth-widget {
     flex-direction: column;
     align-items: center;
     box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.1);
-    width: 280px;
+    width: 100%;
+    max-width: 280px;
     overflow: hidden;
 }
 
@@ -3998,7 +4149,7 @@ header nav .auth-widget {
 }
 
 .profile-bio-actions button:hover {
-    border-color: #FFD139;
+    border-color: var(--color-gold);
 }
 
 .profile-bio-error {
@@ -4109,7 +4260,7 @@ header nav .auth-widget {
 .profile-social-field-checkbox input[type="checkbox"] {
     width: 16px;
     height: 16px;
-    accent-color: #FFD139;
+    accent-color: var(--color-gold);
     cursor: pointer;
     flex-shrink: 0;
 }
@@ -4142,7 +4293,7 @@ header nav .auth-widget {
 .profile-pronoun-option input[type="radio"] {
     width: 14px;
     height: 14px;
-    accent-color: #FFD139;
+    accent-color: var(--color-gold);
     cursor: pointer;
 }
 
@@ -4173,8 +4324,8 @@ header nav .auth-widget {
 }
 
 .skin-viewer-icon-btn.active {
-    color: #FFD139;
-    border-color: #FFD139;
+    color: var(--color-gold);
+    border-color: var(--color-gold);
 }
 
 .skin-viewer-icon-btn-left {
@@ -4203,7 +4354,7 @@ header nav .auth-widget {
 }
 
 .profile-online-text.online {
-    color: #4caf50;
+    color: var(--color-green);
     font-weight: 600;
 }
 
@@ -4214,7 +4365,7 @@ header nav .auth-widget {
     height: 8px;
     margin-right: 8px;
     border-radius: 50%;
-    background: #4caf50;
+    background: var(--color-green);
 }
 
 .profile-top-rank-group {
@@ -4422,7 +4573,7 @@ header nav .auth-widget {
 
 .stat-box i {
     font-size: 1.6em;
-    color: #FFD139;
+    color: var(--color-gold);
     margin-bottom: 10px;
     display: block;
     transform: translateY(7px);
@@ -4432,7 +4583,7 @@ header nav .auth-widget {
     width: 1.6em;
     height: 1.6em;
     flex-shrink: 0;
-    color: #FFD139;
+    color: var(--color-gold);
     margin: 0 auto 10px;
     display: block;
     transform: translateY(7px);
@@ -4544,11 +4695,46 @@ header nav .auth-widget {
 }
 /* ----------------------------- */
 .gallery-page {
+    position: relative;
     margin: 5vh 10%;
     display: flex;
     flex-direction: column;
     gap: 24px;
     color: white;
+}
+
+/* Taken out of flow (unlike the plain .back-link on /leaderboard) so it
+   doesn't add to .gallery-page's own gap and push the centered title down
+   — it overlays the top-left corner instead. */
+.back-link-floating {
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+/* On a narrow screen the centered title can't share a line with the pill
+   the way it does at desktop width — sits back in normal flow instead,
+   as its own top-left row above the title, rather than risking overlap. */
+@media (max-width: 640px) {
+    .back-link-floating {
+        position: static;
+        align-self: flex-start;
+    }
+}
+
+.gallery-page-filters {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    align-items: center;
+    gap: 10px 24px;
+}
+
+@media (max-width: 640px) {
+    .gallery-page-filters {
+        flex-direction: column;
+    }
 }
 
 .gallery-page-header {
@@ -4588,12 +4774,12 @@ header nav .auth-widget {
 }
 
 .gallery-sort-btn:hover {
-    border-color: #FFD139;
+    border-color: var(--color-gold);
 }
 
 .gallery-sort-btn.active {
-    border-color: #FFD139;
-    color: #FFD139;
+    border-color: var(--color-gold);
+    color: var(--color-gold);
 }
 
 .gallery-page-empty {
@@ -4608,10 +4794,24 @@ header nav .auth-widget {
 }
 
 .gallery-page-card {
+    /* Now a <button> (click opens the lightbox) — reset what a plain <div>
+       got for free. */
+    display: block;
+    width: 100%;
+    padding: 0;
+    border: none;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
     background: rgb(35, 35, 35);
     border-radius: 16px;
     overflow: hidden;
     box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s ease;
+}
+
+.gallery-page-card:hover {
+    transform: translateY(-4px);
 }
 
 .gallery-page-card img {
@@ -4630,7 +4830,7 @@ header nav .auth-widget {
 }
 
 .gallery-page-card-season {
-    color: #FFD139;
+    color: var(--color-gold);
     font-weight: 700;
     font-size: 12px;
 }
@@ -4642,6 +4842,127 @@ header nav .auth-widget {
 .gallery-page-card-author {
     color: rgb(140, 140, 140);
     font-size: 12px;
+}
+
+/* Fullscreen photo viewer for the /gallery grid — click a card to open,
+   arrow keys/buttons to browse, Escape/backdrop/× to close. */
+.gallery-lightbox {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    background: rgba(10, 10, 10, 0.92);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    box-sizing: border-box;
+}
+
+.gallery-lightbox-image {
+    max-width: 100%;
+    max-height: 100%;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+    cursor: default;
+}
+
+.gallery-lightbox-close {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    background: rgba(20, 20, 20, 0.6);
+    color: white;
+    font-size: 18px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: border-color 0.2s ease, color 0.2s ease, transform 0.2s ease;
+    z-index: 1;
+}
+
+.gallery-lightbox-close:hover {
+    border-color: var(--color-gold);
+    color: var(--color-gold);
+    transform: rotate(90deg);
+}
+
+.gallery-lightbox-arrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    background: rgba(20, 20, 20, 0.6);
+    color: white;
+    font-size: 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: border-color 0.2s ease, color 0.2s ease;
+    z-index: 1;
+}
+
+.gallery-lightbox-arrow:hover {
+    border-color: var(--color-gold);
+    color: var(--color-gold);
+}
+
+.gallery-lightbox-arrow-prev {
+    left: 20px;
+}
+
+.gallery-lightbox-arrow-next {
+    right: 20px;
+}
+
+.gallery-lightbox-caption {
+    position: absolute;
+    left: 50%;
+    bottom: 24px;
+    transform: translateX(-50%);
+    max-width: min(90vw, 600px);
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    padding: 10px 18px;
+    border-radius: 12px;
+    color: white;
+    font-size: 14px;
+    text-align: center;
+}
+
+@media (max-width: 640px) {
+    .gallery-lightbox {
+        padding: 12px;
+    }
+
+    .gallery-lightbox-arrow {
+        width: 40px;
+        height: 40px;
+        font-size: 16px;
+    }
+
+    .gallery-lightbox-arrow-prev {
+        left: 8px;
+    }
+
+    .gallery-lightbox-arrow-next {
+        right: 8px;
+    }
+
+    .gallery-lightbox-close {
+        top: 10px;
+        right: 10px;
+    }
 }
 
 /* ----------------------------- */
@@ -4674,6 +4995,11 @@ header nav .auth-widget {
 .admin-section > h3 {
     margin: 0 0 18px;
     font-family: "Minecraft", sans-serif;
+    /* body never sets a default text color, so this (and every other
+       heading without its own explicit color) was falling back to the
+       browser default — plain black — on the dark admin-section
+       background, instead of white. */
+    color: white;
 }
 
 .admin-achievements {
@@ -4690,7 +5016,7 @@ header nav .auth-widget {
 }
 
 .admin-luckperms-success {
-    color: #4caf50;
+    color: var(--color-green);
     font-size: 12px;
     margin: 0;
 }
@@ -4715,13 +5041,126 @@ header nav .auth-widget {
 }
 
 .admin-gallery-pending {
-    color: #FFD139;
+    color: var(--color-gold);
     font-size: 13px;
     margin: 0;
 }
 
+.admin-gallery-photos-title {
+    margin: 24px 0 12px;
+    font-family: "Minecraft", sans-serif;
+    font-size: 14px;
+    color: rgb(190, 190, 190);
+}
+
+.admin-gallery-photos {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    max-height: 600px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+@media (min-width: 1100px) {
+    .admin-gallery-photos {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+.admin-gallery-photo-row {
+    display: flex;
+    gap: 24px;
+    background: rgb(45, 45, 45);
+    border-radius: 16px;
+    padding: 14px;
+}
+
+.admin-gallery-photo-thumb {
+    width: 180px;
+    height: 180px;
+    flex-shrink: 0;
+    border: none;
+    border-radius: 10px;
+    padding: 0;
+    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.2s ease;
+}
+
+.admin-gallery-photo-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.admin-gallery-photo-thumb:hover {
+    transform: scale(1.02);
+}
+
+.admin-gallery-photo-fields {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.admin-gallery-season-stepper {
+    display: flex;
+    align-items: stretch;
+}
+
+.admin-gallery-season-stepper input {
+    width: 100%;
+    min-width: 0;
+    text-align: center;
+    background: rgb(45, 45, 45);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-left: none;
+    border-right: none;
+    color: white;
+    font-family: inherit;
+    font-size: 14px;
+    padding: 8px 4px;
+    box-sizing: border-box;
+}
+
+.admin-gallery-season-stepper button {
+    flex-shrink: 0;
+    width: 32px;
+    background: rgb(45, 45, 45);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: white;
+    cursor: pointer;
+    transition: border-color 0.2s ease, color 0.2s ease;
+}
+
+.admin-gallery-season-stepper button:first-child {
+    border-radius: 10px 0 0 10px;
+}
+
+.admin-gallery-season-stepper button:last-child {
+    border-radius: 0 10px 10px 0;
+}
+
+.admin-gallery-season-stepper button:hover {
+    border-color: var(--color-gold);
+    color: var(--color-gold);
+}
+
+.admin-gallery-photo-fields .admin-radio-row {
+    align-items: flex-end;
+    /* The 180px thumb's hover scale (see .admin-gallery-photo-thumb:hover)
+       grows its clickable area a few pixels past its box — without this,
+       that reach could land on the season spinner and steal the click
+       instead of it hitting the actual number input. */
+    margin-left: 24px;
+}
+
 .admin-privilege-active {
-    color: #4caf50;
+    color: var(--color-green);
 }
 
 .admin-privilege-expired {
@@ -4759,13 +5198,18 @@ header nav .auth-widget {
     display: flex;
     flex-direction: column;
     gap: 6px;
-    color: rgb(200, 200, 200);
+    color: white;
     font-size: 13px;
 }
 
 .admin-field input[type="text"],
 .admin-field input[type="number"],
 .admin-field select {
+    /* Relied on the label's flex align-items: stretch to size these —
+       reliable inside a plain flex column, but not once the label sits in
+       a nested/reused context (e.g. the wiki admin's category row), where
+       it silently fell back to the input's own intrinsic width instead. */
+    width: 100%;
     background: rgb(45, 45, 45);
     border: 1px solid rgba(255, 255, 255, 0.15);
     border-radius: 10px;
@@ -4819,7 +5263,7 @@ header nav .auth-widget {
     align-items: center;
     gap: 6px;
     background: rgba(255, 209, 57, 0.15);
-    color: #FFD139;
+    color: var(--color-gold);
     border-radius: 6px;
     padding: 3px 6px 3px 10px;
     font-size: 13px;
@@ -4925,7 +5369,7 @@ header nav .auth-widget {
 }
 
 .admin-symbol-btn.active {
-    border-color: #FFD139;
+    border-color: var(--color-gold);
 }
 
 .admin-radio-row label {
@@ -4933,6 +5377,7 @@ header nav .auth-widget {
     align-items: center;
     gap: 6px;
     font-weight: 400;
+    color: white;
     cursor: pointer;
 }
 
@@ -4940,6 +5385,7 @@ header nav .auth-widget {
     display: flex;
     align-items: center;
     gap: 8px;
+    color: white;
     cursor: pointer;
 }
 
@@ -5022,7 +5468,7 @@ header nav .auth-widget {
 }
 
 .admin-form-actions button:hover {
-    border-color: #FFD139;
+    border-color: var(--color-gold);
 }
 
 .admin-form-preview {
@@ -5115,7 +5561,7 @@ header nav .auth-widget {
 .admin-player-header h4 {
     margin: 0;
     font-family: "Minecraft", sans-serif;
-    color: #FFD139;
+    color: var(--color-gold);
 }
 
 .admin-player-header button {
@@ -5130,7 +5576,7 @@ header nav .auth-widget {
 }
 
 .admin-player-header button:hover {
-    border-color: #FFD139;
+    border-color: var(--color-gold);
 }
 
 .admin-achievements-row {
@@ -5174,7 +5620,7 @@ header nav .auth-widget {
 }
 
 .admin-achievements-row-actions button:hover {
-    border-color: #FFD139;
+    border-color: var(--color-gold);
 }
 
 @media (max-width: 640px) {
@@ -5189,5 +5635,360 @@ header nav .auth-widget {
 
     .admin-achievements-row {
         flex-wrap: wrap;
+    }
+}
+/* ----------------------------- */
+/* --- /wiki: sidebar + article, matching .lb2-layout/.lb2-sidebar --- */
+
+.wiki-layout {
+    position: relative;
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 24px;
+    width: 100%;
+    max-width: 1400px;
+    margin: 0 auto 5vh;
+    padding: 5vh 20px 40px 20px;
+    align-items: start;
+    box-sizing: border-box;
+    color: white;
+}
+
+.wiki-sidebar {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    padding: 24px;
+    position: sticky;
+    top: 100px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.wiki-sidebar-title {
+    color: white;
+    font-family: "Minecraft", sans-serif;
+    font-size: 20px;
+    letter-spacing: 1px;
+    margin: 0 0 -8px 0;
+    padding-bottom: 16px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.wiki-sidebar-group ul {
+    list-style: none;
+    margin: 8px 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.wiki-sidebar-category {
+    display: block;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: rgb(150, 150, 150);
+}
+
+.wiki-sidebar-group a {
+    display: block;
+    padding: 6px 10px;
+    border-radius: 8px;
+    color: rgb(210, 210, 210);
+    text-decoration: none;
+    font-size: 14px;
+    transition: color 0.2s ease, background-color 0.2s ease;
+}
+
+.wiki-sidebar-group a:hover {
+    background: rgba(255, 255, 255, 0.05);
+    color: white;
+}
+
+.wiki-sidebar-group a.active {
+    background: rgba(255, 209, 57, 0.1);
+    color: var(--color-gold);
+}
+
+.wiki-sidebar-empty {
+    color: rgb(140, 140, 140);
+    font-size: 13px;
+}
+
+/* .wiki-main's card children reuse .box2 directly (same dark card, same
+   border-radius) — only the extra spacing/typography below is wiki-specific. */
+.wiki-welcome h2,
+.wiki-article h2 {
+    color: white;
+    font-family: "Ubuntu Sans", sans-serif;
+    margin: 0 0 16px;
+    text-align: left;
+    align-self: flex-start;
+}
+
+.wiki-main .wiki-welcome,
+.wiki-main .wiki-article {
+    /* Both reuse .box2 for a dark card base, but .box2's own margin rule
+       is actually written as "body .box2" — a higher-specificity compound
+       selector (element + class) that keeps beating a plain single-class
+       override here no matter where it sits in the file. ".wiki-main .x"
+       (class + class) is what's actually needed to outrank it. Meant for a
+       standalone homepage section, that 10vh/10% margin was pushing this
+       card down below the sidebar's top edge and inset from the grid
+       cell's real width instead of filling it.
+
+       The background/border/radius/shadow overrides below match
+       .wiki-sidebar (and /leaderboard's .lb2-sidebar) exactly — .box2's own
+       look (solid rgb(35,35,35) fill, 50px radius, heavy shadow) reads as
+       a much older, blobbier style next to that subtler translucent-panel
+       language the rest of this page (and /leaderboard) actually use. */
+    margin: 0;
+    width: 100%;
+    box-sizing: border-box;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    box-shadow: none;
+    align-items: stretch;
+    text-align: left;
+}
+
+.wiki-article-body {
+    color: rgb(210, 210, 210);
+    line-height: 1.7;
+    font-size: 16px;
+}
+
+.wiki-article-body h1,
+.wiki-article-body h2,
+.wiki-article-body h3 {
+    color: white;
+    font-family: "Minecraft", sans-serif;
+    margin: 24px 0 12px;
+}
+
+.wiki-article-body h1:first-child,
+.wiki-article-body h2:first-child,
+.wiki-article-body h3:first-child {
+    margin-top: 0;
+}
+
+.wiki-article-body p {
+    margin: 0 0 14px;
+    color: rgb(210, 210, 210);
+    font-size: 16px;
+}
+
+.wiki-article-body a {
+    color: var(--color-gold);
+}
+
+.wiki-article-body ul,
+.wiki-article-body ol {
+    margin: 0 0 14px;
+    padding-left: 22px;
+}
+
+.wiki-article-body blockquote {
+    margin: 0 0 14px;
+    padding: 10px 16px;
+    border-left: 3px solid var(--color-gold);
+    background: rgba(255, 255, 255, 0.04);
+    color: rgb(190, 190, 190);
+}
+
+.wiki-article-body img {
+    max-width: 100%;
+    border-radius: 12px;
+    margin: 8px 0;
+}
+
+.wiki-article-body code {
+    background: rgba(255, 255, 255, 0.08);
+    padding: 2px 6px;
+    border-radius: 6px;
+    font-size: 0.9em;
+}
+
+.wiki-article-body table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0 0 14px;
+}
+
+.wiki-article-body th,
+.wiki-article-body td {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 8px 12px;
+    text-align: left;
+}
+
+@media (max-width: 900px) {
+    .wiki-layout {
+        grid-template-columns: 1fr;
+        padding: 3vh 16px 30px 16px;
+    }
+
+    .wiki-sidebar {
+        position: static;
+    }
+
+    .wiki-welcome,
+    .wiki-article {
+        padding: 20px;
+    }
+}
+
+.wiki-admin-categories {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+
+.wiki-admin-row {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: rgb(45, 45, 45);
+    border-radius: 16px;
+    padding: 14px;
+}
+
+/* --- Admin wiki editor --- */
+
+.wiki-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.wiki-editor-split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    align-items: start;
+}
+
+.wiki-editor-textarea-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.wiki-editor-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    background: rgb(45, 45, 45);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 10px 10px 0 0;
+    padding: 6px;
+}
+
+.wiki-editor-toolbar button {
+    width: 32px;
+    height: 32px;
+    background: none;
+    border: none;
+    border-radius: 6px;
+    color: rgb(200, 200, 200);
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.wiki-editor-toolbar button:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.08);
+    color: white;
+}
+
+.wiki-editor-toolbar button:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.wiki-editor-toolbar-divider {
+    width: 1px;
+    height: 20px;
+    background: rgba(255, 255, 255, 0.15);
+    margin: 0 4px;
+}
+
+.wiki-editor-textarea {
+    width: 100%;
+    min-height: 70vh;
+    resize: vertical;
+    background: rgb(25, 25, 25);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-top: none;
+    border-radius: 0 0 10px 10px;
+    color: white;
+    font-family: monospace;
+    font-size: 14px;
+    line-height: 1.6;
+    padding: 14px;
+    box-sizing: border-box;
+}
+
+.wiki-editor-upload-error {
+    margin: 0;
+    color: var(--color-red);
+    font-size: 13px;
+}
+
+.wiki-editor-preview {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.wiki-editor-preview-label {
+    color: rgb(150, 150, 150);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.wiki-editor-preview .wiki-article {
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+.wiki-admin-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.wiki-admin-tabs button {
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    padding: 10px 4px;
+    margin-bottom: -1px;
+    color: rgb(170, 170, 170);
+    font-family: "Minecraft", sans-serif;
+    font-size: 14px;
+    cursor: pointer;
+    transition: color 0.2s ease, border-color 0.2s ease;
+}
+
+.wiki-admin-tabs button:hover {
+    color: white;
+}
+
+.wiki-admin-tabs button.active {
+    color: var(--color-gold);
+    border-bottom-color: var(--color-gold);
+}
+
+@media (max-width: 900px) {
+    .wiki-editor-split {
+        grid-template-columns: 1fr;
     }
 }

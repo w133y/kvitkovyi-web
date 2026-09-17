@@ -45,7 +45,7 @@ export default function JoinPage() {
           <div className="launcher-text">
             <p>
               Строго <span style={{ color: "red" }}>ЗАБОРОНЕНО</span> використовувати TLauncher, TLauncher Legacy, KLauncher,
-              Pojav Launcher, FLauncher та будь-які інші лаунчери, що пов&apos;язані з росією,
+              Pojav Launcher, FLauncher, SKlauncher та будь-які інші лаунчери, що пов&apos;язані з росією,
               містять віруси або підтримують будь-яку форму читерства.
             </p>
             <h2>

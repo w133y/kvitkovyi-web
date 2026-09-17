@@ -134,6 +134,22 @@ export async function searchPlayerNicknames(query: string, limit = 20): Promise<
   }
 }
 
+// Just the uuid, for callers that only need it to look up something else
+// (e.g. the donate-order gift picker fetching a recipient's skin) —
+// deliberately not routed through getPlayerProfileByNickname, whose 3-way
+// join computes a lot of stats no such caller needs.
+export async function getUuidByNickname(nickname: string): Promise<string | null> {
+  try {
+    const [rows] = await withRetry(() =>
+      getPool().query<mysql.RowDataPacket[]>(`SELECT uuid FROM play_time WHERE nickname = ? LIMIT 1`, [nickname])
+    );
+    return rows.length > 0 ? (rows[0].uuid as string) : null;
+  } catch (err) {
+    await logError("mc-db: getUuidByNickname failed", err);
+    return null;
+  }
+}
+
 export type FullLeaderboardEntry = {
   nickname: string;
   uuid: string;

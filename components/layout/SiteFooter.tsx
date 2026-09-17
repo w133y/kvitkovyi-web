@@ -13,6 +13,7 @@ export default function SiteFooter() {
           <nav className="footer-nav">
             <Link href="/">Головна</Link>
             <Link href="/join">Приєднатися</Link>
+            <Link href="/wiki">Вікі</Link>
           </nav>
 
           <div className="social-links">

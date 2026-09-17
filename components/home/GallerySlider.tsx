@@ -29,7 +29,7 @@ export default function GallerySlider({
   const active = photos[current];
 
   return (
-    <div className="slider-container">
+    <div className="slider-container" id="gallery">
       <div className="slider-wrapper">
         <div className="slider">
           {photos.map((photo, i) => {
@@ -212,7 +212,7 @@ function SubmitForm({
       <button type="submit" className="gallery-submit-btn" disabled={submitting}>
         {submitting ? "Надсилання..." : "Надіслати на модерацію"}
       </button>
-      <p className="gallery-submit-hint">Не більше 3 фото на день. Заявка з'явиться в галереї після перевірки.</p>
+      <p className="gallery-submit-hint">Заявка з'явиться в галереї після перевірки.</p>
     </form>
   );
 }

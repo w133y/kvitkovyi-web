@@ -11,7 +11,7 @@ export default async function ImageSlider() {
         id: p.id,
         url: p.url,
         description: p.showDescription ? p.description : null,
-        author: p.author,
+        author: p.showAuthor ? p.author : null,
       }))}
       defaultSeason={settings.currentSeason}
       seasonLocked={settings.seasonLocked}

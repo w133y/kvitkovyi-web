@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import SkinViewer from "@/components/profile/SkinViewer";
 import RecipientPicker from "@/components/shop/RecipientPicker";
-import { createDonateOrder } from "@/lib/actions/donate-order";
+import { createDonateOrder, getRecipientSkin } from "@/lib/actions/donate-order";
 import {
   MINECRAFT_SYMBOLS,
   MINECRAFT_COLORS,
@@ -56,6 +56,29 @@ export default function DonateBuilder({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Own skin is already known from props (the page fetched it server-side)
+  // — only a gifted recipient needs its own fetch, on demand, since there's
+  // no reason to look up every player someone merely searches for.
+  const [previewSkin, setPreviewSkin] = useState({ skinUrl, capeUrl, slim });
+  const [skinLoading, setSkinLoading] = useState(false);
+
+  useEffect(() => {
+    if (recipient.toLowerCase() === nickname.toLowerCase()) {
+      setPreviewSkin({ skinUrl, capeUrl, slim });
+      return;
+    }
+    let cancelled = false;
+    setSkinLoading(true);
+    getRecipientSkin(recipient).then((result) => {
+      if (cancelled) return;
+      setSkinLoading(false);
+      if (!("error" in result)) setPreviewSkin(result);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [recipient, nickname, skinUrl, capeUrl, slim]);
+
   const previewSymbol = tier === "florist" ? FLORIST_SYMBOL : symbol;
   const previewColor = tier === "florist" ? FLORIST_COLOR_HEX : colorHex;
   const mecenatActive = tier === "mecenat";
@@ -81,39 +104,31 @@ export default function DonateBuilder({
   return (
     <div className="donate-builder">
       <div className="donate-col donate-col-tiers">
-        <div className={`donate-tier-card ${tier === "florist" ? "selected" : ""}`}>
+        <button
+          type="button"
+          className={`donate-tier-card ${tier === "florist" ? "selected" : ""}`}
+          onClick={() => setTier(tier === "florist" ? null : "florist")}
+        >
           <div className="donate-tier-icon" style={{ color: FLORIST_COLOR_HEX }}>
             {FLORIST_SYMBOL}
           </div>
           <h3>Флорист</h3>
           <div className="donate-tier-price">49 ₴ / міс</div>
           <FeatureList tierKey="florist" />
-          <button
-            type="button"
-            className="donate-tier-toggle"
-            onClick={() => setTier(tier === "florist" ? null : "florist")}
-          >
-            <i className={tier === "florist" ? "fa-solid fa-minus" : "fa-solid fa-plus"}></i>
-            {tier === "florist" ? "Прибрати" : "Обрати"}
-          </button>
-        </div>
+        </button>
 
-        <div className={`donate-tier-card ${tier === "mecenat" ? "selected" : ""}`}>
+        <button
+          type="button"
+          className={`donate-tier-card ${tier === "mecenat" ? "selected" : ""}`}
+          onClick={() => setTier(tier === "mecenat" ? null : "mecenat")}
+        >
           <div className="donate-tier-icon" style={{ color: colorHex }}>
             {symbol}
           </div>
           <h3>Меценат</h3>
           <div className="donate-tier-price">99 ₴ / міс</div>
           <FeatureList tierKey="mecenat" />
-          <button
-            type="button"
-            className="donate-tier-toggle"
-            onClick={() => setTier(tier === "mecenat" ? null : "mecenat")}
-          >
-            <i className={tier === "mecenat" ? "fa-solid fa-minus" : "fa-solid fa-plus"}></i>
-            {tier === "mecenat" ? "Прибрати" : "Обрати"}
-          </button>
-        </div>
+        </button>
       </div>
 
       <div className={`donate-col donate-col-symbol ${mecenatActive ? "" : "disabled"}`}>
@@ -157,7 +172,7 @@ export default function DonateBuilder({
 
       <div className="donate-col donate-col-preview">
         <div className={`profile-nick-badge donate-nick-badge${tier ? "" : " no-icon"}`}>
-          <span>{nickname}</span>
+          <span>{recipient}</span>
           {tier && (
             <span className="donate-icon-preview" style={{ color: previewColor }}>
               {previewSymbol}
@@ -165,8 +180,13 @@ export default function DonateBuilder({
           )}
         </div>
 
-        <div className="profile-skin-card donate-skin-card">
-          <SkinViewer skinUrl={skinUrl} capeUrl={capeUrl} slim={slim} nickname={nickname} />
+        <div className={`profile-skin-card donate-skin-card${skinLoading ? " donate-skin-card-loading" : ""}`}>
+          <SkinViewer
+            skinUrl={previewSkin.skinUrl}
+            capeUrl={previewSkin.capeUrl}
+            slim={previewSkin.slim}
+            nickname={recipient}
+          />
         </div>
 
         <Link href="/shop/sponsorship/info" className="donate-info-btn">

@@ -33,7 +33,7 @@ function getClient(): S3Client {
   });
 }
 
-export type GalleryUploadTarget = {
+export type UploadTarget = {
   uploadUrl: string; // presigned PUT URL — the browser uploads straight here
   publicUrl: string; // final URL to store/display once the upload succeeds
   key: string; // object key, needed to delete it later
@@ -42,14 +42,26 @@ export type GalleryUploadTarget = {
 // Same reasoning as the Cloudinary version this replaced: Vercel's
 // serverless functions hard-cap request bodies at 4.5MB at the platform
 // level, so the file itself is never routed through our own server — the
-// browser PUTs directly to this presigned URL instead.
-export async function createGalleryUploadTarget(contentType: string): Promise<GalleryUploadTarget> {
+// browser PUTs directly to this presigned URL instead. Shared by gallery
+// photo submissions and wiki article images, keyed under their own prefix
+// so the two never collide.
+async function createUploadTarget(prefix: string, contentType: string): Promise<UploadTarget> {
   const { bucket, publicUrl } = getConfig();
-  const key = `gallery/${Date.now()}-${crypto.randomBytes(8).toString("hex")}`;
+  const key = `${prefix}/${Date.now()}-${crypto.randomBytes(8).toString("hex")}`;
   const client = getClient();
   const command = new PutObjectCommand({ Bucket: bucket, Key: key, ContentType: contentType });
   const uploadUrl = await getSignedUrl(client, command, { expiresIn: 300 });
   return { uploadUrl, publicUrl: `${publicUrl}/${key}`, key };
+}
+
+export type GalleryUploadTarget = UploadTarget;
+
+export async function createGalleryUploadTarget(contentType: string): Promise<GalleryUploadTarget> {
+  return createUploadTarget("gallery", contentType);
+}
+
+export async function createWikiUploadTarget(contentType: string): Promise<UploadTarget> {
+  return createUploadTarget("wiki", contentType);
 }
 
 // Best-effort — called when an admin rejects/deletes a submission via the

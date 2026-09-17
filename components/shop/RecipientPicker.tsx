@@ -82,13 +82,13 @@ export default function RecipientPicker({
       ) : (
         <button type="button" className="donate-recipient-toggle" onClick={() => setEditing(true)}>
           <i className="fa-solid fa-gift"></i>
-          <span>{isGift ? `Отримувач: ${recipient}` : "Собі — обрати іншого отримувача"}</span>
+          <span>{isGift ? `Подарунок для ${recipient}` : "Подарувати другу"}</span>
           <i className="fa-solid fa-chevron-down"></i>
         </button>
       )}
       {isGift && !editing && (
         <button type="button" className="donate-recipient-clear" onClick={() => onChange(myNickname)}>
-          Скасувати подарунок, знову собі
+          Скасувати
         </button>
       )}
     </div>

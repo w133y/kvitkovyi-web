@@ -3,11 +3,14 @@ import { notFound } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { listAchievements } from "@/lib/actions/achievements";
 import { listPrivileges } from "@/lib/actions/donate-privileges";
-import { getGallerySettings } from "@/lib/actions/gallery";
+import { getGallerySettings, listGalleryPhotosForAdmin } from "@/lib/actions/gallery";
 import { getAdminLogs, getErrorLoggingEnabled } from "@/lib/actions/admin-log";
+import { listWikiCategoriesForAdmin } from "@/lib/actions/wiki";
 import AchievementsAdmin from "@/components/admin/AchievementsAdmin";
 import DonatePrivilegesAdmin from "@/components/admin/DonatePrivilegesAdmin";
 import GallerySettingsAdmin from "@/components/admin/GallerySettingsAdmin";
+import AdminGalleryPhotos from "@/components/admin/AdminGalleryPhotos";
+import AdminWiki from "@/components/admin/AdminWiki";
 import AdminLog from "@/components/admin/AdminLog";
 
 export const metadata: Metadata = {
@@ -27,6 +30,8 @@ export default async function AdminPage() {
   const achievements = await listAchievements();
   const privileges = await listPrivileges();
   const gallerySettings = await getGallerySettings();
+  const galleryPhotos = await listGalleryPhotosForAdmin();
+  const wikiCategories = await listWikiCategoriesForAdmin();
   const logs = await getAdminLogs();
   const errorLoggingEnabled = await getErrorLoggingEnabled();
 
@@ -56,6 +61,13 @@ export default async function AdminPage() {
           pendingSeason={gallerySettings.pendingSeason}
           seasonLocked={gallerySettings.seasonLocked}
         />
+        <h4 className="admin-gallery-photos-title">Фото</h4>
+        <AdminGalleryPhotos initialPhotos={galleryPhotos} />
+      </div>
+
+      <div className="admin-section">
+        <h3>Вікі</h3>
+        <AdminWiki initialCategories={wikiCategories} />
       </div>
 
       <div className="admin-section">

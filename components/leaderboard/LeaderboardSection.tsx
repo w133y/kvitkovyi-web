@@ -1,10 +1,9 @@
 import Link from "next/link";
-import { Suspense } from "react";
-import LeaderboardTable from "./LeaderboardTable";
+import LazyLeaderboardTable from "./LazyLeaderboardTable";
 
 export default function LeaderboardSection({ limit }: { limit?: number }) {
   return (
-    <div className="box2">
+    <div className="box2" id="leaderboard">
       <div className="lbheader">
         <h2>
           <b>Топ гравців</b>
@@ -14,9 +13,7 @@ export default function LeaderboardSection({ limit }: { limit?: number }) {
         </p>
       </div>
       <div className="lb">
-        <Suspense fallback={<div className="lb-empty">Завантаження...</div>}>
-          <LeaderboardTable limit={limit} />
-        </Suspense>
+        <LazyLeaderboardTable limit={limit} />
       </div>
       <Link href="/leaderboard" className="custom-button lb-full-link">
         <i className="fa-solid fa-ranking-star"></i>

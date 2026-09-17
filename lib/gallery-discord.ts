@@ -37,7 +37,11 @@ function buildModerationEmbed(photo: GalleryPhoto): DiscordEmbed {
       { name: "Опис", value: photo.description?.trim() || "—", inline: false },
       {
         name: "Статус",
-        value: `${STATUS_LABEL[photo.status]}${photo.status !== "PENDING" ? ` · опис ${photo.showDescription ? "показано" : "приховано"}` : ""}`,
+        value: `${STATUS_LABEL[photo.status]}${
+          photo.status !== "PENDING"
+            ? ` · опис ${photo.showDescription ? "показано" : "приховано"} · автор ${photo.showAuthor ? "показано" : "приховано"}`
+            : ""
+        }`,
         inline: false,
       },
     ],
@@ -77,7 +81,27 @@ function buildModerationButtons(photo: GalleryPhoto): DiscordActionRow[] {
     custom_id: `gallery:toggle_desc:${photo.id}`,
     emoji: { name: "👁️" },
   });
-  return [{ type: 1, components: buttons }];
+  buttons.push({
+    type: 2 as const,
+    style: 2 as const,
+    label: "Автор",
+    custom_id: `gallery:edit_author:${photo.id}`,
+    emoji: { name: "✏️" },
+  });
+  buttons.push({
+    type: 2 as const,
+    style: 2 as const,
+    label: photo.showAuthor ? "Автор: увімк" : "Автор: вимк",
+    custom_id: `gallery:toggle_author:${photo.id}`,
+    emoji: { name: "👁️" },
+  });
+  // Discord caps action rows at 5 buttons — six moderation actions (five
+  // once approved, since "Додати" drops off) need a second row rather than
+  // one overflowing row. An action row can't have zero components, so the
+  // second row is only added when there's actually an overflow button.
+  const rows: DiscordActionRow[] = [{ type: 1, components: buttons.slice(0, 5) }];
+  if (buttons.length > 5) rows.push({ type: 1, components: buttons.slice(5) });
+  return rows;
 }
 
 function getGalleryChannelId(): string | null {
