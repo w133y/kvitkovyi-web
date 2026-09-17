@@ -132,7 +132,7 @@ export default function DonateBuilder({
       </div>
 
       <div className={`donate-col donate-col-symbol ${mecenatActive ? "" : "disabled"}`}>
-        <h3>Символ</h3>
+        <h3>Значок</h3>
         <p className="donate-col-hint">
           {mecenatActive
             ? "Оберіть символ і колір — вони будуть відображатись поруч з вашим ніком."
@@ -186,6 +186,7 @@ export default function DonateBuilder({
             capeUrl={previewSkin.capeUrl}
             slim={previewSkin.slim}
             nickname={recipient}
+            showControls={false}
           />
         </div>
 

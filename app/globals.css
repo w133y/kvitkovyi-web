@@ -29,6 +29,25 @@
        just top/bottom padding for breathing room. Was 50px vs 40px between
        the two, an inconsistency with no reason behind it. */
     --band-padding-y: 50px;
+
+    /* The "modern panel" look introduced for /wiki and /leaderboard's
+       sidebar (subtle translucent fill + thin border) rather than the
+       older solid rgb(35,35,35)/rgb(45,45,45) fill with a heavy shadow and
+       50px corners — rolled out site-wide to the big structural cards per
+       the user's request. Deliberately NOT applied to form inputs, small
+       icon buttons, or dropdowns — those aren't "cards" in this sense and
+       read better with their existing more recessed look. */
+    --panel-bg: rgba(255, 255, 255, 0.04);
+    --panel-bg-raised: rgba(255, 255, 255, 0.06);
+    --panel-border: 1px solid rgba(255, 255, 255, 0.1);
+    --panel-radius: 20px;
+    --panel-radius-sm: 16px;
+    /* Row items *inside* an already-translucent panel (admin table rows,
+       etc.) need actual contrast against it, not another translucent
+       layer — matches .lb2-card exactly, the same "list row inside a
+       panel" pattern /leaderboard already uses. */
+    --panel-row-bg: #2d2d2d;
+    --panel-row-border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
 a {
@@ -501,9 +520,10 @@ body .box {
     align-items: center;
     justify-content: center;
     gap: 50px;
-    background: rgb(35, 35, 35);
-    border-radius: 50px;
-    box-shadow: 0px 0px 10px 0px rgba(0,0,0,0.1);
+    background: var(--panel-bg);
+    border: var(--panel-border);
+    border-radius: var(--panel-radius);
+    box-sizing: border-box;
     padding: var(--section-padding);
 }
 
@@ -555,9 +575,10 @@ body .boximage img {
     display: flex;
     flex-direction: column;
     align-items: center;
-    background: rgb(35, 35, 35);
-    border-radius: 50px;
-    box-shadow: 0px 0px 10px 0px rgba(0,0,0,0.1);
+    background: var(--panel-bg);
+    border: var(--panel-border);
+    border-radius: var(--panel-radius);
+    box-sizing: border-box;
     padding: var(--section-padding);
 }
 
@@ -578,10 +599,13 @@ body .boximage img {
     flex: 1;
     min-width: 0;
     text-align: left;
-    background: rgb(45, 45, 45);
-    border-radius: 20px;
+    /* Nests inside .box3, which is itself a translucent panel now — a row
+       variant reads as its own distinct block instead of blending in. */
+    background: var(--panel-row-bg);
+    border: var(--panel-row-border);
+    border-radius: var(--panel-radius);
     padding: 20px;
-    box-shadow: 0 0px 2px rgba(0, 0, 0, 0.2);
+    box-sizing: border-box;
 }
 
 .rules-column.full-width {
@@ -613,9 +637,10 @@ body .boximage img {
 .support-box {
     background: linear-gradient(135deg, #2b2b2b 0%, #1a1a1a 100%);
     padding: 20px;
-    border-radius: 20px;
+    border: var(--panel-border);
+    border-radius: var(--panel-radius);
     margin: 40px 0;
-    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+    box-sizing: border-box;
 }
 
 /* .custom-button's shared max-width:300px (sized for the shorter hero CTA
@@ -637,8 +662,10 @@ body .boximage img {
 .feature {
     text-align: left;
     padding: 20px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 15px;
+    background: var(--panel-bg);
+    border: var(--panel-border);
+    border-radius: var(--panel-radius-sm);
+    box-sizing: border-box;
     transition: transform 0.2s ease;
 }
 
@@ -697,10 +724,12 @@ body .line {
 
 body .line .boxline {
   height: auto;
-  background: rgb(35, 35, 35);
+  background: var(--panel-bg);
+  border: var(--panel-border);
+  box-sizing: border-box;
   text-align: center;
   width: 350px;
-  border-radius: 30px;
+  border-radius: var(--panel-radius);
   position: relative;
   display: flex;
   flex-direction: column;
@@ -765,7 +794,8 @@ body .lb {
 }
 
 body .box2 {
-    background: rgb(35, 35, 35);
+    background: var(--panel-bg);
+    border: var(--panel-border);
     margin: var(--section-margin-y) var(--section-margin-x);
     /* Same clearance as .lb2-sidebar's sticky offset — the fixed nav would
        otherwise cover the top of this section when #leaderboard is jumped
@@ -774,8 +804,7 @@ body .box2 {
     display: flex;
     flex-direction: column;
     align-items: center;
-    border-radius: 50px;
-    box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    border-radius: var(--panel-radius);
     padding: var(--section-padding);
     box-sizing: border-box;
     overflow: hidden;
@@ -1635,9 +1664,10 @@ body .box2 {
     align-items: center;
     justify-content: center;
     gap: 50px;
-    background: rgb(35, 35, 35);
-    border-radius: 50px;
-    box-shadow: 0px 0px 10px 0px rgba(0,0,0,0.1);
+    background: var(--panel-bg);
+    border: var(--panel-border);
+    border-radius: var(--panel-radius);
+    box-sizing: border-box;
     padding: var(--section-padding);
 }
 
@@ -2990,15 +3020,16 @@ header nav .auth-widget {
 
 .shop-category-card {
     position: relative;
-    background: rgb(35, 35, 35);
-    border-radius: 36px;
+    background: var(--panel-bg);
+    border: var(--panel-border);
+    border-radius: var(--panel-radius);
+    box-sizing: border-box;
     padding: 60px 50px;
     width: 420px;
     text-align: center;
     text-decoration: none;
     color: white;
     transition: all 0.3s ease;
-    box-shadow: 0px 0px 10px 0px rgba(0,0,0,0.1);
 }
 
 .shop-category-card:hover {
@@ -3028,7 +3059,7 @@ header nav .auth-widget {
 
 .shop-category-card-disabled:hover {
     transform: none;
-    box-shadow: 0px 0px 10px 0px rgba(0,0,0,0.1);
+    box-shadow: none;
 }
 
 .shop-category-badge {
@@ -3061,13 +3092,14 @@ header nav .auth-widget {
 }
 
 .product-card {
-    background: rgb(35, 35, 35);
-    border-radius: 20px;
+    background: var(--panel-bg);
+    border: var(--panel-border);
+    border-radius: var(--panel-radius);
+    box-sizing: border-box;
     padding: 24px;
     display: flex;
     flex-direction: column;
     gap: 12px;
-    box-shadow: 0px 0px 10px 0px rgba(0,0,0,0.1);
 }
 
 .product-card img {
@@ -3188,11 +3220,11 @@ header nav .auth-widget {
        explicit color (the h3 headings, notably) was falling back to the
        browser default — plain black — instead of white. */
     color: white;
-    background: rgb(45, 45, 45);
-    border-radius: 24px;
+    background: var(--panel-bg);
+    border: var(--panel-border);
+    border-radius: var(--panel-radius);
     padding: 22px;
     box-sizing: border-box;
-    box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.1);
 }
 
 .donate-col h3 {
@@ -3222,11 +3254,17 @@ header nav .auth-widget {
 }
 
 .donate-col-preview {
+    /* Just a layout wrapper for its children (the actual cards/buttons),
+       not a visible panel itself — border:none on top of the inherited
+       .donate-col background:none/box-shadow:none, or it shows an outline
+       around empty transparent space. */
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
     gap: 14px;
     background: none;
+    border: none;
     box-shadow: none;
     padding: 0;
 }
@@ -3295,9 +3333,6 @@ header nav .auth-widget {
    from .donate-col-preview is enough) while sending the leftover space
    from the column stretch above to push just the continue button down to
    the shared bottom line. */
-.donate-col-preview .donate-continue-btn {
-    margin-top: auto;
-}
 
 /* Placeholder for donate-tier details — no real content behind it yet, see
    /shop/sponsorship/info. Deliberately chunky/square rather than a thin
@@ -3313,7 +3348,7 @@ header nav .auth-widget {
     align-items: center;
     justify-content: center;
     gap: 8px;
-    background: rgb(45, 45, 45);
+    background: var(--panel-bg);
     border: 2px solid rgba(255, 255, 255, 0.15);
     border-radius: 18px;
     color: white;
@@ -3577,7 +3612,11 @@ header nav .auth-widget {
     z-index: 500;
     width: 300px;
     max-width: calc(100vw - 40px);
-    background: rgb(35, 35, 35);
+    background: var(--panel-bg-raised);
+    /* Unlike in-page cards, this floats over whatever's scrolled underneath
+       it — a blur keeps it legible instead of just tinting page content. */
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
     border: 1px solid rgba(255, 255, 255, 0.15);
     border-radius: 18px;
     padding: 16px 18px;
@@ -3693,10 +3732,15 @@ header nav .auth-widget {
 }
 
 .donate-col-tiers {
+    /* Just a layout wrapper for the two tier cards, not a visible panel
+       itself — border:none on top of the inherited .donate-col
+       background:none/box-shadow:none, or it shows an outline around
+       empty transparent space. */
     display: grid;
     grid-template-columns: 1fr;
     gap: 16px;
     background: none;
+    border: none;
     box-shadow: none;
     padding: 0;
     /* .donate-builder stretches this column to match the tallest one (the
@@ -3709,16 +3753,19 @@ header nav .auth-widget {
 
 .donate-tier-card {
     /* Now a <button> (the whole card is the toggle, not just a strip at the
-       bottom) — reset the parts a plain <div> got for free. */
+       bottom) — reset the parts a plain <div> got for free. Border stays a
+       real (transparent) 2px rather than reusing --panel-border, since
+       .selected below swaps its color for the "picked" state — same
+       thickness, no layout jump when that happens. */
     width: 100%;
     font-family: inherit;
     cursor: pointer;
     color: white;
-    background: rgb(45, 45, 45);
+    background: var(--panel-bg);
     border: 2px solid transparent;
-    border-radius: 24px;
+    border-radius: var(--panel-radius);
+    box-sizing: border-box;
     padding: 20px 16px;
-    box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.1);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -3815,8 +3862,10 @@ header nav .auth-widget {
     display: flex;
     align-items: center;
     gap: 20px;
-    background: rgb(45, 45, 45);
-    border-radius: 16px;
+    background: var(--panel-bg);
+    border: var(--panel-border);
+    border-radius: var(--panel-radius-sm);
+    box-sizing: border-box;
     padding: 16px 20px;
 }
 
@@ -3924,8 +3973,10 @@ header nav .auth-widget {
 }
 
 .checkout-summary {
-    background: rgb(45, 45, 45);
-    border-radius: 16px;
+    background: var(--panel-bg);
+    border: var(--panel-border);
+    border-radius: var(--panel-radius-sm);
+    box-sizing: border-box;
     padding: 20px;
     width: 100%;
     max-width: 500px;
@@ -3986,12 +4037,13 @@ header nav .auth-widget {
 .profile-skin-card {
     grid-column: 1;
     grid-row: 2;
-    background: rgb(35, 35, 35);
-    border-radius: 30px;
+    background: var(--panel-bg);
+    border: var(--panel-border);
+    border-radius: var(--panel-radius);
+    box-sizing: border-box;
     display: flex;
     flex-direction: column;
     align-items: center;
-    box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.1);
     width: 100%;
     max-width: 280px;
     overflow: hidden;
@@ -4044,10 +4096,10 @@ header nav .auth-widget {
     position: relative;
     width: 280px;
     box-sizing: border-box;
-    background: rgb(35, 35, 35);
-    border-radius: 20px;
+    background: var(--panel-bg);
+    border: var(--panel-border);
+    border-radius: var(--panel-radius);
     padding: 14px 16px;
-    box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.1);
     color: rgb(200, 200, 200);
     font-size: 14px;
     line-height: 1.4;
@@ -4165,10 +4217,10 @@ header nav .auth-widget {
     grid-row: 4;
     width: 280px;
     box-sizing: border-box;
-    background: rgb(35, 35, 35);
-    border-radius: 20px;
+    background: var(--panel-bg);
+    border: var(--panel-border);
+    border-radius: var(--panel-radius);
     padding: 14px 16px;
-    box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.1);
 }
 
 /* Separate box, owner-only — holds the "Редагувати профіль" trigger in
@@ -4180,10 +4232,10 @@ header nav .auth-widget {
     grid-row: 5;
     width: 280px;
     box-sizing: border-box;
-    background: rgb(35, 35, 35);
-    border-radius: 20px;
+    background: var(--panel-bg);
+    border: var(--panel-border);
+    border-radius: var(--panel-radius);
     padding: 14px 16px;
-    box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.1);
     display: flex;
     flex-direction: column;
     gap: 10px;
@@ -4403,10 +4455,10 @@ header nav .auth-widget {
 .profile-stats-card {
     grid-column: 2;
     grid-row: 2;
-    background: rgb(35, 35, 35);
-    border-radius: 30px;
+    background: var(--panel-bg);
+    border: var(--panel-border);
+    border-radius: var(--panel-radius);
     padding: 24px;
-    box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.1);
     height: 260px;
     box-sizing: border-box;
     display: flex;
@@ -4421,10 +4473,10 @@ header nav .auth-widget {
     grid-column: 2;
     grid-row: 3 / 6;
     align-self: start;
-    background: rgb(35, 35, 35);
-    border-radius: 30px;
+    background: var(--panel-bg);
+    border: var(--panel-border);
+    border-radius: var(--panel-radius);
     padding: 24px;
-    box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.1);
     box-sizing: border-box;
     width: 100%;
 }
@@ -4445,10 +4497,9 @@ header nav .auth-widget {
 
 .achievement-card {
     aspect-ratio: 1 / 1;
-    background: rgb(45, 45, 45);
+    background: var(--panel-bg);
     border: 3px solid transparent;
     border-radius: 18px;
-    box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.1);
     box-sizing: border-box;
     padding: 12px 10px;
     display: flex;
@@ -4553,11 +4604,12 @@ header nav .auth-widget {
 }
 
 .stat-box {
-    background: rgb(45, 45, 45);
+    background: var(--panel-bg);
+    border: var(--panel-border);
     border-radius: 18px;
+    box-sizing: border-box;
     padding: 18px 12px;
     text-align: center;
-    box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.1);
     transition: transform 0.2s ease;
     display: flex;
     flex-direction: column;
@@ -4799,14 +4851,14 @@ header nav .auth-widget {
     display: block;
     width: 100%;
     padding: 0;
-    border: none;
     font: inherit;
     text-align: left;
     cursor: pointer;
-    background: rgb(35, 35, 35);
-    border-radius: 16px;
+    background: var(--panel-bg);
+    border: var(--panel-border);
+    border-radius: var(--panel-radius-sm);
+    box-sizing: border-box;
     overflow: hidden;
-    box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.1);
     transition: transform 0.2s ease;
 }
 
@@ -4974,10 +5026,11 @@ header nav .auth-widget {
 }
 
 .admin-header {
-    background: rgb(35, 35, 35);
-    border-radius: 30px;
+    background: var(--panel-bg);
+    border: var(--panel-border);
+    border-radius: var(--panel-radius);
+    box-sizing: border-box;
     padding: 24px 30px;
-    box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.1);
 }
 
 .admin-header p {
@@ -4986,10 +5039,11 @@ header nav .auth-widget {
 }
 
 .admin-section {
-    background: rgb(35, 35, 35);
-    border-radius: 30px;
+    background: var(--panel-bg);
+    border: var(--panel-border);
+    border-radius: var(--panel-radius);
+    box-sizing: border-box;
     padding: 24px 30px;
-    box-shadow: 0px 0px 10px 0px rgba(0, 0, 0, 0.1);
 }
 
 .admin-section > h3 {
@@ -5071,8 +5125,10 @@ header nav .auth-widget {
 .admin-gallery-photo-row {
     display: flex;
     gap: 24px;
-    background: rgb(45, 45, 45);
-    border-radius: 16px;
+    background: var(--panel-row-bg);
+    border: var(--panel-row-border);
+    border-radius: var(--panel-radius-sm);
+    box-sizing: border-box;
     padding: 14px;
 }
 
@@ -5404,8 +5460,10 @@ header nav .auth-widget {
 }
 
 .admin-log-row {
-    background: rgb(45, 45, 45);
+    background: var(--panel-row-bg);
+    border: var(--panel-row-border);
     border-radius: 12px;
+    box-sizing: border-box;
     padding: 10px 16px;
 }
 
@@ -5530,9 +5588,10 @@ header nav .auth-widget {
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    background: rgb(45, 45, 45);
-    border: none;
+    background: var(--panel-row-bg);
+    border: var(--panel-row-border);
     border-radius: 16px;
+    box-sizing: border-box;
     padding: 14px 18px;
     color: white;
     font-family: inherit;
@@ -5583,8 +5642,10 @@ header nav .auth-widget {
     display: flex;
     align-items: center;
     gap: 16px;
-    background: rgb(45, 45, 45);
+    background: var(--panel-row-bg);
+    border: var(--panel-row-border);
     border-radius: 16px;
+    box-sizing: border-box;
     padding: 10px 16px;
 }
 
@@ -5872,8 +5933,10 @@ header nav .auth-widget {
     display: flex;
     flex-direction: column;
     gap: 10px;
-    background: rgb(45, 45, 45);
+    background: var(--panel-row-bg);
+    border: var(--panel-row-border);
     border-radius: 16px;
+    box-sizing: border-box;
     padding: 14px;
 }
 

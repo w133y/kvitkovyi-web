@@ -212,7 +212,7 @@ function SubmitForm({
       <button type="submit" className="gallery-submit-btn" disabled={submitting}>
         {submitting ? "Надсилання..." : "Надіслати на модерацію"}
       </button>
-      <p className="gallery-submit-hint">Заявка з'явиться в галереї після перевірки.</p>
+      <p className="gallery-submit-hint">Фото з'явиться в галереї після перевірки.</p>
     </form>
   );
 }

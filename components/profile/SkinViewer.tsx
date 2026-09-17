@@ -33,11 +33,18 @@ export default function SkinViewer({
   capeUrl,
   slim,
   nickname,
+  // The donate builder's preview doesn't want these — download/expand only
+  // make sense on the profile page's own skin card, and expanding here
+  // used to grow the whole card to 407px tall, which (since the builder's
+  // three columns share one stretched grid row) pushed the middle "Символ"
+  // column's bounds around with it.
+  showControls = true,
 }: {
   skinUrl: string;
   capeUrl: string | null;
   slim: boolean;
   nickname: string;
+  showControls?: boolean;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const viewerRef = useRef<import("skinview3d").SkinViewer | null>(null);
@@ -141,16 +148,18 @@ export default function SkinViewer({
       <div className="skin-viewer-wrapper">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={skinUrl} alt={`Скін ${nickname}`} className="skin-viewer-fallback-img" />
-        <button
-          type="button"
-          className="skin-viewer-icon-btn skin-viewer-icon-btn-left"
-          title="Завантажити скін"
-          aria-label="Завантажити скін"
-          onClick={handleDownload}
-          disabled={downloading}
-        >
-          <i className="fa-solid fa-download"></i>
-        </button>
+        {showControls && (
+          <button
+            type="button"
+            className="skin-viewer-icon-btn skin-viewer-icon-btn-left"
+            title="Завантажити скін"
+            aria-label="Завантажити скін"
+            onClick={handleDownload}
+            disabled={downloading}
+          >
+            <i className="fa-solid fa-download"></i>
+          </button>
+        )}
       </div>
     );
   }
@@ -159,30 +168,34 @@ export default function SkinViewer({
     <div className={expanded ? "skin-viewer-wrapper expanded" : "skin-viewer-wrapper"}>
       <canvas ref={canvasRef} className={loaded ? "" : "skin-viewer-loading"} />
 
-      <button
-        type="button"
-        className="skin-viewer-icon-btn skin-viewer-icon-btn-left"
-        title="Завантажити скін"
-        aria-label="Завантажити скін"
-        onClick={handleDownload}
-        disabled={downloading}
-      >
-        <i className="fa-solid fa-download"></i>
-      </button>
+      {showControls && (
+        <>
+          <button
+            type="button"
+            className="skin-viewer-icon-btn skin-viewer-icon-btn-left"
+            title="Завантажити скін"
+            aria-label="Завантажити скін"
+            onClick={handleDownload}
+            disabled={downloading}
+          >
+            <i className="fa-solid fa-download"></i>
+          </button>
 
-      <button
-        type="button"
-        className={
-          expanded
-            ? "skin-viewer-icon-btn skin-viewer-icon-btn-right active"
-            : "skin-viewer-icon-btn skin-viewer-icon-btn-right"
-        }
-        title={expanded ? "Згорнути скін" : "Розгорнути скін"}
-        aria-label={expanded ? "Згорнути скін" : "Розгорнути скін"}
-        onClick={() => setExpanded((prev) => !prev)}
-      >
-        <i className={expanded ? "fa-solid fa-compress" : "fa-solid fa-expand"}></i>
-      </button>
+          <button
+            type="button"
+            className={
+              expanded
+                ? "skin-viewer-icon-btn skin-viewer-icon-btn-right active"
+                : "skin-viewer-icon-btn skin-viewer-icon-btn-right"
+            }
+            title={expanded ? "Згорнути скін" : "Розгорнути скін"}
+            aria-label={expanded ? "Згорнути скін" : "Розгорнути скін"}
+            onClick={() => setExpanded((prev) => !prev)}
+          >
+            <i className={expanded ? "fa-solid fa-compress" : "fa-solid fa-expand"}></i>
+          </button>
+        </>
+      )}
     </div>
   );
 }
