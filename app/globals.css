@@ -309,21 +309,21 @@ header .img img {
     animation: pulse 2s infinite alternate ease-in-out;
 }
 
-/* join.png is a wide, short title banner (1010x118), not the square
-   logo.png this slot is normally sized for — a bigger, mostly-flat
+/* join.png and 404.png are wide, short banners (1010x118 / 1024x150), not
+   the square logo.png this slot is normally sized for — a bigger, mostly-flat
    percentage works here at every width instead of shrinking down like the
    logo does, since it barely adds height even scaled up on a phone.
-   "header .img .header-img-join" (not a bare .header-img-join class) is
+   "header .img .header-img-wide" (not a bare .header-img-wide class) is
    what actually beats "header .img img"'s own max-width overrides inside
    the breakpoints below — two classes outrank one class regardless of
    which rule comes later in the file. */
-header .img .header-img-join {
+header .img .header-img-wide {
     width: 90%;
     max-width: 1200px;
 }
 
 @media (max-width: 480px) {
-    header .img .header-img-join {
+    header .img .header-img-wide {
         width: 92%;
     }
 }
@@ -2112,6 +2112,47 @@ r {
     text-align: center;
     color: #888;
     padding: 40px 0;
+}
+
+.not-found-page {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+}
+
+/* Same header.webp background the homepage hero uses, so this reads as a
+   smaller version of that hero rather than an unrelated error panel — the
+   404.png graphic already spells out "Сторінку не знайдено 404" itself
+   (same Minecraft-title treatment as the homepage's logo.png), so there's
+   no separate heading/button needed here. */
+.not-found-hero {
+    width: 100%;
+    max-width: 1000px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: url('/img/header.webp') no-repeat center/cover;
+    border-radius: var(--panel-radius);
+    padding: 80px 20px;
+    overflow: hidden;
+}
+
+.not-found-hero img {
+    width: 70%;
+    max-width: 600px;
+    height: auto;
+}
+
+@media (max-width: 480px) {
+    .not-found-hero {
+        padding: 50px 16px;
+    }
+
+    .not-found-hero img {
+        width: 90%;
+    }
 }
 
 .leaderboard-load-more {

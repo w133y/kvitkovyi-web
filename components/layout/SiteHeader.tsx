@@ -12,7 +12,16 @@ const NAV_LINKS = [
   { href: "/map", label: "Мапа" },
 ];
 
-export default function SiteHeader({ userMenu }: { userMenu?: React.ReactNode }) {
+export default function SiteHeader({
+  userMenu,
+  heroImage,
+}: {
+  userMenu?: React.ReactNode;
+  // global-not-found.tsx wants the exact same full hero everyone else gets
+  // (same header.webp scene, same 100vh treatment, nav floating on top) —
+  // just showing 404.png in the image slot instead of the usual logo.
+  heroImage?: "404";
+}) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
@@ -166,14 +175,16 @@ export default function SiteHeader({ userMenu }: { userMenu?: React.ReactNode })
       {!isSlimHeader && (
         <div className="header-img">
           <div className="img">
-            {pathname === "/join" ? (
+            {heroImage === "404" ? (
+              <Image src="/img/404.png" alt="404" width={1024} height={150} priority className="header-img-wide" />
+            ) : pathname === "/join" ? (
               <Image
                 src="/img/join.png"
                 alt="Як приєднатися?"
                 width={1010}
                 height={118}
                 priority
-                className="header-img-join"
+                className="header-img-wide"
               />
             ) : (
               <Image src="/img/logo.png" alt="Title" width={400} height={400} priority />
