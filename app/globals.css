@@ -839,7 +839,6 @@ body .box2 {
     body .box2 {
         margin: var(--section-margin-y-mobile) var(--section-margin-x-mobile);
         padding: var(--section-padding-mobile);
-        border-radius: 50px;
         max-width: none;
     }
     body .leaderboard {

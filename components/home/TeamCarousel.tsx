@@ -100,7 +100,13 @@ export default function TeamCarousel() {
               >
                 <div className="unique-carousel-nick">{member.nick}</div>
                 <div className="unique-carousel-image">
-                  <img src={member.image} alt={member.nick} loading="lazy" />
+                  {/* No loading="lazy" — Safari's native lazy-load can fail
+                      to ever fire for an image whose container only gets
+                      its real size from JS after first render (the card
+                      width here is set in a useEffect, not CSS), which is
+                      what was making these never show up on iPhones. Only
+                      5 small images, so eager loading costs nothing. */}
+                  <img src={member.image} alt={member.nick} />
                 </div>
                 <div className="unique-carousel-position">{member.position}</div>
               </div>
