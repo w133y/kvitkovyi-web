@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties } from "react";
 import type { FullLeaderboardEntry } from "@/lib/mc-db";
+import type { LeaderboardPrivilegeIcon } from "@/lib/leaderboard-badges";
 import { formatLastSeen } from "@/lib/format-last-seen";
 import PlayerAvatar from "./PlayerAvatar";
 
@@ -112,11 +113,9 @@ async function fetchPage(
 }
 
 export default function LeaderboardClient({
-  initialOwners,
-  initialSponsors,
+  initialPrivilegeIcons,
 }: {
-  initialOwners: string[];
-  initialSponsors: string[];
+  initialPrivilegeIcons: LeaderboardPrivilegeIcon[];
 }) {
   const [sortMode, setSortMode] = useState<SortMode>("stat");
   const [statKey, setStatKey] = useState<StatKey>(DEFAULT_STAT);
@@ -131,8 +130,10 @@ export default function LeaderboardClient({
   const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
   const sortDropdownRef = useRef<HTMLDivElement>(null);
 
-  const owners = useMemo(() => new Set(initialOwners), [initialOwners]);
-  const sponsors = useMemo(() => new Set(initialSponsors), [initialSponsors]);
+  const privilegeIcons = useMemo(
+    () => new Map(initialPrivilegeIcons.map((p) => [p.nickname, p])),
+    [initialPrivilegeIcons]
+  );
   const activeStatOption = STAT_OPTIONS.find((opt) => opt.key === statKey) ?? STAT_OPTIONS[0];
 
   // Every row used to fetch its own skin individually (20+ separate
@@ -434,38 +435,44 @@ export default function LeaderboardClient({
           <div className="leaderboard-page-empty">Нічого не знайдено</div>
         ) : (
           <div className="lb2-list">
-            {entries.map((entry, i) => (
-              <div className="lb2-card" key={entry.nickname}>
-                <div className="lb2-rank">#{i + 1}</div>
-                {skinCacheRef.current[entry.uuid] ? (
-                  <PlayerAvatar skinUrl={skinCacheRef.current[entry.uuid]} size={48} />
-                ) : (
-                  <div
-                    className="leaderboard-avatar leaderboard-avatar-loading"
-                    style={{ "--avatar-size": "48px" } as CSSProperties}
-                  />
-                )}
-                <div className="lb2-info">
-                  <div className="lb2-name">
-                    <Link href={`/profile/${entry.nickname}`}>{entry.nickname}</Link>
-                    {owners.has(entry.nickname) && (
-                      <i className="fa-solid fa-star lb2-badge lb2-badge-owner" title="Власник"></i>
-                    )}
-                    {!owners.has(entry.nickname) && sponsors.has(entry.nickname) && (
-                      <i className="fa-solid fa-star lb2-badge lb2-badge-sponsor" title="Спонсор"></i>
-                    )}
-                  </div>
-                  <div className="lb2-lastseen">{formatLastSeen(entry.lastSeen)}</div>
-                </div>
-                <div className="lb2-pill">
-                  {statKey === "votes" && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src="/favicon.ico" alt="" className="lb2-pill-icon" />
+            {entries.map((entry, i) => {
+              const icon = privilegeIcons.get(entry.nickname);
+              return (
+                <div className="lb2-card" key={entry.nickname}>
+                  <div className="lb2-rank">#{i + 1}</div>
+                  {skinCacheRef.current[entry.uuid] ? (
+                    <PlayerAvatar skinUrl={skinCacheRef.current[entry.uuid]} size={48} />
+                  ) : (
+                    <div
+                      className="leaderboard-avatar leaderboard-avatar-loading"
+                      style={{ "--avatar-size": "48px" } as CSSProperties}
+                    />
                   )}
-                  {formatValue(entry, statKey)}
+                  <div className="lb2-info">
+                    <div className="lb2-name">
+                      <Link href={`/profile/${entry.nickname}`}>{entry.nickname}</Link>
+                      {icon && (
+                        <span
+                          className="lb2-badge lb2-badge-privilege"
+                          style={{ color: icon.color }}
+                          title={icon.label}
+                        >
+                          {icon.symbol}
+                        </span>
+                      )}
+                    </div>
+                    <div className="lb2-lastseen">{formatLastSeen(entry.lastSeen)}</div>
+                  </div>
+                  <div className="lb2-pill">
+                    {statKey === "votes" && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src="/favicon.ico" alt="" className="lb2-pill-icon" />
+                    )}
+                    {formatValue(entry, statKey)}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 

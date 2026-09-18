@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getLeaderboardBadges } from "@/lib/leaderboard-badges";
+import { getLeaderboardPrivilegeIcons } from "@/lib/leaderboard-badges";
 import LeaderboardClient from "@/components/leaderboard/LeaderboardClient";
 
 export const metadata: Metadata = {
@@ -12,11 +12,11 @@ export const metadata: Metadata = {
 // hits /api/leaderboard when that's missing or stale, which is what
 // actually lets a repeat visit within that window cost the server nothing.
 // A first-time visitor (no cache yet) still triggers exactly one fetch, the
-// same as before. Badges (owner/sponsor) stay server-rendered — they're
-// cheap (in-memory cached, see lib/leaderboard-badges.ts) and needed
-// immediately regardless of whether the entries cache hits.
+// same as before. Privilege icons stay server-rendered — they're cheap
+// (in-memory cached, see lib/leaderboard-badges.ts) and needed immediately
+// regardless of whether the entries cache hits.
 export default async function LeaderboardPage() {
-  const badges = await getLeaderboardBadges();
+  const privilegeIcons = await getLeaderboardPrivilegeIcons();
 
   return (
     <>
@@ -29,10 +29,7 @@ export default async function LeaderboardPage() {
           <b>Таблиця лідерів</b>
         </h2>
       </div>
-      <LeaderboardClient
-        initialOwners={[...badges.owners]}
-        initialSponsors={[...badges.sponsors]}
-      />
+      <LeaderboardClient initialPrivilegeIcons={privilegeIcons} />
     </>
   );
 }

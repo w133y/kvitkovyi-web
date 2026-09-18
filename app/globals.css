@@ -892,6 +892,11 @@ body .box2 {
       opacity: 0;
       transition: opacity 0.5s ease-in-out;
       border-radius: 20px;
+      background: #1a1a1a;
+      /* Hides the browser's fallback alt text (which otherwise flashes
+         top-left of the box while a photo is still loading) without
+         touching the alt attribute itself, so screen readers still get it. */
+      color: transparent;
     }
 
     .slide.active {
@@ -1564,8 +1569,14 @@ body .box2 {
 }
 /* ----------------------------------*/
 @media (max-width: 1200px) {
+    /* header .img img's base rule sets width:50% (a fixed percentage, not
+       auto), so a max-width here — however small — never actually kicks in:
+       max-width only constrains a width that would otherwise exceed it, and
+       50% never exceeds 60/70/80%. That's why the logo used to look the same
+       tiny size on every phone regardless of these breakpoints — width is
+       what needs overriding, not max-width. */
     header .img img {
-        max-width: 60%;
+        width: 60%;
     }
 
     body .box {
@@ -1576,7 +1587,7 @@ body .box2 {
 
 @media (max-width: 768px) {
     header .img img {
-        max-width: 70%;
+        width: 75%;
     }
 
     body .box {
@@ -1587,7 +1598,7 @@ body .box2 {
 
 @media (max-width: 480px) {
     header .img img {
-        max-width: 80%;
+        width: 88%;
     }
 
     body .box {
@@ -1902,6 +1913,10 @@ r {
     text-overflow: ellipsis;
     min-width: 0;
     max-width: 100%;
+}
+
+.leaderboard .name .lb2-badge-privilege {
+    margin-left: 6px;
 }
 
 .leaderboard .time {
@@ -2502,12 +2517,12 @@ r {
     flex-shrink: 0;
 }
 
-.lb2-badge-owner {
-    color: var(--color-gold);
-}
-
-.lb2-badge-sponsor {
-    color: #C0C0C0;
+/* The custom symbol/color a Меценат (or Флорист's fixed one) picked in the
+   donate builder — same glyph shown next to their name on their own profile
+   page, just sized for this row instead of the bigger profile badge. */
+.lb2-badge-privilege {
+    font-size: 16px;
+    line-height: 1;
 }
 
 .lb2-lastseen {

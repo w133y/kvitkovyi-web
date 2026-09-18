@@ -16,35 +16,33 @@ export default function GallerySlider({
   seasonLocked: boolean;
 }) {
   const [current, setCurrent] = useState(0);
-  const [prevIndex, setPrevIndex] = useState<number | null>(null);
   const [formOpen, setFormOpen] = useState(false);
 
-  function goTo(next: number) {
-    setPrevIndex(current);
-    setCurrent(next);
-  }
-
-  const nextSlide = () => goTo((current + 1) % photos.length);
-  const prevSlide = () => goTo((current - 1 + photos.length) % photos.length);
+  const nextSlide = () => setCurrent((i) => (i + 1) % photos.length);
+  const prevSlide = () => setCurrent((i) => (i - 1 + photos.length) % photos.length);
   const active = photos[current];
 
   return (
     <div className="slider-container" id="gallery">
       <div className="slider-wrapper">
         <div className="slider">
-          {photos.map((photo, i) => {
-            if (i !== current && i !== prevIndex) return null;
-            return (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                key={photo.id}
-                src={photo.url}
-                className={`slide ${i === current ? "active" : ""}`}
-                alt={`Фото галереї ${i + 1}`}
-                loading={i === 0 ? "eager" : "lazy"}
-              />
-            );
-          })}
+          {/* Every slide stays mounted (not just the current/previous pair) so
+              the crossfade actually fades both ways — an image mounted for
+              the first time on the same render its "active" class is applied
+              has no prior frame to transition from, so it used to just pop in
+              instead of fading in. Keeping them all mounted also means the
+              browser fetches every photo once the slider scrolls into view,
+              so switching slides never waits on a fresh network request. */}
+          {photos.map((photo, i) => (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              key={photo.id}
+              src={photo.url}
+              className={`slide ${i === current ? "active" : ""}`}
+              alt={`Фото галереї ${i + 1}`}
+              loading={i === 0 ? "eager" : "lazy"}
+            />
+          ))}
 
           {(active.author || active.description) && (
             <div className="slide-caption">

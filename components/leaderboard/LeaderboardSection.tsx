@@ -1,7 +1,10 @@
 import Link from "next/link";
+import { getLeaderboardPrivilegeIcons } from "@/lib/leaderboard-badges";
 import LazyLeaderboardTable from "./LazyLeaderboardTable";
 
-export default function LeaderboardSection({ limit }: { limit?: number }) {
+export default async function LeaderboardSection({ limit }: { limit?: number }) {
+  const privilegeIcons = await getLeaderboardPrivilegeIcons();
+
   return (
     <div className="box2" id="leaderboard">
       <div className="lbheader">
@@ -13,7 +16,7 @@ export default function LeaderboardSection({ limit }: { limit?: number }) {
         </p>
       </div>
       <div className="lb">
-        <LazyLeaderboardTable limit={limit} />
+        <LazyLeaderboardTable limit={limit} privilegeIcons={privilegeIcons} />
       </div>
       <Link href="/leaderboard" className="custom-button lb-full-link">
         <i className="fa-solid fa-ranking-star"></i>

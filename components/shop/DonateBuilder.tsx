@@ -22,6 +22,7 @@ const FEATURES: { label: string; florist: boolean; mecenat: boolean }[] = [
   { label: "Команда /co look up", florist: false, mecenat: true },
   { label: "Роль в Discord", florist: true, mecenat: true },
   { label: "Створення власних картинок", florist: false, mecenat: true },
+  { label: "Кастомні платівки", florist: false, mecenat: true },
 ];
 
 function FeatureList({ tierKey }: { tierKey: "florist" | "mecenat" }) {

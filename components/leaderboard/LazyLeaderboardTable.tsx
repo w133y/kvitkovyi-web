@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import type { FullLeaderboardEntry } from "@/lib/mc-db";
+import type { LeaderboardPrivilegeIcon } from "@/lib/leaderboard-badges";
 import PlayerAvatar from "./PlayerAvatar";
 
 function rankClass(rank: number) {
@@ -18,7 +19,17 @@ function rankClass(rank: number) {
 // both until the widget actually scrolls near the viewport, reusing the same
 // /api/leaderboard + /api/skin/batch endpoints the full /leaderboard page
 // already relies on (see LeaderboardClient.tsx) instead of a new data path.
-export default function LazyLeaderboardTable({ limit = 5 }: { limit?: number }) {
+export default function LazyLeaderboardTable({
+  limit = 5,
+  privilegeIcons,
+}: {
+  limit?: number;
+  privilegeIcons: LeaderboardPrivilegeIcon[];
+}) {
+  const iconByNickname = useMemo(
+    () => new Map(privilegeIcons.map((p) => [p.nickname, p])),
+    [privilegeIcons]
+  );
   const containerRef = useRef<HTMLDivElement>(null);
   const [visible, setVisible] = useState(false);
   const [entries, setEntries] = useState<FullLeaderboardEntry[] | null>(null);
@@ -82,31 +93,43 @@ export default function LazyLeaderboardTable({ limit = 5 }: { limit?: number }) 
           ) : entries.length === 0 ? (
             <div className="lb-empty">Немає даних</div>
           ) : (
-            entries.map((entry, i) => (
-              <div className="leaderboard-row" key={entry.nickname}>
-                <div className={`rank-cell ${rankClass(i + 1)}`}>{i + 1}</div>
-                <Link href={`/profile/${entry.nickname}`} className="leaderboard-player-link">
-                  <div className="avatar-cell">
-                    {skins[entry.uuid] ? (
-                      <PlayerAvatar skinUrl={skins[entry.uuid]} />
-                    ) : (
-                      <div className="leaderboard-avatar leaderboard-avatar-loading" />
-                    )}
+            entries.map((entry, i) => {
+              const icon = iconByNickname.get(entry.nickname);
+              return (
+                <div className="leaderboard-row" key={entry.nickname}>
+                  <div className={`rank-cell ${rankClass(i + 1)}`}>{i + 1}</div>
+                  <Link href={`/profile/${entry.nickname}`} className="leaderboard-player-link">
+                    <div className="avatar-cell">
+                      {skins[entry.uuid] ? (
+                        <PlayerAvatar skinUrl={skins[entry.uuid]} />
+                      ) : (
+                        <div className="leaderboard-avatar leaderboard-avatar-loading" />
+                      )}
+                    </div>
+                    <div className="name">
+                      <span className="name-text">{entry.nickname}</span>
+                      {icon && (
+                        <span
+                          className="lb2-badge lb2-badge-privilege"
+                          style={{ color: icon.color }}
+                          title={icon.label}
+                        >
+                          {icon.symbol}
+                        </span>
+                      )}
+                    </div>
+                  </Link>
+                  <div className="votes">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src="/favicon.ico" alt="" className="votes-icon" />
+                    {entry.votes}
                   </div>
-                  <div className="name">
-                    <span className="name-text">{entry.nickname}</span>
+                  <div className="time">
+                    {entry.hours}г {entry.minutes}хв
                   </div>
-                </Link>
-                <div className="votes">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src="/favicon.ico" alt="" className="votes-icon" />
-                  {entry.votes}
                 </div>
-                <div className="time">
-                  {entry.hours}г {entry.minutes}хв
-                </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       </div>
