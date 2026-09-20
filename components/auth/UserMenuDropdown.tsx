@@ -30,12 +30,13 @@ export default function UserMenuDropdown({
   }, []);
 
   return (
-    <div
-      className="user-menu"
-      ref={rootRef}
-      onMouseEnter={() => setOpen(true)}
-      onMouseLeave={() => setOpen(false)}
-    >
+    // Click-toggle only — no onMouseEnter/onMouseLeave. Hover has no
+    // equivalent on a touch screen, which is exactly what made this menu
+    // unreliable on mobile: the click handler below would toggle it open,
+    // but the (non-existent) hover-out never fired to explain why it
+    // sometimes seemed stuck, and on some browsers the synthetic hover a
+    // touch tap fires would immediately re-close what the click just opened.
+    <div className="user-menu" ref={rootRef}>
       <button type="button" className="user-pill" onClick={() => setOpen((o) => !o)}>
         <span className="nick">{name}</span>
         <span className="avatar">

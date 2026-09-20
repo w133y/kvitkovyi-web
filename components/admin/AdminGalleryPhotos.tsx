@@ -82,9 +82,12 @@ function Row({ photo }: { photo: GalleryPhoto }) {
       <div className="admin-gallery-photo-fields">
         <label className="admin-field">
           Опис
-          <input
-            type="text"
+          {/* A single-line input clipped/scrolled the text sideways once it
+              got anywhere near the 200-char limit, so most of what was
+              actually typed stayed invisible while editing. */}
+          <textarea
             maxLength={200}
+            rows={3}
             value={draft.description}
             onChange={(e) => setDraft((d) => ({ ...d, description: e.target.value }))}
           />

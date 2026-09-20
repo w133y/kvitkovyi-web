@@ -98,6 +98,132 @@ export async function editDiscordMessage(
   }
 }
 
+// "Газета" — the server's own newsletter/announcement-graphic channel.
+// /archive mirrors whatever's posted there, read-only.
+export const NEWSPAPER_CHANNEL_ID = "1363201401177772063";
+
+export type ChannelImagePage = { url: string; width: number; height: number };
+
+export type ChannelImagePost = {
+  id: string;
+  // Most issues post one scan per message, but some post the newspaper as
+  // several page images in the same message — all of them, in attachment
+  // order, not just the first. Width/height come straight from Discord's own
+  // attachment metadata, so the lightbox can reserve the right aspect ratio
+  // before the image itself has loaded, instead of the layout jumping once
+  // it does.
+  pages: ChannelImagePage[];
+  content: string;
+  timestamp: string;
+};
+
+// The REST API returns message content with raw <@&roleId>/<@userId> mention
+// syntax — the official client resolves those client-side from its own
+// cached member/role list, which we don't have. Every issue in this channel
+// pings the same announcement role, which is just noise in a caption, so
+// mentions are dropped rather than resolved to a name.
+function stripMentions(content: string): string {
+  return content
+    .replace(/<@[!&]?\d+>/g, "")
+    .replace(/[ \t]+/g, " ")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+}
+
+type RawDiscordMessage = {
+  id: string;
+  content: string;
+  timestamp: string;
+  attachments: {
+    url: string;
+    content_type?: string;
+    filename: string;
+    width?: number;
+    height?: number;
+  }[];
+};
+
+function toPost(msg: RawDiscordMessage): ChannelImagePost | null {
+  const images = msg.attachments.filter(
+    (a) => a.content_type?.startsWith("image/") || /\.(png|jpe?g|webp|gif)$/i.test(a.filename)
+  );
+  if (images.length === 0) return null;
+  return {
+    id: msg.id,
+    // Discord always sends width/height for an image attachment — the
+    // fallback here is only for the type checker, not a real case.
+    pages: images.map((a) => ({ url: a.url, width: a.width ?? 1024, height: a.height ?? 1448 })),
+    content: stripMentions(msg.content),
+    timestamp: msg.timestamp,
+  };
+}
+
+export type ChannelImagePostPage = {
+  posts: ChannelImagePost[];
+  // The oldest raw message id actually seen this call — pass back as
+  // `before` to keep paginating older history ("Завантажити ще"). null
+  // means the channel's start was reached, so there's nothing further back.
+  nextBefore: string | null;
+};
+
+// Reads straight from Discord on every call (a short revalidate window on
+// the caller's fetch is what keeps this cheap) rather than mirroring
+// attachments into our own storage — Discord's CDN links for a message
+// fetched this way are always freshly issued, so there's no expired-URL
+// bookkeeping to do.
+//
+// `count` is how many qualifying (image-attached) POSTS to return, not raw
+// messages — text-only chatter mixed into the channel means one page of
+// image posts can span more than one page of raw messages, so this loops
+// Discord's own `before`-cursor pagination (100 raw messages per call, its
+// max) until either enough posts are collected or the channel runs out.
+export async function getChannelImagePosts(
+  channelId: string,
+  count: number,
+  before?: string
+): Promise<ChannelImagePostPage> {
+  const posts: ChannelImagePost[] = [];
+  let cursor: string | null = before ?? null;
+  // Only set once Discord itself confirms there's nothing older left to
+  // fetch (an empty batch) — a batch merely shorter than the 100 max isn't
+  // proof by itself (it can still be immediately followed by more), so
+  // relying on that instead used to under-count and silently drop the
+  // oldest handful of issues.
+  let reachedEnd = false;
+
+  try {
+    while (posts.length < count) {
+      const params = new URLSearchParams({ limit: "100" });
+      if (cursor) params.set("before", cursor);
+
+      const res = await fetch(`${DISCORD_API}/channels/${channelId}/messages?${params}`, {
+        headers: { Authorization: `Bot ${getBotToken()}` },
+        next: { revalidate: 300 },
+      });
+      if (!res.ok) {
+        await logError("discord: getChannelImagePosts failed", res.status, await res.text().catch(() => ""));
+        break;
+      }
+      const messages = (await res.json()) as RawDiscordMessage[];
+      if (messages.length === 0) {
+        reachedEnd = true;
+        break;
+      }
+
+      for (const msg of messages) {
+        cursor = msg.id;
+        const post = toPost(msg);
+        if (post) posts.push(post);
+        if (posts.length >= count) break;
+      }
+    }
+  } catch (err) {
+    await logError("discord: getChannelImagePosts error", err);
+  }
+
+  return { posts, nextBefore: reachedEnd ? null : cursor };
+}
+
 function getGuildId(): string {
   const guildId = process.env.DISCORD_GUILD_ID;
   if (!guildId) throw new Error("Discord guild id не налаштовано (перевірте .env)");

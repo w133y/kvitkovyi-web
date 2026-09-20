@@ -39,7 +39,7 @@
        read better with their existing more recessed look. */
     --panel-bg: rgba(255, 255, 255, 0.04);
     --panel-bg-raised: rgba(255, 255, 255, 0.06);
-    --panel-border: 1px solid rgba(255, 255, 255, 0.1);
+    --panel-border: 1px solid var(--border-soft-color);
     --panel-radius: 20px;
     --panel-radius-sm: 16px;
     /* Row items *inside* an already-translucent panel (admin table rows,
@@ -48,6 +48,25 @@
        panel" pattern /leaderboard already uses. */
     --panel-row-bg: #2d2d2d;
     --panel-row-border: 1px solid rgba(255, 255, 255, 0.06);
+
+    /* Color tokens for the page canvas, body text, and frosted-pill chrome —
+       named separately from the values above so every component pulls its
+       color from one place instead of repeating literals. Dark-only (a
+       light theme was built and then deliberately removed — see git
+       history — these are still worth keeping as tokens on their own
+       merits: one source of truth beats ~250 copies of the same grays). */
+    --bg-page: rgb(20, 20, 20);
+    --bg-footer: #000000;
+    --bg-band: rgb(10, 10, 10);
+    --input-bg: rgba(0, 0, 0, 0.3);
+    --bg-overlay: rgba(20, 20, 20, 0.98);
+    --text-primary: #ffffff;
+    --text-secondary: rgb(190, 190, 190);
+    --text-muted: rgb(140, 140, 140);
+    --border-soft-color: rgba(255, 255, 255, 0.1);
+    --pill-bg: rgba(20, 20, 20, 0.55);
+    --pill-border-color: rgba(255, 255, 255, 0.2);
+    --pill-border-soft-color: rgba(255, 255, 255, 0.15);
 }
 
 a {
@@ -110,8 +129,8 @@ header.header-map {
 	font-family: "Minecraft";
     padding: 20px 32px;
 	border-radius: 20px;
-	background: rgba(20, 20, 20, 0.55);
-	border: 2px solid rgba(255, 255, 255, 0.2);
+	background: var(--pill-bg);
+	border: 2px solid var(--pill-border-color);
 	box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 	backdrop-filter: blur(6px);
 	-webkit-backdrop-filter: blur(6px);
@@ -140,7 +159,7 @@ header.header-map {
     align-items: center;
     justify-content: center;
     text-decoration: none;
-    color: white;
+    color: var(--text-primary);
     padding: 0 15px;
     white-space: nowrap;
     box-sizing: border-box;
@@ -163,6 +182,118 @@ header.header-map {
     color: #ffd900e0;
     text-shadow: 2px 0px 10px #ffa600;
     margin-right: 0vh;
+}
+
+.menutext a i,
+.menutext button i {
+    transform: translateY(-6px);
+}
+
+/* "Інше" — leaderboard/gallery moved behind this dropdown instead of their
+   own icons directly in the row; the plate was already at 4 text tabs, and
+   more standalone entries just crowded it at in-between viewport widths.
+   Click-toggle only (no hover) so it behaves identically on desktop and
+   touch — see MoreMenu's own comment in SiteHeader.tsx for why that matters. */
+.nav-more-arrow {
+    font-size: 12px;
+    margin-left: 8px;
+    transition: transform 0.2s ease;
+}
+
+.nav-more-arrow.open {
+    transform: rotate(180deg);
+}
+
+/* .nav-more itself (the <li>) needs to be the positioned ancestor — without
+   this, .nav-more-dropdown's position:absolute falls through to the next
+   one up the tree, which is header nav (position:fixed, spanning almost the
+   full viewport width), so "right:0" anchored to the WHOLE NAV BAR instead
+   of to this button — landing the panel out under the profile pill on the
+   far right instead of under "Інше". */
+.nav-more {
+    position: relative;
+}
+
+.nav-more-dropdown {
+    /* Left-anchored to the button, not right-anchored — the dropdown (sized
+       to its longest label, "Таблиця лідерів") is wider than the "Інше"
+       button itself, so right-anchoring it made it sprawl leftward past the
+       button — starting under "Мапа" instead of under "Інше" — rather than
+       sitting under and to the right of it like a normal dropdown. There's
+       open page space to the right of "Інше" (it's the last pill item) for
+       it to extend into instead. Same translucent glass look as .menutext
+       itself (the pill this button lives in) — background/border/blur all
+       match — so the dropdown reads as an extension of the same plate
+       instead of a different kind of surface. width:max-content + nowrap
+       labels (below) instead of a guessed fixed width — that either wastes
+       space or wraps the longest label onto two lines, leaving the rows an
+       uneven height next to the one-line ones. */
+    position: absolute;
+    top: calc(100% + 14px);
+    left: 0;
+    width: max-content;
+    background: var(--pill-bg);
+    border: 2px solid var(--pill-border-color);
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-6px);
+    transition: opacity 0.2s ease, visibility 0.2s ease, transform 0.2s ease;
+    z-index: 1002;
+}
+
+.nav-more-dropdown.open {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+/* Opens on hover too, but only where hover actually means something — a
+   touch tap has no real ":hover" state, so without this media guard a phone
+   would either get a dropdown stuck open after a tap or (depending on the
+   browser's tap-to-hover emulation) one that never reliably opens at all.
+   The click-toggle in SiteHeader.tsx already covers touch on its own. */
+@media (hover: hover) and (pointer: fine) {
+    .nav-more:hover .nav-more-dropdown {
+        opacity: 1;
+        visibility: visible;
+        transform: translateY(0);
+    }
+}
+
+/* Class+class+element beats .menutext a's own class+element regardless of
+   file order — a plain ".nav-more-dropdown a" would tie on specificity and
+   silently lose to source order instead, the same trap noted elsewhere in
+   this file (search "beats .menutext"). */
+.nav-more .nav-more-dropdown a {
+    position: static;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 10px 16px;
+    border-radius: 10px;
+    color: white;
+    text-decoration: none;
+    text-align: left;
+    font-size: 16px;
+    font-weight: 600;
+    white-space: nowrap;
+    transform: none;
+}
+
+.nav-more .nav-more-dropdown a:hover,
+.nav-more .nav-more-dropdown a.active {
+    background: rgba(255, 255, 255, 0.08);
+    color: #ffd900e0;
+    text-shadow: none;
 }
 /* Кнопка меню */
 .mobile-menu-button {
@@ -219,7 +350,7 @@ header.header-map {
     right: 0;
     width: 100%;
     height: 100%;
-    background: rgba(20, 20, 20, 0.98);
+    background: var(--bg-overlay);
     z-index: 999;
     opacity: 0;
     visibility: hidden;
@@ -251,16 +382,32 @@ header.header-map {
 .mobile-menutext button {
     font-family: "Minecraft", sans-serif;
     font-weight: 600;
-    color: white;
+    color: var(--text-primary);
     text-decoration: none;
     font-size: 40px;
-    display: block;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
     padding: 15px;
     transition: color 0.3s ease;
     width: 100%;
     background: none;
     border: none;
     cursor: pointer;
+}
+
+/* Icon items (leaderboard, gallery) get a smaller glyph here than the
+   40px text — full text size would dwarf the four plain-text tabs above it. */
+.mobile-menutext i {
+    font-size: 32px;
+}
+
+/* "Таблиця лідерів" wraps to two lines at the full 40px size on a phone —
+   shrunk just for these two longer labels (targeted via the same class
+   that's already scoped to icon items only) instead of the whole menu. */
+.mobile-menutext .nav-icon-label {
+    font-size: 30px;
 }
 
 .mobile-menutext a:hover,
@@ -357,7 +504,7 @@ header .img .header-img-wide {
     border: none;
     border-radius: 8px;
     background: var(--brand-gradient);
-    color: white;
+    color: var(--text-primary);
     cursor: pointer;
     transition: all 0.2s ease;
     font-weight: 600;
@@ -369,10 +516,10 @@ header .img .header-img-wide {
 
 .custom-button:last-child {
     padding: 15px 40px;
-    border: 4px solid white;
+    border: 4px solid var(--text-primary);
     border-radius: 8px;
     background: transparent;
-    color: white;
+    color: var(--text-primary);
     cursor: pointer;
     transition: all 0.2s ease;
     font-weight: 600;
@@ -400,7 +547,7 @@ header .img .header-img-wide {
     justify-content: center;
     gap: 10px;
     text-decoration: none;
-    color: white;
+    color: var(--text-primary);
     min-width: 160px;
     max-width: 300px;
     text-align: center;
@@ -447,12 +594,14 @@ body {
 	font-family: "Ubuntu Sans", sans-serif;
     position: relative;
     margin: auto;
-    background: rgb(20, 20, 20);
+    background: var(--bg-page);
 	background-size: 10000% 10000%;
     animation: gradient 15s ease infinite;
     display: flex;
     flex-direction: column;
     min-height: 100vh;
+    color: var(--text-primary);
+    transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 /* Pushes .site-footer to the bottom of the viewport on pages whose content
@@ -499,7 +648,7 @@ body b {
 }
 
 body h2 {
-	color: white;
+	color: var(--text-primary);
 	font-size: 35px;
     font-family: "Ubuntu Sans", sans-serif;
 }
@@ -510,7 +659,7 @@ body h3 {
 }
 
 body p {
-	color: rgb(200, 200, 200);
+	color: var(--text-secondary);
     font-size: 23px;
 }
 
@@ -682,12 +831,12 @@ body .boximage img {
 .feature h3 {
     font-size: 1.5em;
     margin: 10px 0;
-    color: white;
+    color: var(--text-primary);
 }
 
 .feature p {
     font-size: 1.3em;
-    color: #cccccc;
+    color: var(--text-secondary);
     line-height: 1.6;
 }
 
@@ -708,7 +857,7 @@ body .boximage img {
 /* ----------------------------- */
 
 body .line {
-  background-color: rgb(10,10,10);
+  background-color: var(--bg-band);
   display: flex;
   /* space-between pins the first/last box to the container's edges and
      stretches the gaps between them to fill whatever width is left over —
@@ -742,7 +891,7 @@ body .line .boxline {
 
 body .line .boxline:hover {
   transform: translateY(-5px);
-  box-shadow: 0 10px 25px rgba(255, 255, 255, 0.2);
+  box-shadow: 0 10px 25px var(--pill-border-color);
 }
 
 body .line .boxline img {
@@ -822,7 +971,7 @@ body .box2 {
 
 .box2 .lbheader h2 {
     margin-top: 20px;
-    color: white;
+    color: var(--text-primary);
     font-size: 35px;
     font-family: "Ubuntu Sans", sans-serif;
     text-align: center;
@@ -960,11 +1109,11 @@ body .box2 {
       align-items: center;
       justify-content: center;
       gap: 8px;
-      background: rgba(20, 20, 20, 0.55);
-      border: 2px solid rgba(255, 255, 255, 0.2);
+      background: var(--pill-bg);
+      border: 2px solid var(--pill-border-color);
       border-radius: 50px;
       padding: 10px 20px;
-      color: white;
+      color: var(--text-primary);
       text-decoration: none;
       font-size: 14px;
       font-weight: 600;
@@ -1050,7 +1199,7 @@ body .box2 {
       flex-direction: column;
       gap: 14px;
       background: rgb(30, 30, 30);
-      border: 1px solid rgba(255, 255, 255, 0.1);
+      border: 1px solid var(--border-soft-color);
       border-radius: 20px;
       padding: 24px;
       box-sizing: border-box;
@@ -1070,13 +1219,13 @@ body .box2 {
       display: flex;
       flex-direction: column;
       gap: 6px;
-      color: rgb(200, 200, 200);
+      color: rgb(190, 190, 190);
       font-size: 13px;
     }
 
     .gallery-submit-field input {
       background: rgb(45, 45, 45);
-      border: 1px solid rgba(255, 255, 255, 0.15);
+      border: 1px solid var(--pill-border-soft-color);
       border-radius: 10px;
       color: white;
       font-family: inherit;
@@ -1106,7 +1255,7 @@ body .box2 {
       background: var(--brand-gradient);
       border: none;
       border-radius: 12px;
-      color: white;
+      color: var(--text-primary);
       font-weight: 700;
       font-size: 14px;
       padding: 12px;
@@ -1166,7 +1315,7 @@ body .box2 {
 /* --------------- */
 .cards_bg {
 	padding: var(--band-padding-y) 0;
-	background: rgb(10, 10, 10);
+	background: var(--bg-band);
 }
  .unique-carousel-wrapper {
     position: relative;
@@ -1309,7 +1458,7 @@ body .box2 {
   /* ----------------------------------*/
 .join-section {
     width: 100%;
-    background: rgb(10, 10, 10);
+    background: var(--bg-band);
     min-height: 400px;
     display: flex;
     justify-content: center;
@@ -1361,7 +1510,7 @@ body .box2 {
 }
 
 .join-content h2 {
-    color: white;
+    color: var(--text-primary);
     font-size: 45px;
     font-family: "Ubuntu Sans", sans-serif;
     margin-bottom: 30px;
@@ -1369,7 +1518,7 @@ body .box2 {
 }
 
 .join-content p {
-    color: white;
+    color: var(--text-primary);
     font-size: 22px;
     margin-bottom: 40px;
     line-height: 1.6;
@@ -1389,7 +1538,7 @@ body .box2 {
     background: var(--brand-gradient);
     border: none;
     border-radius: 10px;
-    color: white;
+    color: var(--text-primary);
     text-decoration: none;
     padding: 20px 50px;
     font-size: 22px;
@@ -1435,10 +1584,10 @@ body .box2 {
 
 /* ----------------------------------*/
 .site-footer {
-    background-color: #000000;
+    background-color: var(--bg-footer);
     padding: 60px 0 30px;
     position: relative;
-    color: white;
+    color: var(--text-primary);
 }
 
 .footer-content {
@@ -1478,7 +1627,7 @@ body .box2 {
 }
 
 .footer-nav a {
-    color: white;
+    color: var(--text-primary);
     text-decoration: none;
     font-size: 25px;
     transition: color 0.3s ease;
@@ -1494,7 +1643,7 @@ body .box2 {
 }
 
 .social-icon {
-    color: white;
+    color: var(--text-primary);
     font-size: 40px;
     transition: color 0.3s ease;
 }
@@ -1509,9 +1658,9 @@ body .box2 {
     gap: 10px;
     padding: 12px 24px;
     background: transparent;
-    border: 4px solid white;
+    border: 4px solid var(--text-primary);
     border-radius: 8px;
-    color: white;
+    color: var(--text-primary);
     font-size: 25px;
     font-weight: 500;
     text-decoration: none;
@@ -1541,7 +1690,7 @@ body .box2 {
 
 
 .footer-bottom {
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    border-top: 1px solid var(--border-soft-color);
     padding-top: 30px;
     display: flex;
     justify-content: space-between;
@@ -1627,9 +1776,9 @@ body .box2 {
     position: relative;
     padding: 20px 50px;
     background: transparent;
-    border: 4px solid white;
+    border: 4px solid var(--text-primary);
     border-radius: 10px;
-    color: white;
+    color: var(--text-primary);
     cursor: pointer;
     transition: all 0.3s ease;
     font-weight: 600;
@@ -1661,7 +1810,7 @@ body .box2 {
     transform: translateY(-2px);
     opacity: 0.9;
     box-shadow: 0 5px 15px rgba(255, 255, 255, 0.4);
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--border-soft-color);
 }
 
 .join-button i, .copy-button i {
@@ -1702,12 +1851,12 @@ body .box2 {
 
 .launcher-text a {
     text-decoration: none;
-    color: white;
+    color: var(--text-primary);
     font-weight: 600;
 }
 
 .launcher-text p {
-    color: rgb(200, 200, 200);
+    color: var(--text-secondary);
     line-height: 1.6;
 }
 
@@ -1793,7 +1942,7 @@ r {
 }
 
 .leaderboard-row {
-    background: #2d2d2d;
+    background: var(--panel-row-bg);
     display: flex;
     align-items: center;
     padding: 4px 0;
@@ -1896,7 +2045,7 @@ r {
     width: 140px;
     font-weight: 500;
     flex-shrink: 0;
-    color: white;
+    color: var(--text-primary);
     margin-left: 12px;
     position: relative;
     display: flex;
@@ -1922,7 +2071,7 @@ r {
 .leaderboard .time {
     width: 100px;
     font-size: 0.9em;
-    color: rgb(180,180,180);
+    color: var(--text-secondary);
     text-align: right;
     flex-shrink: 0;
     white-space: nowrap;
@@ -1931,7 +2080,7 @@ r {
 .leaderboard .votes {
     width: 70px;
     font-size: 0.9em;
-    color: rgb(180,180,180);
+    color: var(--text-secondary);
     flex-shrink: 0;
     display: flex;
     align-items: center;
@@ -1985,7 +2134,7 @@ r {
     font-size: 23px;
     width: auto;
     flex: 1;
-    color: white;
+    color: var(--text-primary);
 }
 
 .lb .leaderboard-row {
@@ -2086,10 +2235,10 @@ r {
 }
 
 .leaderboard-sort-btn {
-    background: rgba(20, 20, 20, 0.55);
-    border: 2px solid rgba(255, 255, 255, 0.15);
+    background: var(--pill-bg);
+    border: 2px solid var(--pill-border-soft-color);
     border-radius: 50px;
-    color: rgb(190, 190, 190);
+    color: var(--text-secondary);
     padding: 8px 16px;
     font-size: 13px;
     cursor: pointer;
@@ -2100,7 +2249,7 @@ r {
 }
 
 .leaderboard-sort-btn:hover {
-    color: white;
+    color: var(--text-primary);
 }
 
 .leaderboard-sort-btn.active {
@@ -2114,54 +2263,13 @@ r {
     padding: 40px 0;
 }
 
-.not-found-page {
-    flex: 1;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 40px 20px;
-}
-
-/* Same header.webp background the homepage hero uses, so this reads as a
-   smaller version of that hero rather than an unrelated error panel — the
-   404.png graphic already spells out "Сторінку не знайдено 404" itself
-   (same Minecraft-title treatment as the homepage's logo.png), so there's
-   no separate heading/button needed here. */
-.not-found-hero {
-    width: 100%;
-    max-width: 1000px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: url('/img/header.webp') no-repeat center/cover;
-    border-radius: var(--panel-radius);
-    padding: 80px 20px;
-    overflow: hidden;
-}
-
-.not-found-hero img {
-    width: 70%;
-    max-width: 600px;
-    height: auto;
-}
-
-@media (max-width: 480px) {
-    .not-found-hero {
-        padding: 50px 16px;
-    }
-
-    .not-found-hero img {
-        width: 90%;
-    }
-}
-
 .leaderboard-load-more {
     display: block;
     margin: 24px auto 0 auto;
-    background: rgba(20, 20, 20, 0.55);
-    border: 2px solid rgba(255, 255, 255, 0.15);
+    background: var(--pill-bg);
+    border: 2px solid var(--pill-border-soft-color);
     border-radius: 50px;
-    color: rgb(190, 190, 190);
+    color: var(--text-secondary);
     padding: 10px 24px;
     font-size: 14px;
     cursor: pointer;
@@ -2228,7 +2336,7 @@ r {
 
 .leaderboard-top-title {
     text-align: center;
-    color: white;
+    color: var(--text-primary);
     font-size: 35px;
     font-family: "Ubuntu Sans", sans-serif;
     margin: 0;
@@ -2249,10 +2357,10 @@ r {
     align-self: flex-start;
     gap: 8px;
     padding: 8px 16px;
-    background: rgba(20, 20, 20, 0.55);
-    border: 2px solid rgba(255, 255, 255, 0.2);
+    background: var(--pill-bg);
+    border: 2px solid var(--pill-border-color);
     border-radius: 50px;
-    color: white;
+    color: var(--text-primary);
     text-decoration: none;
     font-size: 14px;
     font-weight: 600;
@@ -2269,7 +2377,7 @@ r {
 
 .lb2-sidebar {
     background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--border-soft-color);
     border-radius: 20px;
     padding: 24px;
     position: sticky;
@@ -2280,37 +2388,37 @@ r {
 }
 
 .lb2-sidebar-title {
-    color: white;
+    color: var(--text-primary);
     font-family: "Minecraft", sans-serif;
     font-size: 20px;
     letter-spacing: 1px;
     margin: 0 0 -4px 0;
     padding-bottom: 16px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid var(--border-soft-color);
 }
 
 .lb2-search {
     display: flex;
     align-items: center;
     gap: 10px;
-    background: rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--input-bg);
+    border: 1px solid var(--border-soft-color);
     border-radius: 12px;
     padding: 10px 14px;
-    color: rgb(150, 150, 150);
+    color: var(--text-muted);
 }
 
 .lb2-search input {
     background: transparent;
     border: none;
     outline: none;
-    color: white;
+    color: var(--text-primary);
     font-size: 14px;
     width: 100%;
 }
 
 .lb2-search input::placeholder {
-    color: rgb(130, 130, 130);
+    color: var(--text-muted);
 }
 
 .lb2-search-top {
@@ -2328,7 +2436,7 @@ r {
     font-size: 12px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    color: rgb(150, 150, 150);
+    color: var(--text-muted);
     margin-bottom: 10px;
 }
 
@@ -2346,16 +2454,16 @@ r {
     justify-content: center;
     width: 38px;
     height: 38px;
-    background: rgba(20, 20, 20, 0.55);
-    border: 2px solid rgba(255, 255, 255, 0.15);
+    background: var(--pill-bg);
+    border: 2px solid var(--pill-border-soft-color);
     border-radius: 10px;
-    color: rgb(190, 190, 190);
+    color: var(--text-secondary);
     cursor: pointer;
     transition: color 0.2s ease, border-color 0.2s ease;
 }
 
 .lb2-icon-btn:hover {
-    color: white;
+    color: var(--text-primary);
 }
 
 .lb2-icon-btn.active {
@@ -2372,11 +2480,11 @@ r {
     align-items: center;
     justify-content: space-between;
     width: 100%;
-    background: rgba(20, 20, 20, 0.55);
-    border: 2px solid rgba(255, 255, 255, 0.15);
+    background: var(--pill-bg);
+    border: 2px solid var(--pill-border-soft-color);
     border-radius: 12px;
     padding: 10px 14px;
-    color: white;
+    color: var(--text-primary);
     font-size: 14px;
     cursor: pointer;
     transition: border-color 0.2s ease;
@@ -2393,7 +2501,7 @@ r {
 }
 
 .lb2-sort-dropdown-toggle .fa-chevron-down {
-    color: rgb(150, 150, 150);
+    color: var(--text-muted);
     font-size: 12px;
     transition: transform 0.2s ease;
 }
@@ -2423,6 +2531,10 @@ r {
     display: flex;
 }
 
+/* .lb2-sort-dropdown-menu (the panel these sit in) keeps a fixed dark
+   background in both themes — same "dropdowns aren't themed" precedent as
+   --panel-bg — so these need fixed light-on-dark colors too, not the
+   theme-reactive text tokens (which would go dark-on-dark in light mode). */
 .lb2-sort-item {
     display: flex;
     align-items: center;
@@ -2441,7 +2553,7 @@ r {
 .lb2-sort-item i {
     width: 16px;
     text-align: center;
-    color: rgb(130, 130, 130);
+    color: rgb(140, 140, 140);
 }
 
 .lb2-option-icon-img {
@@ -2479,7 +2591,7 @@ r {
 }
 
 .lb2-load-error button {
-    background: rgba(20, 20, 20, 0.55);
+    background: var(--pill-bg);
     border: 2px solid rgba(255, 150, 150, 0.4);
     border-radius: 50px;
     color: rgb(255, 150, 150);
@@ -2491,8 +2603,8 @@ r {
 }
 
 .lb2-load-error button:hover {
-    color: white;
-    border-color: white;
+    color: var(--text-primary);
+    border-color: var(--text-primary);
 }
 
 .lb2-list {
@@ -2505,8 +2617,8 @@ r {
     display: flex;
     align-items: center;
     gap: 16px;
-    background: #2d2d2d;
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: var(--panel-row-bg);
+    border: var(--panel-row-border);
     border-radius: 16px;
     padding: 14px 20px;
     transition: border-color 0.2s ease;
@@ -2517,7 +2629,7 @@ r {
 }
 
 .lb2-rank {
-    color: rgb(130, 130, 130);
+    color: var(--text-muted);
     font-weight: 700;
     font-size: 16px;
     width: 34px;
@@ -2540,7 +2652,7 @@ r {
 }
 
 .lb2-name a {
-    color: white;
+    color: var(--text-primary);
     font-weight: 700;
     font-size: 17px;
     text-decoration: none;
@@ -2567,7 +2679,7 @@ r {
 }
 
 .lb2-lastseen {
-    color: rgb(140, 140, 140);
+    color: var(--text-muted);
     font-size: 13px;
     margin-top: 2px;
 }
@@ -2576,7 +2688,7 @@ r {
     display: flex;
     align-items: center;
     gap: 8px;
-    color: white;
+    color: var(--text-primary);
     font-weight: 700;
     font-size: 22px;
     padding: 0 4px;
@@ -2688,6 +2800,31 @@ header nav .auth-widget {
     gap: 14px;
 }
 
+/* True centering (grid-template-columns: 1fr auto 1fr) only has room to
+   breathe on wide desktop viewports — the plate grew to 6 items (adding the
+   leaderboard/gallery icons), and its fixed width plus the profile widget's
+   own width leaves ~zero space between them right above the 1024px point
+   where the plate reappears, so the "centered" middle column ends up
+   shoved flush against the profile widget instead of looking centered at
+   all. Left/right-anchoring both to the nav's own edges instead — the same
+   thing .container-text/.auth-widget already do internally — guarantees a
+   predictable gap (even if it's a tight one) rather than that seemingly-random
+   near-overlap. */
+@media (min-width: 1025px) and (max-width: 1500px) {
+    header nav {
+        grid-template-columns: auto 1fr auto;
+    }
+
+    .container-text {
+        grid-column: 1;
+        justify-content: flex-start;
+    }
+
+    .auth-widget {
+        grid-column: 3;
+    }
+}
+
 .cart-badge {
     position: relative;
     display: flex;
@@ -2696,8 +2833,8 @@ header nav .auth-widget {
     width: 44px;
     height: 44px;
     border-radius: 50%;
-    border: 2px solid rgba(255, 255, 255, 0.2);
-    color: white;
+    border: 2px solid var(--pill-border-color);
+    color: var(--text-primary);
     font-size: 18px;
     text-decoration: none;
     transition: all 0.2s ease;
@@ -2713,7 +2850,7 @@ header nav .auth-widget {
     top: 90px;
     right: 20px;
     z-index: 900;
-    background: rgba(20, 20, 20, 0.55);
+    background: var(--pill-bg);
     border-radius: 50%;
     backdrop-filter: blur(6px);
     -webkit-backdrop-filter: blur(6px);
@@ -2744,7 +2881,7 @@ header nav .auth-widget {
     border: none;
     border-radius: 18px;
     background: linear-gradient(180deg, #6d78f6 0%, #5865f2 100%);
-    color: white;
+    color: var(--text-primary);
     font-family: "Ubuntu Sans", sans-serif;
     font-weight: 800;
     letter-spacing: 0;
@@ -2789,13 +2926,13 @@ header nav .auth-widget {
     align-items: center;
     gap: 12px;
     padding: 10px 10px 10px 22px;
-    border: 2px solid rgba(255, 255, 255, 0.2);
+    border: 2px solid var(--pill-border-color);
     border-radius: 20px;
-    background: rgba(20, 20, 20, 0.55);
+    background: var(--pill-bg);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
-    color: white;
+    color: var(--text-primary);
     text-decoration: none;
     transition: all 0.2s ease;
     font-family: inherit;
@@ -2820,9 +2957,9 @@ header nav .auth-widget {
 .user-menu-skeleton {
     width: 140px;
     height: 46px;
-    border: 2px solid rgba(255, 255, 255, 0.2);
+    border: 2px solid var(--pill-border-color);
     border-radius: 20px;
-    background: rgba(20, 20, 20, 0.55);
+    background: var(--pill-bg);
     box-sizing: border-box;
 }
 
@@ -2836,7 +2973,7 @@ header nav .auth-widget {
     right: 0;
     min-width: 180px;
     background: rgba(35, 35, 35, 0.9);
-    border: 2px solid rgba(255, 255, 255, 0.15);
+    border: 2px solid var(--pill-border-soft-color);
     border-radius: 16px;
     padding: 8px;
     display: flex;
@@ -2882,7 +3019,7 @@ header nav .auth-widget {
 .user-dropdown-divider {
     height: 1px;
     margin: 4px 6px;
-    background: rgba(255, 255, 255, 0.1);
+    background: var(--border-soft-color);
 }
 
 .dropdown-signout {
@@ -2926,7 +3063,7 @@ header nav .auth-widget {
 
 .signout-modal {
     background: rgb(30, 30, 30);
-    border: 2px solid rgba(255, 255, 255, 0.15);
+    border: 2px solid var(--pill-border-soft-color);
     border-radius: 20px;
     padding: 30px;
     max-width: 400px;
@@ -2935,6 +3072,9 @@ header nav .auth-widget {
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
 }
 
+/* .signout-modal keeps a fixed dark background in both themes (same
+   precedent as dropdowns/inputs), so its text stays fixed light-on-dark
+   too instead of the theme-reactive tokens. */
 .signout-modal h3 {
     color: white;
     font-size: 24px;
@@ -2967,7 +3107,7 @@ header nav .auth-widget {
 }
 
 .signout-cancel {
-    border: 2px solid rgba(255, 255, 255, 0.2);
+    border: 2px solid var(--pill-border-color);
     background: transparent;
     color: white;
 }
@@ -3061,7 +3201,7 @@ header nav .auth-widget {
         justify-content: center;
         margin-top: 40px;
         padding-top: 30px;
-        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        border-top: 1px solid var(--border-soft-color);
     }
 }
 /* ----------------------------- */
@@ -3083,13 +3223,13 @@ header nav .auth-widget {
     width: 420px;
     text-align: center;
     text-decoration: none;
-    color: white;
+    color: var(--text-primary);
     transition: all 0.3s ease;
 }
 
 .shop-category-card:hover {
     transform: translateY(-5px);
-    box-shadow: 0 10px 25px rgba(255, 255, 255, 0.2);
+    box-shadow: 0 10px 25px var(--pill-border-color);
 }
 
 .shop-category-card i {
@@ -3122,7 +3262,7 @@ header nav .auth-widget {
     top: 20px;
     right: 20px;
     background: rgba(20, 20, 20, 0.7);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    border: 1px solid var(--pill-border-color);
     border-radius: 20px;
     padding: 5px 14px;
     font-size: 12px;
@@ -3165,13 +3305,13 @@ header nav .auth-widget {
 }
 
 .product-card h3 {
-    color: white;
+    color: var(--text-primary);
     font-size: 22px;
 }
 
 .product-card p {
     font-size: 16px;
-    color: rgb(190, 190, 190);
+    color: var(--text-secondary);
     flex-grow: 1;
 }
 
@@ -3188,7 +3328,7 @@ header nav .auth-widget {
     border: none;
     border-radius: 8px;
     background: var(--brand-gradient);
-    color: white;
+    color: var(--text-primary);
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
@@ -3231,7 +3371,7 @@ header nav .auth-widget {
 
 .donate-header h2 {
     margin: 0;
-    color: white;
+    color: var(--text-primary);
     font-size: 35px;
     font-family: "Ubuntu Sans", sans-serif;
     text-align: center;
@@ -3274,7 +3414,7 @@ header nav .auth-widget {
     /* body never sets a text color, so anything here without its own
        explicit color (the h3 headings, notably) was falling back to the
        browser default — plain black — instead of white. */
-    color: white;
+    color: var(--text-primary);
     background: var(--panel-bg);
     border: var(--panel-border);
     border-radius: var(--panel-radius);
@@ -3295,12 +3435,12 @@ header nav .auth-widget {
     margin: 18px 0 6px;
     font-family: "Minecraft", sans-serif;
     font-size: 14px;
-    color: rgb(180, 180, 180);
+    color: var(--text-secondary);
 }
 
 .donate-col-hint {
     margin: 0 0 14px;
-    color: rgb(150, 150, 150);
+    color: var(--text-muted);
     font-size: 12px;
 }
 
@@ -3404,9 +3544,9 @@ header nav .auth-widget {
     justify-content: center;
     gap: 8px;
     background: var(--panel-bg);
-    border: 2px solid rgba(255, 255, 255, 0.15);
+    border: 2px solid var(--pill-border-soft-color);
     border-radius: 18px;
-    color: white;
+    color: var(--text-primary);
     text-decoration: none;
     font-size: 14px;
     font-weight: 600;
@@ -3443,7 +3583,7 @@ header nav .auth-widget {
     align-items: center;
     gap: 10px;
     background: rgb(45, 45, 45);
-    border: 2px solid rgba(255, 255, 255, 0.15);
+    border: 2px solid var(--pill-border-soft-color);
     border-radius: 14px;
     padding: 10px 14px;
     color: white;
@@ -3470,13 +3610,13 @@ header nav .auth-widget {
 
 .donate-recipient-toggle i:last-child {
     font-size: 11px;
-    color: rgb(150, 150, 150);
+    color: rgb(140, 140, 140);
 }
 
 .donate-recipient-clear {
     background: none;
     border: none;
-    color: rgb(150, 150, 150);
+    color: var(--text-muted);
     font-size: 12px;
     text-decoration: underline;
     cursor: pointer;
@@ -3484,7 +3624,7 @@ header nav .auth-widget {
 }
 
 .donate-recipient-clear:hover {
-    color: white;
+    color: var(--text-primary);
 }
 
 .donate-recipient-search {
@@ -3510,7 +3650,7 @@ header nav .auth-widget {
     max-height: 200px;
     overflow-y: auto;
     background: rgb(35, 35, 35);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    border: 1px solid var(--pill-border-soft-color);
     border-radius: 12px;
     padding: 6px;
     z-index: 10;
@@ -3536,7 +3676,7 @@ header nav .auth-widget {
 .donate-payment-recipient {
     margin: 4px 0 0;
     font-size: 13px;
-    color: rgb(180, 180, 180);
+    color: var(--text-secondary);
 }
 
 .donate-payment-recipient b {
@@ -3550,7 +3690,7 @@ header nav .auth-widget {
     border: none;
     border-radius: 14px;
     background: var(--brand-gradient);
-    color: white;
+    color: var(--text-primary);
     text-decoration: none;
     font-family: "Minecraft", sans-serif;
     font-weight: 800;
@@ -3582,12 +3722,12 @@ header nav .auth-widget {
     align-items: center;
     justify-content: space-between;
     gap: 16px;
-    background: rgba(20, 20, 20, 0.55);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    background: var(--pill-bg);
+    border: 1px solid var(--pill-border-soft-color);
     border-radius: 14px;
     padding: 12px 14px 12px 20px;
     font-size: 14px;
-    color: rgb(200, 200, 200);
+    color: var(--text-secondary);
 }
 
 .donate-payment-code span {
@@ -3610,10 +3750,10 @@ header nav .auth-widget {
     gap: 8px;
     flex-shrink: 0;
     background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    border: 1px solid var(--pill-border-soft-color);
     border-radius: 10px;
     padding: 8px 14px;
-    color: white;
+    color: var(--text-primary);
     font-size: 13px;
     cursor: pointer;
     transition: border-color 0.2s ease, background 0.2s ease;
@@ -3632,7 +3772,7 @@ header nav .auth-widget {
     display: flex;
     align-items: center;
     gap: 10px;
-    color: rgb(200, 200, 200);
+    color: var(--text-secondary);
     font-size: 14px;
 }
 
@@ -3672,11 +3812,11 @@ header nav .auth-widget {
        it — a blur keeps it legible instead of just tinting page content. */
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    border: 1px solid var(--pill-border-soft-color);
     border-radius: 18px;
     padding: 16px 18px;
     box-shadow: 0px 4px 20px 0px rgba(0, 0, 0, 0.4);
-    color: rgb(220, 220, 220);
+    color: var(--text-secondary);
     font-size: 14px;
 }
 
@@ -3708,12 +3848,12 @@ header nav .auth-widget {
 
 .resume-donate-prompt-yes {
     background: var(--brand-gradient);
-    color: white;
+    color: var(--text-primary);
 }
 
 .resume-donate-prompt-no {
     background: rgba(255, 255, 255, 0.08);
-    color: white;
+    color: var(--text-primary);
 }
 
 .resume-donate-prompt-yes:hover,
@@ -3769,7 +3909,7 @@ header nav .auth-widget {
     width: 26px;
     height: 26px;
     border-radius: 50%;
-    border: 2px solid rgba(255, 255, 255, 0.2);
+    border: 2px solid var(--pill-border-color);
     cursor: pointer;
     transition: transform 0.2s ease, border-color 0.2s ease;
 }
@@ -3779,7 +3919,7 @@ header nav .auth-widget {
 }
 
 .donate-color-btn.active {
-    border-color: white;
+    border-color: var(--text-primary);
 }
 
 .donate-color-btn:disabled {
@@ -3815,7 +3955,7 @@ header nav .auth-widget {
     width: 100%;
     font-family: inherit;
     cursor: pointer;
-    color: white;
+    color: var(--text-primary);
     background: var(--panel-bg);
     border: 2px solid transparent;
     border-radius: var(--panel-radius);
@@ -3937,7 +4077,7 @@ header nav .auth-widget {
 }
 
 .cart-row .info .name {
-    color: white;
+    color: var(--text-primary);
     font-weight: 600;
     font-size: 18px;
 }
@@ -3959,7 +4099,7 @@ header nav .auth-widget {
     border-radius: 50%;
     border: 2px solid white;
     background: transparent;
-    color: white;
+    color: var(--text-primary);
     cursor: pointer;
     font-size: 18px;
     line-height: 1;
@@ -3968,7 +4108,7 @@ header nav .auth-widget {
 .cart-row .line-total {
     min-width: 100px;
     text-align: right;
-    color: white;
+    color: var(--text-primary);
     font-weight: 700;
 }
 
@@ -3988,7 +4128,7 @@ header nav .auth-widget {
     padding-top: 20px;
     margin-top: 10px;
     border-top: 1px solid rgba(255,255,255,0.1);
-    color: white;
+    color: var(--text-primary);
     font-size: 24px;
     font-weight: 700;
 }
@@ -4005,7 +4145,7 @@ header nav .auth-widget {
     display: flex;
     flex-direction: column;
     gap: 8px;
-    color: white;
+    color: var(--text-primary);
     font-size: 18px;
     text-align: left;
 }
@@ -4041,12 +4181,12 @@ header nav .auth-widget {
 .checkout-summary .row {
     display: flex;
     justify-content: space-between;
-    color: rgb(200, 200, 200);
+    color: var(--text-secondary);
     padding: 6px 0;
 }
 
 .checkout-summary .row.total {
-    color: white;
+    color: var(--text-primary);
     font-weight: 700;
     font-size: 20px;
     border-top: 1px solid rgba(255,255,255,0.1);
@@ -4155,7 +4295,7 @@ header nav .auth-widget {
     border: var(--panel-border);
     border-radius: var(--panel-radius);
     padding: 14px 16px;
-    color: rgb(200, 200, 200);
+    color: var(--text-secondary);
     font-size: 14px;
     line-height: 1.4;
 }
@@ -4190,7 +4330,7 @@ header nav .auth-widget {
     background: transparent;
     border: 3px solid white;
     border-radius: 8px;
-    color: white;
+    color: var(--text-primary);
     padding: 10px 16px;
     font-size: 14px;
     font-weight: 600;
@@ -4210,7 +4350,7 @@ header nav .auth-widget {
 .profile-bio textarea {
     width: 100%;
     background: rgb(45, 45, 45);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    border: 1px solid var(--pill-border-soft-color);
     border-radius: 10px;
     color: white;
     font-family: inherit;
@@ -4235,7 +4375,7 @@ header nav .auth-widget {
 
 .profile-bio-counter {
     font-size: 12px;
-    color: rgb(140, 140, 140);
+    color: var(--text-muted);
     white-space: nowrap;
 }
 
@@ -4245,10 +4385,10 @@ header nav .auth-widget {
 }
 
 .profile-bio-actions button {
-    background: rgba(20, 20, 20, 0.55);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: var(--pill-bg);
+    border: 1px solid var(--pill-border-color);
     border-radius: 20px;
-    color: white;
+    color: var(--text-primary);
     padding: 4px 14px;
     font-size: 12px;
     cursor: pointer;
@@ -4332,17 +4472,17 @@ header nav .auth-widget {
     align-items: center;
     gap: 10px;
     background: rgb(45, 45, 45);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--border-soft-color);
     border-radius: 10px;
     padding: 8px 10px;
     font-size: 13px;
-    color: rgb(200, 200, 200);
+    color: rgb(190, 190, 190);
 }
 
 .profile-social-field i {
     width: 16px;
     text-align: center;
-    color: rgb(150, 150, 150);
+    color: rgb(140, 140, 140);
     flex-shrink: 0;
 }
 
@@ -4379,7 +4519,7 @@ header nav .auth-widget {
 }
 
 .profile-pronoun-label {
-    color: rgb(140, 140, 140);
+    color: var(--text-muted);
     font-size: 12px;
 }
 
@@ -4392,7 +4532,7 @@ header nav .auth-widget {
     display: flex;
     align-items: center;
     gap: 6px;
-    color: rgb(200, 200, 200);
+    color: var(--text-secondary);
     font-size: 13px;
     cursor: pointer;
 }
@@ -4410,9 +4550,9 @@ header nav .auth-widget {
     width: 32px;
     height: 32px;
     border-radius: 50%;
-    background: rgba(20, 20, 20, 0.55);
-    border: 2px solid rgba(255, 255, 255, 0.15);
-    color: rgb(200, 200, 200);
+    background: var(--pill-bg);
+    border: 2px solid var(--pill-border-soft-color);
+    color: var(--text-secondary);
     font-size: 13px;
     display: flex;
     align-items: center;
@@ -4422,7 +4562,7 @@ header nav .auth-widget {
 }
 
 .skin-viewer-icon-btn:hover {
-    color: white;
+    color: var(--text-primary);
 }
 
 .skin-viewer-icon-btn:disabled {
@@ -4456,7 +4596,7 @@ header nav .auth-widget {
 }
 
 .profile-online-text {
-    color: rgb(170, 170, 170);
+    color: var(--text-muted);
     font-size: 14px;
 }
 
@@ -4482,7 +4622,7 @@ header nav .auth-widget {
 }
 
 .profile-top-rank {
-    color: white;
+    color: var(--text-primary);
     font-size: 13px;
     font-weight: 800;
     font-family: "Minecraft", sans-serif;
@@ -4496,7 +4636,7 @@ header nav .auth-widget {
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
+    color: var(--text-primary);
     font-size: 18px;
     opacity: 0.85;
     transition: opacity 0.2s ease, transform 0.2s ease;
@@ -4538,7 +4678,7 @@ header nav .auth-widget {
 
 .profile-achievements-title {
     margin: 0 0 16px;
-    color: white;
+    color: var(--text-primary);
     font-family: "Minecraft", sans-serif;
     font-size: 16px;
     font-weight: 800;
@@ -4571,7 +4711,7 @@ header nav .auth-widget {
 }
 
 .achievement-card-category {
-    color: rgb(170, 170, 170);
+    color: var(--text-muted);
     font-size: 11px;
     font-weight: 700;
     text-transform: uppercase;
@@ -4595,7 +4735,7 @@ header nav .auth-widget {
 }
 
 .achievement-card-title {
-    color: white;
+    color: var(--text-primary);
     font-size: 14px;
     font-weight: 800;
     font-family: "Minecraft", sans-serif;
@@ -4604,17 +4744,17 @@ header nav .auth-widget {
 }
 
 .achievement-card-subtitle {
-    color: rgb(170, 170, 170);
+    color: var(--text-muted);
     font-size: 11px;
     margin-top: 4px;
 }
 
 .profile-nick-badge {
-    background: rgba(20, 20, 20, 0.55);
-    border: 2px solid rgba(255, 255, 255, 0.2);
+    background: var(--pill-bg);
+    border: 2px solid var(--pill-border-color);
     border-radius: 50px;
     padding: 10px 26px;
-    color: white;
+    color: var(--text-primary);
     font-family: "Minecraft", sans-serif;
     font-weight: 800;
     font-size: 20px;
@@ -4697,7 +4837,7 @@ header nav .auth-widget {
 }
 
 .stat-box .stat-value {
-    color: white;
+    color: var(--text-primary);
     font-size: 20px;
     font-weight: 800;
     font-family: "Minecraft", sans-serif;
@@ -4807,7 +4947,7 @@ header nav .auth-widget {
     display: flex;
     flex-direction: column;
     gap: 24px;
-    color: white;
+    color: var(--text-primary);
 }
 
 /* Taken out of flow (unlike the plain .back-link on /leaderboard) so it
@@ -4849,7 +4989,7 @@ header nav .auth-widget {
 }
 
 .gallery-page-header h2 {
-    color: white;
+    color: var(--text-primary);
     font-size: 35px;
     font-family: "Ubuntu Sans", sans-serif;
     margin: 0;
@@ -4857,7 +4997,7 @@ header nav .auth-widget {
 
 .gallery-page-header p {
     margin: 10px 0 0;
-    color: rgb(180, 180, 180);
+    color: var(--text-secondary);
 }
 
 .gallery-page-sort {
@@ -4865,16 +5005,16 @@ header nav .auth-widget {
     align-items: center;
     justify-content: center;
     gap: 10px;
-    color: rgb(170, 170, 170);
+    color: var(--text-muted);
     font-size: 14px;
 }
 
 .gallery-sort-btn {
-    background: rgba(255, 255, 255, 0.06);
-    border: 2px solid rgba(255, 255, 255, 0.15);
+    background: var(--panel-bg-raised);
+    border: 2px solid var(--pill-border-soft-color);
     border-radius: 50px;
     padding: 6px 16px;
-    color: white;
+    color: var(--text-primary);
     text-decoration: none;
     font-size: 13px;
     transition: border-color 0.2s ease;
@@ -4891,7 +5031,7 @@ header nav .auth-widget {
 
 .gallery-page-empty {
     text-align: center;
-    color: rgb(150, 150, 150);
+    color: var(--text-muted);
 }
 
 .gallery-page-grid {
@@ -4914,7 +5054,28 @@ header nav .auth-widget {
     border-radius: var(--panel-radius-sm);
     box-sizing: border-box;
     overflow: hidden;
+    position: relative;
     transition: transform 0.2s ease;
+}
+
+/* /archive only — an issue posted as several page images in one Discord
+   message shows just its first page as the thumbnail, so this is the only
+   hint the rest aren't a single page. */
+.archive-page-count {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(20, 20, 20, 0.7);
+    border: 1px solid var(--pill-border-color);
+    border-radius: 20px;
+    padding: 4px 10px;
+    color: white;
+    font-size: 12px;
+    font-weight: 600;
+    z-index: 1;
 }
 
 .gallery-page-card:hover {
@@ -4926,6 +5087,8 @@ header nav .auth-widget {
     height: 220px;
     object-fit: cover;
     display: block;
+    user-select: none;
+    -webkit-user-drag: none;
 }
 
 .gallery-page-card-info {
@@ -4947,7 +5110,7 @@ header nav .auth-widget {
 }
 
 .gallery-page-card-author {
-    color: rgb(140, 140, 140);
+    color: var(--text-muted);
     font-size: 12px;
 }
 
@@ -4973,6 +5136,56 @@ header nav .auth-widget {
     border-radius: 12px;
     box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
     cursor: default;
+}
+
+/* /archive's two-page spread — each page capped to roughly half the
+   available width so a pair sits side by side instead of overflowing.
+   A trailing odd page is its own one-image "spread" (see .archive-spread-single
+   in ArchiveGrid.tsx) but deliberately keeps the SAME per-image cap as a
+   paired page — it used to jump to max-width/height:100% instead, which
+   blew it up far bigger (and more cropped-looking) than every other page. */
+.archive-spread {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    max-width: 100%;
+    max-height: 100%;
+    cursor: default;
+    /* A press-and-hold to turn the page (see ArchiveGrid.tsx) is a mousedown
+       held in place — without this, the browser reads that as a click-drag
+       text/image selection and paints the blue highlight over the page. */
+    user-select: none;
+    -webkit-user-select: none;
+    /* Mouse-wheel zoom (see ArchiveGrid.tsx) scales this whole wrapper as
+       one unit via an inline transform, so a two-page spread zooms as a
+       single sheet instead of each page growing away from the other from
+       its own center. */
+    transition: transform 0.1s ease-out;
+}
+
+.archive-spread img {
+    max-width: min(46vw, 560px);
+    max-height: 85vh;
+    object-fit: contain;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+
+@media (max-width: 768px) {
+    .archive-spread {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .archive-spread img {
+        max-width: 100%;
+        max-height: 45vh;
+    }
+
+    .archive-spread-single img {
+        max-height: 85vh;
+    }
 }
 
 .gallery-lightbox-close {
@@ -5090,7 +5303,7 @@ header nav .auth-widget {
 
 .admin-header p {
     margin: 6px 0 0;
-    color: rgb(200, 200, 200);
+    color: var(--text-secondary);
 }
 
 .admin-section {
@@ -5108,7 +5321,7 @@ header nav .auth-widget {
        heading without its own explicit color) was falling back to the
        browser default — plain black — on the dark admin-section
        background, instead of white. */
-    color: white;
+    color: var(--text-primary);
 }
 
 .admin-achievements {
@@ -5145,7 +5358,7 @@ header nav .auth-widget {
 
 .admin-privileges-summary {
     margin: 0;
-    color: rgb(170, 170, 170);
+    color: var(--text-muted);
     font-size: 13px;
 }
 
@@ -5159,7 +5372,7 @@ header nav .auth-widget {
     margin: 24px 0 12px;
     font-family: "Minecraft", sans-serif;
     font-size: 14px;
-    color: rgb(190, 190, 190);
+    color: var(--text-secondary);
 }
 
 .admin-gallery-photos {
@@ -5228,7 +5441,7 @@ header nav .auth-widget {
     min-width: 0;
     text-align: center;
     background: rgb(45, 45, 45);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    border: 1px solid var(--pill-border-soft-color);
     border-left: none;
     border-right: none;
     color: white;
@@ -5242,7 +5455,7 @@ header nav .auth-widget {
     flex-shrink: 0;
     width: 32px;
     background: rgb(45, 45, 45);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    border: 1px solid var(--pill-border-soft-color);
     color: white;
     cursor: pointer;
     transition: border-color 0.2s ease, color 0.2s ease;
@@ -5275,7 +5488,7 @@ header nav .auth-widget {
 }
 
 .admin-privilege-expired {
-    color: rgb(140, 140, 140);
+    color: var(--text-muted);
 }
 
 /* Plain (non-absolutely-positioned) icon swatch for the admin audit list —
@@ -5309,20 +5522,21 @@ header nav .auth-widget {
     display: flex;
     flex-direction: column;
     gap: 6px;
-    color: white;
+    color: var(--text-primary);
     font-size: 13px;
 }
 
 .admin-field input[type="text"],
 .admin-field input[type="number"],
-.admin-field select {
+.admin-field select,
+.admin-field textarea {
     /* Relied on the label's flex align-items: stretch to size these —
        reliable inside a plain flex column, but not once the label sits in
        a nested/reused context (e.g. the wiki admin's category row), where
        it silently fell back to the input's own intrinsic width instead. */
     width: 100%;
     background: rgb(45, 45, 45);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    border: 1px solid var(--pill-border-soft-color);
     border-radius: 10px;
     color: white;
     font-family: inherit;
@@ -5331,9 +5545,14 @@ header nav .auth-widget {
     box-sizing: border-box;
 }
 
+.admin-field textarea {
+    resize: vertical;
+}
+
 .admin-field input[type="text"]:focus,
 .admin-field input[type="number"]:focus,
-.admin-field select:focus {
+.admin-field select:focus,
+.admin-field textarea:focus {
     outline: none;
     border-color: rgba(255, 209, 57, 0.5);
 }
@@ -5358,7 +5577,7 @@ header nav .auth-widget {
     align-items: center;
     gap: 6px;
     background: rgb(45, 45, 45);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    border: 1px solid var(--pill-border-soft-color);
     border-radius: 10px;
     padding: 6px 8px;
     box-sizing: border-box;
@@ -5414,7 +5633,7 @@ header nav .auth-widget {
     right: 0;
     z-index: 10;
     background: rgb(50, 50, 50);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    border: 1px solid var(--pill-border-soft-color);
     border-radius: 10px;
     box-shadow: 0px 4px 14px 0px rgba(0, 0, 0, 0.4);
     max-height: 220px;
@@ -5488,7 +5707,7 @@ header nav .auth-widget {
     align-items: center;
     gap: 6px;
     font-weight: 400;
-    color: white;
+    color: var(--text-primary);
     cursor: pointer;
 }
 
@@ -5496,7 +5715,7 @@ header nav .auth-widget {
     display: flex;
     align-items: center;
     gap: 8px;
-    color: white;
+    color: var(--text-primary);
     cursor: pointer;
 }
 
@@ -5536,7 +5755,7 @@ header nav .auth-widget {
 }
 
 .admin-log-time {
-    color: rgb(140, 140, 140);
+    color: var(--text-muted);
     font-size: 12px;
     white-space: nowrap;
     flex-shrink: 0;
@@ -5547,7 +5766,7 @@ header nav .auth-widget {
 }
 
 .admin-log-detail summary {
-    color: rgb(170, 170, 170);
+    color: var(--text-muted);
     font-size: 12px;
     cursor: pointer;
 }
@@ -5555,9 +5774,9 @@ header nav .auth-widget {
 .admin-log-detail pre {
     margin: 6px 0 0;
     padding: 8px 10px;
-    background: rgba(0, 0, 0, 0.3);
+    background: var(--input-bg);
     border-radius: 8px;
-    color: rgb(200, 200, 200);
+    color: var(--text-secondary);
     font-size: 11px;
     white-space: pre-wrap;
     word-break: break-word;
@@ -5570,10 +5789,10 @@ header nav .auth-widget {
 }
 
 .admin-form-actions button {
-    background: rgba(20, 20, 20, 0.55);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: var(--pill-bg);
+    border: 1px solid var(--pill-border-color);
     border-radius: 20px;
-    color: white;
+    color: var(--text-primary);
     padding: 6px 18px;
     font-size: 13px;
     cursor: pointer;
@@ -5590,7 +5809,7 @@ header nav .auth-widget {
 
 .admin-form-preview-label {
     margin: 0 0 8px;
-    color: rgb(170, 170, 170);
+    color: var(--text-muted);
     font-size: 12px;
 }
 
@@ -5623,7 +5842,7 @@ header nav .auth-widget {
 
 .admin-player-search {
     background: rgb(45, 45, 45);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    border: 1px solid var(--pill-border-soft-color);
     border-radius: 10px;
     color: white;
     font-family: inherit;
@@ -5648,7 +5867,7 @@ header nav .auth-widget {
     border-radius: 16px;
     box-sizing: border-box;
     padding: 14px 18px;
-    color: white;
+    color: var(--text-primary);
     font-family: inherit;
     text-align: left;
     cursor: pointer;
@@ -5660,7 +5879,7 @@ header nav .auth-widget {
 }
 
 .admin-player-row span {
-    color: rgb(170, 170, 170);
+    color: var(--text-muted);
     font-size: 13px;
     white-space: nowrap;
 }
@@ -5679,10 +5898,10 @@ header nav .auth-widget {
 }
 
 .admin-player-header button {
-    background: rgba(20, 20, 20, 0.55);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: var(--pill-bg);
+    border: 1px solid var(--pill-border-color);
     border-radius: 20px;
-    color: white;
+    color: var(--text-primary);
     padding: 5px 14px;
     font-size: 12px;
     cursor: pointer;
@@ -5710,12 +5929,12 @@ header nav .auth-widget {
     gap: 2px;
     flex: 1;
     min-width: 0;
-    color: rgb(200, 200, 200);
+    color: var(--text-secondary);
     font-size: 13px;
 }
 
 .admin-achievements-row-info b {
-    color: white;
+    color: var(--text-primary);
 }
 
 .admin-achievements-row-actions {
@@ -5725,10 +5944,10 @@ header nav .auth-widget {
 }
 
 .admin-achievements-row-actions button {
-    background: rgba(20, 20, 20, 0.55);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    background: var(--pill-bg);
+    border: 1px solid var(--pill-border-color);
     border-radius: 20px;
-    color: white;
+    color: var(--text-primary);
     padding: 5px 14px;
     font-size: 12px;
     cursor: pointer;
@@ -5767,12 +5986,12 @@ header nav .auth-widget {
     padding: 5vh 20px 40px 20px;
     align-items: start;
     box-sizing: border-box;
-    color: white;
+    color: var(--text-primary);
 }
 
 .wiki-sidebar {
     background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--border-soft-color);
     border-radius: 20px;
     padding: 24px;
     position: sticky;
@@ -5783,13 +6002,13 @@ header nav .auth-widget {
 }
 
 .wiki-sidebar-title {
-    color: white;
+    color: var(--text-primary);
     font-family: "Minecraft", sans-serif;
     font-size: 20px;
     letter-spacing: 1px;
     margin: 0 0 -8px 0;
     padding-bottom: 16px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid var(--border-soft-color);
 }
 
 .wiki-sidebar-group ul {
@@ -5806,7 +6025,7 @@ header nav .auth-widget {
     font-size: 12px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    color: rgb(150, 150, 150);
+    color: var(--text-muted);
 }
 
 .wiki-sidebar-group a {
@@ -5821,7 +6040,7 @@ header nav .auth-widget {
 
 .wiki-sidebar-group a:hover {
     background: rgba(255, 255, 255, 0.05);
-    color: white;
+    color: var(--text-primary);
 }
 
 .wiki-sidebar-group a.active {
@@ -5830,7 +6049,7 @@ header nav .auth-widget {
 }
 
 .wiki-sidebar-empty {
-    color: rgb(140, 140, 140);
+    color: var(--text-muted);
     font-size: 13px;
 }
 
@@ -5839,7 +6058,7 @@ header nav .auth-widget {
 .wiki-welcome h2,
 .wiki-article h2 {
     position: relative;
-    color: white;
+    color: var(--text-primary);
     font-family: "Ubuntu Sans", sans-serif;
     font-size: 32px;
     width: 100%;
@@ -5884,7 +6103,7 @@ header nav .auth-widget {
     width: 100%;
     box-sizing: border-box;
     background: rgba(255, 255, 255, 0.04);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--border-soft-color);
     border-radius: 20px;
     box-shadow: none;
     align-items: stretch;
@@ -5900,7 +6119,7 @@ header nav .auth-widget {
 .wiki-article-body h1,
 .wiki-article-body h2,
 .wiki-article-body h3 {
-    color: white;
+    color: var(--text-primary);
     font-family: "Minecraft", sans-serif;
     margin: 24px 0 12px;
 }
@@ -5932,7 +6151,7 @@ header nav .auth-widget {
     padding: 10px 16px;
     border-left: 3px solid var(--color-gold);
     background: rgba(255, 255, 255, 0.04);
-    color: rgb(190, 190, 190);
+    color: var(--text-secondary);
 }
 
 .wiki-article-body img {
@@ -5956,7 +6175,7 @@ header nav .auth-widget {
 
 .wiki-article-body th,
 .wiki-article-body td {
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--border-soft-color);
     padding: 8px 12px;
     text-align: left;
 }
@@ -6022,7 +6241,7 @@ header nav .auth-widget {
     align-items: center;
     gap: 4px;
     background: rgb(45, 45, 45);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    border: 1px solid var(--pill-border-soft-color);
     border-radius: 10px 10px 0 0;
     padding: 6px;
 }
@@ -6033,7 +6252,7 @@ header nav .auth-widget {
     background: none;
     border: none;
     border-radius: 6px;
-    color: rgb(200, 200, 200);
+    color: rgb(190, 190, 190);
     cursor: pointer;
     transition: background-color 0.2s ease, color 0.2s ease;
 }
@@ -6051,7 +6270,7 @@ header nav .auth-widget {
 .wiki-editor-toolbar-divider {
     width: 1px;
     height: 20px;
-    background: rgba(255, 255, 255, 0.15);
+    background: var(--pill-border-soft-color);
     margin: 0 4px;
 }
 
@@ -6060,7 +6279,7 @@ header nav .auth-widget {
     min-height: 70vh;
     resize: vertical;
     background: rgb(25, 25, 25);
-    border: 1px solid rgba(255, 255, 255, 0.15);
+    border: 1px solid var(--pill-border-soft-color);
     border-top: none;
     border-radius: 0 0 10px 10px;
     color: white;
@@ -6084,7 +6303,7 @@ header nav .auth-widget {
 }
 
 .wiki-editor-preview-label {
-    color: rgb(150, 150, 150);
+    color: var(--text-muted);
     font-size: 12px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -6099,7 +6318,7 @@ header nav .auth-widget {
     display: flex;
     gap: 8px;
     margin-bottom: 20px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid var(--border-soft-color);
 }
 
 .wiki-admin-tabs button {
@@ -6108,7 +6327,7 @@ header nav .auth-widget {
     border-bottom: 2px solid transparent;
     padding: 10px 4px;
     margin-bottom: -1px;
-    color: rgb(170, 170, 170);
+    color: var(--text-muted);
     font-family: "Minecraft", sans-serif;
     font-size: 14px;
     cursor: pointer;
@@ -6116,7 +6335,7 @@ header nav .auth-widget {
 }
 
 .wiki-admin-tabs button:hover {
-    color: white;
+    color: var(--text-primary);
 }
 
 .wiki-admin-tabs button.active {

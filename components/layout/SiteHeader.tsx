@@ -3,13 +3,24 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const NAV_LINKS = [
   { href: "/", label: "Головна" },
   { href: "/join", label: "Приєднатися" },
   { href: "/wiki", label: "Вікі" },
   { href: "/map", label: "Мапа" },
+];
+
+// Tucked behind the "Інше" dropdown on the desktop plate instead of their
+// own icons directly in the row — with the plate already at 4 items, more
+// standalone entries just kept crowding it at in-between viewport widths.
+// Still flat entries in the mobile menu (see the second NAV_LINKS.map
+// below), which has vertical room to spare.
+const MORE_LINKS = [
+  { href: "/leaderboard", label: "Таблиця лідерів", icon: "fa-solid fa-ranking-star" },
+  { href: "/gallery", label: "Галерея", icon: "fa-regular fa-images" },
+  { href: "/archive", label: "Архів", icon: "fa-solid fa-newspaper" },
 ];
 
 export default function SiteHeader({
@@ -56,6 +67,7 @@ export default function SiteHeader({
   const isAdminPage = pathname.startsWith("/admin");
   const isLeaderboardPage = pathname.startsWith("/leaderboard");
   const isGalleryPage = pathname.startsWith("/gallery");
+  const isArchivePage = pathname.startsWith("/archive");
   const isWikiPage = pathname.startsWith("/wiki");
   const isAuthErrorPage = pathname.startsWith("/auth/error");
   const isMapPage = pathname === "/map";
@@ -68,6 +80,7 @@ export default function SiteHeader({
     isAdminPage ||
     isLeaderboardPage ||
     isGalleryPage ||
+    isArchivePage ||
     isWikiPage ||
     isAuthErrorPage ||
     isMapPage ||
@@ -107,9 +120,27 @@ export default function SiteHeader({
     requestAnimationFrame(step);
   }
 
-  function NavItem({ href, label, onNavigate }: { href: string; label: string; onNavigate?: () => void }) {
+  function NavItem({
+    href,
+    label,
+    icon,
+    onNavigate,
+  }: {
+    href: string;
+    label: string;
+    icon?: string;
+    onNavigate?: () => void;
+  }) {
     const active = isActive(href);
     const skipsToContent = (href === "/" || href === "/join") && active;
+    const content = icon ? (
+      <>
+        <i className={icon} aria-hidden="true"></i>
+        <span className="nav-icon-label">{label}</span>
+      </>
+    ) : (
+      label
+    );
 
     if (skipsToContent) {
       return (
@@ -121,15 +152,61 @@ export default function SiteHeader({
             onNavigate?.();
           }}
         >
-          {label}
+          {content}
         </button>
       );
     }
 
     return (
-      <Link href={href} className={active ? "active" : ""} onClick={onNavigate}>
-        {label}
+      <Link href={href} className={active ? "active" : ""} onClick={onNavigate} aria-label={icon ? label : undefined}>
+        {content}
       </Link>
+    );
+  }
+
+  function MoreMenu() {
+    const [open, setOpen] = useState(false);
+    const rootRef = useRef<HTMLLIElement>(null);
+
+    // Click still toggles it (state-driven, works everywhere, including
+    // touch/keyboard) — hovering it open on a real mouse is CSS-only (see
+    // ".nav-more:hover .nav-more-dropdown" in globals.css), scoped to
+    // `(hover: hover) and (pointer: fine)` so it's a no-op on touch screens
+    // instead of repeating the bug that made the profile menu unreliable on
+    // mobile (see UserMenuDropdown) — a touch tap has no real ":hover", so
+    // relying on it alone would leave touch users with no way to open this.
+    useEffect(() => {
+      if (!open) return;
+      function handleClickOutside(e: MouseEvent) {
+        if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
+          setOpen(false);
+        }
+      }
+      document.addEventListener("click", handleClickOutside);
+      return () => document.removeEventListener("click", handleClickOutside);
+    }, [open]);
+
+    const active = MORE_LINKS.some((link) => isActive(link.href));
+
+    return (
+      <li className="nav-more" ref={rootRef}>
+        <button type="button" className={active ? "active" : ""} onClick={() => setOpen((o) => !o)}>
+          Інше
+          <i className={`fa-solid fa-chevron-down nav-more-arrow${open ? " open" : ""}`} aria-hidden="true"></i>
+        </button>
+        <div className={`nav-more-dropdown${open ? " open" : ""}`}>
+          {MORE_LINKS.map((link) => (
+            <Link
+              key={link.href}
+              href={link.href}
+              className={isActive(link.href) ? "active" : ""}
+              onClick={() => setOpen(false)}
+            >
+              {link.label}
+            </Link>
+          ))}
+        </div>
+      </li>
     );
   }
 
@@ -144,6 +221,7 @@ export default function SiteHeader({
                 <NavItem href={link.href} label={link.label} />
               </li>
             ))}
+            <MoreMenu />
           </ul>
         </div>
         <div className="auth-widget">
@@ -165,6 +243,16 @@ export default function SiteHeader({
             {NAV_LINKS.map((link) => (
               <li key={link.href}>
                 <NavItem href={link.href} label={link.label} onNavigate={() => setMenuOpen(false)} />
+              </li>
+            ))}
+            {MORE_LINKS.map((link) => (
+              <li key={link.href}>
+                <NavItem
+                  href={link.href}
+                  label={link.label}
+                  icon={link.icon}
+                  onNavigate={() => setMenuOpen(false)}
+                />
               </li>
             ))}
           </ul>
