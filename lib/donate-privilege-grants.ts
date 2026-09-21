@@ -13,7 +13,7 @@ import { addGuildMemberRole, removeGuildMemberRole } from "@/lib/discord";
 import { getDiscordIdForNickname } from "@/lib/mc-db";
 import { logDonatePrivilegeRevoked, type DonatePrivilegeRevokeReason } from "@/lib/donate-order-log";
 import { logError } from "@/lib/admin-log";
-import { MINECRAFT_COLORS, FLORIST_SYMBOL, FLORIST_COLOR_HEX } from "@/lib/minecraft-symbols";
+import { FLORIST_SYMBOL, FLORIST_COLOR_HEX, HEX_COLOR_RE } from "@/lib/minecraft-symbols";
 import type { DonateTier } from "@prisma/client";
 
 export const TIER_LP_GROUP: Record<DonateTier, string> = {
@@ -30,17 +30,21 @@ function getTierRoleId(tier: DonateTier): string | null {
   return roleId;
 }
 
-// The icon picker's colors are restricted to the 16 classic &-codes
-// specifically so they map straight onto a LuckPerms suffix (see
-// MINECRAFT_COLORS in minecraft-symbols.ts).
 const SUFFIX_PRIORITY = 100;
 
 // Nickname ends up inside a raw console command string sent to the live
 // server, so it must be validated even though it came from our own DB.
 const NICKNAME_RE = /^[A-Za-z0-9_]{1,16}$/;
 
-function colorHexToCode(hex: string): string {
-  return MINECRAFT_COLORS.find((c) => c.hex.toLowerCase() === hex.toLowerCase())?.code ?? "f";
+// Full RGB via MiniMessage's <#hex> tag now (the donate builder's picker is
+// a free hue slider + hex input, not the old 16-swatch grid) rather than
+// snapping to the nearest of the 16 classic &-codes. HEX_COLOR_RE isn't
+// just picky here — an unvalidated value would land straight inside a raw
+// console command string below, so a value that fails it is treated as
+// untrusted and replaced with the same safe fallback Флорист always uses,
+// not passed through.
+function safeHexColor(hex: string): string {
+  return HEX_COLOR_RE.test(hex) ? hex : FLORIST_COLOR_HEX;
 }
 
 // The picker characters carry a trailing U+FE0E (forces plain-glyph
@@ -72,7 +76,7 @@ export async function grantDonatePrivilegeInGame(params: {
   if (symbol && colorHex) {
     // Leading space (not trailing) — a suffix sits right after the
     // nickname, same side as the icon on the site's own badge.
-    const suffix = ` &${colorHexToCode(colorHex)}${stripVariationSelector(symbol)}`;
+    const suffix = ` <${safeHexColor(colorHex)}>${stripVariationSelector(symbol)}`;
     try {
       await sendServerCommand(`lp user ${params.nickname} meta setsuffix ${SUFFIX_PRIORITY} "${suffix}"`);
     } catch (err) {

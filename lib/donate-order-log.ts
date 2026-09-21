@@ -94,6 +94,35 @@ export async function logDonateOrderExpired(order: DonateOrder): Promise<void> {
   }
 }
 
+// A fresh message, same reasoning as logDonatePrivilegeRevoked below — an
+// admin-granted privilege never went through createDonateOrder, so there's
+// no DonateOrder message to edit in place.
+export async function logDonatePrivilegeGranted(params: {
+  nickname: string;
+  tier: DonateTier;
+  expiresAt: Date;
+  adminName: string;
+}): Promise<void> {
+  const channelId = getLogChannelId();
+  if (!channelId) return;
+
+  await sendDiscordMessage(channelId, {
+    embeds: [
+      {
+        title: `Привілегію видано вручну — ${TIER_LABEL[params.tier]}`,
+        color: 0x4caf50,
+        fields: [
+          { name: "Гравець", value: params.nickname, inline: true },
+          { name: "Привілей", value: TIER_LABEL[params.tier], inline: true },
+          { name: "Діє до", value: params.expiresAt.toLocaleString("uk-UA"), inline: true },
+          { name: "Видав", value: `🛠️ ${params.adminName}`, inline: false },
+        ],
+        timestamp: new Date().toISOString(),
+      },
+    ],
+  });
+}
+
 export type DonatePrivilegeRevokeReason =
   | { type: "expired" }
   | { type: "admin"; adminName: string };

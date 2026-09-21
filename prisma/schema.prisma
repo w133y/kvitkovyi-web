@@ -196,6 +196,13 @@ model DonatePrivilege {
   // the row outright, so this only ever gets set by the expiry sweep.
   revokedAt DateTime?
 
+  // Set once the "expires tomorrow" Discord DM has gone out (see
+  // lib/donate-privilege-reminders.ts) — guards against sending it twice if
+  // the daily cron run overlaps its own lookback window, not a record of
+  // delivery success (a DM that fails to send still marks this to avoid
+  // retrying every run).
+  reminderSentAt DateTime?
+
   @@index([nickname])
 }
 
@@ -233,7 +240,11 @@ model DonateOrder {
   tier         DonateTier
   iconSymbol   String? // Меценат only, snapshotted at order creation
   iconColorHex String?
-  amountUah    Int
+  // 1-6 — the discount schedule (5% at 5, 10% at 6) lives in
+  // lib/actions/donate-order.ts, amountUah below is already the discounted
+  // total for this many months, not a per-month price.
+  months    Int @default(1)
+  amountUah Int
 
   status DonateOrderStatus @default(PENDING)
   // The matched Donatello donation's pubId, once paid — @unique so the same

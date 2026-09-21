@@ -485,10 +485,10 @@ export const MINECRAFT_SYMBOLS: { char: string; label: string }[] = [
   { char: "℅︎", label: "℅" },
 ];
 
-// The 16 standard Minecraft chat colors — the only colors guaranteed to
-// render correctly in-game via the classic &-code formatting the LuckPerms
-// suffix (see lib/donate-privilege-grants.ts) uses, rather than offering a
-// full RGB picker whose output might not render the same way everywhere.
+// The donate builder itself now uses a free RGB slider + hex input instead
+// of picking from this list (the suffix is sent as a MiniMessage <#hex> tag,
+// not the classic &-code, so it's no longer limited to these 16) — this set
+// is still what the admin panel's quick-pick grid offers.
 export const MINECRAFT_COLORS: { code: string; label: string; hex: string }[] = [
   { code: "0", label: "Чорний", hex: "#000000" },
   { code: "1", label: "Темно-синій", hex: "#0000AA" },
@@ -512,3 +512,49 @@ export const MINECRAFT_COLORS: { code: string; label: string; hex: string }[] = 
 // so the preview and the (future) grant logic use the exact same values.
 export const FLORIST_SYMBOL = "❀\uFE0E";
 export const FLORIST_COLOR_HEX = "#FFFF55";
+
+// A 6-digit hex color with its leading #. Used both to validate a picker's
+// raw text-input value (someone can type/paste anything) and, critically,
+// to sanitize a color before it's embedded in a raw console command string
+// sent to the live server (lib/donate-privilege-grants.ts) — an
+// unvalidated value there would be a command-injection path, not just a
+// cosmetic bug.
+export const HEX_COLOR_RE = /^#[0-9A-Fa-f]{6}$/;
+
+// Backs the hue slider in both the donate builder and the admin panel's
+// grant form. Full saturation/lightness only — enough range to pick any
+// <#RRGGBB> tag via drag, with a hex text field next to it for an exact or
+// pasted value the slider alone can't reach.
+export function hueToHex(hue: number): string {
+  const c = 1;
+  const x = 1 - Math.abs(((hue / 60) % 2) - 1);
+  let [r, g, b] = [0, 0, 0];
+  if (hue < 60) [r, g, b] = [c, x, 0];
+  else if (hue < 120) [r, g, b] = [x, c, 0];
+  else if (hue < 180) [r, g, b] = [0, c, x];
+  else if (hue < 240) [r, g, b] = [0, x, c];
+  else if (hue < 300) [r, g, b] = [x, 0, c];
+  else [r, g, b] = [c, 0, x];
+  const toHex = (v: number) => Math.round(v * 255).toString(16).padStart(2, "0");
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`.toUpperCase();
+}
+
+// A pasted/legacy hex may not be a pure hue (e.g. one of the 16 classic
+// swatch colors, which are already fully saturated so it round-trips fine,
+// or an arbitrary value that isn't) — this is only ever used to position
+// the slider thumb, never fed back into the committed color.
+export function hexToHue(hex: string): number {
+  const r = parseInt(hex.slice(1, 3), 16) / 255;
+  const g = parseInt(hex.slice(3, 5), 16) / 255;
+  const b = parseInt(hex.slice(5, 7), 16) / 255;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const d = max - min;
+  if (d === 0) return 0;
+  let h: number;
+  if (max === r) h = ((g - b) / d) % 6;
+  else if (max === g) h = (b - r) / d + 2;
+  else h = (r - g) / d + 4;
+  h *= 60;
+  return h < 0 ? h + 360 : h;
+}

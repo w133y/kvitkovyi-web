@@ -25,7 +25,7 @@ export default function GlobalNotFound() {
         />
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
       </head>
-      <body>
+      <body suppressHydrationWarning>
         <SiteHeader heroImage="404" />
         <main className="site-main"></main>
         <SiteFooter />

@@ -9,15 +9,12 @@ import { fetchRecentDonates } from "@/lib/donatello";
 import { grantDonatePrivilegeInGame } from "@/lib/donate-privilege-grants";
 import { logDonateOrderCreated, logDonateOrderPaid, logDonateOrderExpired } from "@/lib/donate-order-log";
 import { logError } from "@/lib/admin-log";
+import { calculateDonateAmount, MIN_DONATE_MONTHS, MAX_DONATE_MONTHS } from "@/lib/donate-pricing";
+import { HEX_COLOR_RE } from "@/lib/minecraft-symbols";
 import type { DonateOrder } from "@prisma/client";
 import { revalidatePath } from "next/cache";
 
-const TIER_PRICE_UAH: Record<"FLORIST" | "MECENAT", number> = {
-  FLORIST: 49,
-  MECENAT: 99,
-};
-
-const PRIVILEGE_DURATION_DAYS = 30;
+const PRIVILEGE_DURATION_DAYS_PER_MONTH = 30;
 
 // A buyer's stuck on the payment page 10 minutes with no confirmed
 // donation is almost certainly not going to pay — expiring the order frees
@@ -54,6 +51,9 @@ export type CreateDonateOrderInput = {
   tier: "FLORIST" | "MECENAT";
   iconSymbol?: string;
   iconColorHex?: string;
+  // 1-6 months — validated below rather than trusted, since it drives the
+  // charged amount. Defaults to 1 for any caller that predates this field.
+  months?: number;
   // Gift the privilege to a different player than the buyer — must be a
   // real nickname known to the server, checked below. Omit (or match the
   // buyer's own nickname) to buy for yourself, the common case.
@@ -74,6 +74,19 @@ export async function createDonateOrder(
 
   const link = await getDiscordLink(session.user.discordId);
   if (!link) return { error: "До вашого Discord-акаунту не прив'язано нікнейм на сервері" };
+
+  const months = Math.round(input.months ?? 1);
+  if (!Number.isFinite(months) || months < MIN_DONATE_MONTHS || months > MAX_DONATE_MONTHS) {
+    return { error: `Тривалість має бути від ${MIN_DONATE_MONTHS} до ${MAX_DONATE_MONTHS} місяців` };
+  }
+
+  // The builder's picker is a free hex input now, not a fixed swatch grid —
+  // same value later lands in a raw console command (see safeHexColor in
+  // lib/donate-privilege-grants.ts), so it's worth rejecting garbage here
+  // too rather than relying on that fallback alone.
+  if (input.tier === "MECENAT" && input.iconColorHex && !HEX_COLOR_RE.test(input.iconColorHex.trim())) {
+    return { error: "Некоректний формат кольору" };
+  }
 
   let recipientNickname = link.nickname;
   const requestedRecipient = input.recipientNickname?.trim();
@@ -101,7 +114,8 @@ export async function createDonateOrder(
       tier: input.tier,
       iconSymbol: input.tier === "MECENAT" ? input.iconSymbol?.trim() || null : null,
       iconColorHex: input.tier === "MECENAT" ? input.iconColorHex?.trim() || null : null,
-      amountUah: TIER_PRICE_UAH[input.tier],
+      months,
+      amountUah: calculateDonateAmount(input.tier, months),
     },
   });
 
@@ -238,7 +252,7 @@ export async function checkDonateOrderPayment(orderId: string): Promise<CheckDon
         tier: order.tier,
         iconSymbol: order.iconSymbol,
         iconColorHex: order.iconColorHex,
-        expiresAt: new Date(Date.now() + PRIVILEGE_DURATION_DAYS * 24 * 60 * 60 * 1000),
+        expiresAt: new Date(Date.now() + order.months * PRIVILEGE_DURATION_DAYS_PER_MONTH * 24 * 60 * 60 * 1000),
       },
     });
   } catch (err) {

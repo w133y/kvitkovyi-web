@@ -194,14 +194,42 @@ header.header-map {
    more standalone entries just crowded it at in-between viewport widths.
    Click-toggle only (no hover) so it behaves identically on desktop and
    touch — see MoreMenu's own comment in SiteHeader.tsx for why that matters. */
+/* ">" rotated to a down-chevron — the blocky Minecraft font renders it
+   crisper than a literal "v" glyph, which came out lopsided at this size. */
 .nav-more-arrow {
-    font-size: 12px;
-    margin-left: 8px;
+    font-family: "Minecraft", sans-serif;
+    font-size: 14px;
+    margin-left: 4px;
+    display: inline-block;
+    position: relative;
+    top: -5px;
+    transform: rotate(90deg);
     transition: transform 0.2s ease;
 }
 
 .nav-more-arrow.open {
-    transform: rotate(180deg);
+    transform: rotate(-90deg);
+}
+
+/* The flip lives on its OWN nested span (nav-more-arrow-flip), not combined
+   into .nav-more-arrow's own transform — animating rotate(Z) and rotateY
+   together on one element made the transition interpolate as one tumbling
+   3D rotation instead of two clean motions, which read as the arrow
+   "jumping" mid-flip. Two separate elements each animating one axis avoids
+   that. Same hover:hover/pointer:fine guard as the hover-to-open dropdown
+   above, since a touch tap has no hover to hold. Applies regardless of the
+   .open class — the dropdown itself opens on plain :hover too (CSS-only,
+   see .nav-more:hover .nav-more-dropdown above) without touching the click
+   state, so the flip should follow hover the same way. */
+.nav-more-arrow-flip {
+    display: inline-block;
+    transition: transform 0.2s ease;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .nav-more:hover .nav-more-arrow-flip {
+        transform: rotateY(180deg) translateX(3px);
+    }
 }
 
 /* .nav-more itself (the <li>) needs to be the positioned ancestor — without
@@ -229,15 +257,24 @@ header.header-map {
        space or wraps the longest label onto two lines, leaving the rows an
        uneven height next to the one-line ones. */
     position: absolute;
-    top: calc(100% + 14px);
+    /* .menutext (the pill) has its own 20px vertical padding around the
+       button, so "the button's own bottom + 14px" still landed inside the
+       pill's padding — 8px short of actually clearing it — and the two
+       rounded borders visibly crossed each other right at "Інше" instead of
+       sitting cleanly apart. */
+    top: calc(100% + 26px);
     left: 0;
     width: max-content;
     background: var(--pill-bg);
     border: 2px solid var(--pill-border-color);
     border-radius: 16px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
-    backdrop-filter: blur(6px);
-    -webkit-backdrop-filter: blur(6px);
+    /* Stronger than .menutext's own 6px — that pill only ever sits over the
+       hero photo, but this dropdown can open over arbitrary page content
+       (cards, badges, icons), and 6px wasn't enough to keep sharp shapes
+       behind it from reading as a messy double-image through the panel. */
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
     padding: 8px;
     display: flex;
     flex-direction: column;
@@ -365,6 +402,8 @@ header.header-map {
 .mobile-menu-container {
     padding: 80px 20px 20px;
     height: 100%;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 .mobile-menutext {
@@ -3533,19 +3572,23 @@ header nav .auth-widget {
    /shop/sponsorship/info. Deliberately chunky/square rather than a thin
    pill like the other buttons here, so it reads as its own "info block"
    between the skin card and the continue button. */
+/* Used to be a tall square (90px, icon stacked over text) — with the
+   duration picker added below it, the column no longer fits everything
+   above the fold without this shrinking to a compact horizontal pill, same
+   general size as the other buttons in this column. */
 .donate-info-btn {
     width: 100%;
     max-width: 280px;
-    height: 90px;
     box-sizing: border-box;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
     align-items: center;
     justify-content: center;
     gap: 8px;
+    padding: 10px 16px;
     background: var(--panel-bg);
     border: 2px solid var(--pill-border-soft-color);
-    border-radius: 18px;
+    border-radius: 14px;
     color: var(--text-primary);
     text-decoration: none;
     font-size: 14px;
@@ -3555,7 +3598,7 @@ header nav .auth-widget {
 }
 
 .donate-info-btn i {
-    font-size: 26px;
+    font-size: 16px;
     color: var(--color-gold);
 }
 
@@ -3681,6 +3724,85 @@ header nav .auth-widget {
 
 .donate-payment-recipient b {
     color: var(--color-gold);
+}
+
+.donate-duration {
+    width: 100%;
+    max-width: 280px;
+}
+
+.donate-duration h4 {
+    margin: 0 0 8px;
+    font-family: "Minecraft", sans-serif;
+    font-size: 14px;
+    color: rgb(180, 180, 180);
+    text-align: left;
+}
+
+.donate-duration-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    margin-bottom: 10px;
+}
+
+.donate-duration-btn {
+    position: relative;
+    padding: 8px 4px;
+    background: rgb(35, 35, 35);
+    border: 2px solid transparent;
+    border-radius: 8px;
+    color: white;
+    font-family: inherit;
+    font-size: 13px;
+    cursor: pointer;
+    transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.donate-duration-btn:hover:not(:disabled) {
+    transform: translateY(-2px);
+}
+
+.donate-duration-btn.active {
+    border-color: var(--color-gold);
+}
+
+.donate-duration-btn:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+/* The two discounted months are the ones worth calling out — a badge
+   instead of just a smaller price line under each button, so it reads as
+   "extra reward for committing longer" rather than blending into the grid. */
+.donate-duration-badge {
+    position: absolute;
+    top: -8px;
+    right: -6px;
+    background: var(--color-green);
+    color: white;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 5px;
+    border-radius: 8px;
+    line-height: 1;
+}
+
+.donate-duration-total {
+    font-size: 14px;
+    color: rgb(190, 190, 190);
+    text-align: left;
+    margin-bottom: 4px;
+}
+
+.donate-duration-total b {
+    color: var(--color-gold);
+    font-size: 18px;
+}
+
+.donate-duration-savings {
+    color: var(--color-green);
+    font-size: 12px;
 }
 
 .donate-continue-btn {
@@ -3899,31 +4021,84 @@ header nav .auth-widget {
     cursor: not-allowed;
 }
 
-.donate-color-grid {
+.donate-color-picker {
     display: flex;
-    flex-wrap: wrap;
+    flex-direction: column;
     gap: 8px;
 }
 
-.donate-color-btn {
-    width: 26px;
-    height: 26px;
+.donate-color-slider-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* Hue-only slider (full saturation/lightness) — enough range to pick any
+   MiniMessage <#RRGGBB> tag via drag, with the hex field next to it for an
+   exact/pasted value the slider can't reach on its own. */
+.donate-color-slider {
+    flex: 1;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 10px;
+    border-radius: 6px;
+    background: linear-gradient(
+        to right,
+        hsl(0 100% 50%),
+        hsl(60 100% 50%),
+        hsl(120 100% 50%),
+        hsl(180 100% 50%),
+        hsl(240 100% 50%),
+        hsl(300 100% 50%),
+        hsl(360 100% 50%)
+    );
+    cursor: pointer;
+}
+
+.donate-color-slider:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+}
+
+.donate-color-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px;
+    height: 20px;
     border-radius: 50%;
+    background: white;
     border: 2px solid var(--pill-border-color);
     cursor: pointer;
-    transition: transform 0.2s ease, border-color 0.2s ease;
 }
 
-.donate-color-btn:hover:not(:disabled) {
-    transform: translateY(-2px);
+.donate-color-slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: white;
+    border: 2px solid var(--pill-border-color);
+    cursor: pointer;
 }
 
-.donate-color-btn.active {
-    border-color: var(--text-primary);
+.donate-color-hex-input {
+    width: 100px;
+    flex: none;
+    background: rgb(45, 45, 45);
+    border: 1px solid var(--pill-border-soft-color);
+    border-radius: 10px;
+    color: white;
+    padding: 8px 10px;
+    font-family: monospace;
+    text-transform: uppercase;
 }
 
-.donate-color-btn:disabled {
+.donate-color-hex-input:focus {
+    outline: none;
+    border-color: rgba(255, 209, 57, 0.5);
+}
+
+.donate-color-hex-input:disabled {
     cursor: not-allowed;
+    opacity: 0.5;
 }
 
 .donate-col-tiers {
@@ -5691,6 +5866,7 @@ header nav .auth-widget {
     font-family: sans-serif;
     font-size: 16px;
     cursor: pointer;
+    outline: none;
     transition: border-color 0.2s ease;
 }
 
@@ -5700,6 +5876,11 @@ header nav .auth-widget {
 
 .admin-symbol-btn.active {
     border-color: var(--color-gold);
+}
+
+.admin-symbol-custom-input {
+    margin-top: 6px;
+    max-width: 400px;
 }
 
 .admin-radio-row label {

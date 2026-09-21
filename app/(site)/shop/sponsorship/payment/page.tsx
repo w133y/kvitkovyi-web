@@ -66,7 +66,9 @@ export default async function DonatePaymentPage({
             {icon}
           </div>
           <h3>{TIER_LABEL[order.tier]}</h3>
-          <div className="donate-tier-price">{order.amountUah} ₴ / міс</div>
+          <div className="donate-tier-price">
+            {order.amountUah} ₴{order.months > 1 ? ` за ${order.months} міс.` : " / міс"}
+          </div>
           {isGift && (
             <p className="donate-payment-recipient">
               Отримувач: <b>{order.nickname}</b>

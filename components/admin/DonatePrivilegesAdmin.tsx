@@ -11,6 +11,9 @@ import {
   MINECRAFT_COLORS,
   FLORIST_SYMBOL,
   FLORIST_COLOR_HEX,
+  HEX_COLOR_RE,
+  hueToHex,
+  hexToHue,
 } from "@/lib/minecraft-symbols";
 
 type Tier = "FLORIST" | "MECENAT";
@@ -56,6 +59,7 @@ export default function DonatePrivilegesAdmin({
   const [tier, setTier] = useState<Tier>("FLORIST");
   const [symbol, setSymbol] = useState(MINECRAFT_SYMBOLS[0].char);
   const [colorHex, setColorHex] = useState(MINECRAFT_COLORS[14].hex);
+  const [hexInput, setHexInput] = useState(MINECRAFT_COLORS[14].hex);
   const [durationDays, setDurationDays] = useState(30);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -87,6 +91,19 @@ export default function DonatePrivilegesAdmin({
         setError(err instanceof Error ? err.message : "Не вдалося видати привілегію");
       }
     });
+  }
+
+  function handleHueChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const hex = hueToHex(Number(e.target.value));
+    setColorHex(hex);
+    setHexInput(hex);
+  }
+
+  function handleHexInputChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const raw = e.target.value;
+    setHexInput(raw);
+    const normalized = raw.startsWith("#") ? raw : `#${raw}`;
+    if (HEX_COLOR_RE.test(normalized)) setColorHex(normalized.toUpperCase());
   }
 
   function remove(p: Privilege) {
@@ -121,7 +138,12 @@ export default function DonatePrivilegesAdmin({
 
         {tier === "MECENAT" && (
           <>
-            <label className="admin-field">
+            {/* A plain div, not <label> — wrapping ~470 buttons in one
+                <label> made clicking any of them also browser-focus the
+                first labelable control inside it (the smiley button),
+                which kept showing it as highlighted alongside the real
+                pick. <label> only makes sense around a single control. */}
+            <div className="admin-field">
               Символ
               <div className="admin-symbol-grid">
                 {MINECRAFT_SYMBOLS.map((s) => (
@@ -136,22 +158,37 @@ export default function DonatePrivilegesAdmin({
                   </button>
                 ))}
               </div>
-            </label>
-            <label className="admin-field">
+              <input
+                type="text"
+                className="admin-symbol-custom-input"
+                placeholder="Або введіть свій символ"
+                value={symbol}
+                maxLength={4}
+                onChange={(e) => setSymbol(e.target.value)}
+              />
+            </div>
+            <div className="admin-field">
               Колір
-              <div className="admin-radio-row">
-                {MINECRAFT_COLORS.map((c) => (
-                  <button
-                    type="button"
-                    key={c.code}
-                    className={"donate-color-btn" + (colorHex === c.hex ? " active" : "")}
-                    style={{ background: c.hex }}
-                    title={c.label}
-                    onClick={() => setColorHex(c.hex)}
+              <div className="donate-color-picker">
+                <div className="donate-color-slider-row">
+                  <input
+                    type="range"
+                    min={0}
+                    max={360}
+                    value={Math.round(hexToHue(colorHex))}
+                    onChange={handleHueChange}
+                    className="donate-color-slider"
                   />
-                ))}
+                  <input
+                    type="text"
+                    className="donate-color-hex-input"
+                    value={hexInput}
+                    maxLength={7}
+                    onChange={handleHexInputChange}
+                  />
+                </div>
               </div>
-            </label>
+            </div>
           </>
         )}
 

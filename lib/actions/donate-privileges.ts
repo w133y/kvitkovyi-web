@@ -7,6 +7,7 @@ import {
   revokeDonatePrivilegeInGame,
   sweepExpiredDonatePrivileges,
 } from "@/lib/donate-privilege-grants";
+import { logDonatePrivilegeGranted } from "@/lib/donate-order-log";
 import { revalidatePath } from "next/cache";
 
 async function requireAdmin() {
@@ -46,7 +47,7 @@ export type GrantPrivilegeInput = {
 // id would make an immediate revokePrivilege() call on that same row fail
 // (no such record) until the page was reloaded and picked up the real one.
 export async function grantPrivilege(input: GrantPrivilegeInput): Promise<{ id: string }> {
-  await requireAdmin();
+  const session = await requireAdmin();
   const nickname = input.nickname.trim();
   if (!nickname) throw new Error("Вкажіть нікнейм гравця");
   if (!Number.isFinite(input.durationDays) || input.durationDays <= 0) {
@@ -65,6 +66,12 @@ export async function grantPrivilege(input: GrantPrivilegeInput): Promise<{ id: 
   // The DB row alone only drives the site's own badge — grant the actual
   // LuckPerms group + suffix too, same as a confirmed Donatello payment does.
   await grantDonatePrivilegeInGame({ nickname, tier: input.tier, iconSymbol, iconColorHex });
+  await logDonatePrivilegeGranted({
+    nickname,
+    tier: input.tier,
+    expiresAt,
+    adminName: session?.user?.name ?? "адмін",
+  });
 
   revalidatePath("/admin");
   revalidatePath(`/profile/${nickname}`);

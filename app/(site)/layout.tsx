@@ -31,7 +31,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         />
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
       </head>
-      <body>
+      {/* suppressHydrationWarning: some browser extensions / the VS Code
+          Simple Browser inject a class (e.g. "vsc-initialized") onto body
+          before React hydrates — harmless, but React would otherwise flag
+          it as a mismatch. See https://react.dev/link/hydration-mismatch */}
+      <body suppressHydrationWarning>
         <CartProvider>
           <SiteHeader
             userMenu={

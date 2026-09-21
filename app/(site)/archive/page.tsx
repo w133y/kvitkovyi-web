@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { getChannelImagePosts, NEWSPAPER_CHANNEL_ID } from "@/lib/discord";
+import { getChannelImagePosts, getChannelPostStats, NEWSPAPER_CHANNEL_ID } from "@/lib/discord";
 import ArchiveGrid from "@/components/archive/ArchiveGrid";
 
 const INITIAL_COUNT = 15;
@@ -9,8 +9,15 @@ export const metadata: Metadata = {
   title: "Архів - Квітковий",
 };
 
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("uk-UA", { day: "numeric", month: "long", year: "numeric" });
+}
+
 export default async function ArchivePage() {
-  const { posts, nextBefore } = await getChannelImagePosts(NEWSPAPER_CHANNEL_ID, INITIAL_COUNT);
+  const [{ posts, nextBefore }, stats] = await Promise.all([
+    getChannelImagePosts(NEWSPAPER_CHANNEL_ID, INITIAL_COUNT),
+    getChannelPostStats(NEWSPAPER_CHANNEL_ID),
+  ]);
 
   return (
     <div className="gallery-page">
@@ -23,7 +30,10 @@ export default async function ArchivePage() {
         <h2>
           <b>Архів</b>
         </h2>
-        <p>Випуски газети з Discord — {posts.length} шт.</p>
+        <p>
+          Випуски газети з Discord — {stats.total} шт.
+          {stats.latestTimestamp && <> · останнє оновлення {formatDate(stats.latestTimestamp)}</>}
+        </p>
       </div>
 
       {posts.length === 0 ? (

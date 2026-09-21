@@ -192,7 +192,9 @@ export default function SiteHeader({
       <li className="nav-more" ref={rootRef}>
         <button type="button" className={active ? "active" : ""} onClick={() => setOpen((o) => !o)}>
           Інше
-          <i className={`fa-solid fa-chevron-down nav-more-arrow${open ? " open" : ""}`} aria-hidden="true"></i>
+          <span className={`nav-more-arrow${open ? " open" : ""}`} aria-hidden="true">
+            <span className="nav-more-arrow-flip">&gt;</span>
+          </span>
         </button>
         <div className={`nav-more-dropdown${open ? " open" : ""}`}>
           {MORE_LINKS.map((link) => (

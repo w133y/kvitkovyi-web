@@ -76,6 +76,32 @@ export async function sendDiscordMessage(
   }
 }
 
+// A DM "channel" has to be opened (or looked up, if one already exists —
+// Discord's API is idempotent here) before a message can be sent to it;
+// there's no such thing as messaging a user id directly. Used by the
+// donate-privilege expiry reminder (lib/donate-privilege-reminders.ts).
+export async function getOrCreateDmChannel(userId: string): Promise<string | null> {
+  try {
+    const res = await fetch(`${DISCORD_API}/users/@me/channels`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bot ${getBotToken()}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ recipient_id: userId }),
+    });
+    if (!res.ok) {
+      await logError("discord: getOrCreateDmChannel failed", res.status, await res.text().catch(() => ""));
+      return null;
+    }
+    const data = (await res.json()) as { id: string };
+    return data.id;
+  } catch (err) {
+    await logError("discord: getOrCreateDmChannel error", err);
+    return null;
+  }
+}
+
 export async function editDiscordMessage(
   channelId: string,
   messageId: string,
@@ -222,6 +248,51 @@ export async function getChannelImagePosts(
   }
 
   return { posts, nextBefore: reachedEnd ? null : cursor };
+}
+
+export type ChannelPostStats = { total: number; latestTimestamp: string | null };
+
+// A lightweight full-history walk for the archive page's header line ("N
+// випусків, останнє оновлення ...") — keeps only a running count + the
+// newest timestamp instead of retaining every post's page/attachment data
+// the way getChannelImagePosts does, since the caller only wants the total
+// here, not the posts themselves (those are fetched separately, N at a
+// time). Same cursor pagination, so the per-page 5-minute cache above still
+// applies.
+export async function getChannelPostStats(channelId: string): Promise<ChannelPostStats> {
+  let total = 0;
+  let latestTimestamp: string | null = null;
+  let cursor: string | null = null;
+
+  try {
+    for (;;) {
+      const params = new URLSearchParams({ limit: "100" });
+      if (cursor) params.set("before", cursor);
+
+      const res = await fetch(`${DISCORD_API}/channels/${channelId}/messages?${params}`, {
+        headers: { Authorization: `Bot ${getBotToken()}` },
+        next: { revalidate: 300 },
+      });
+      if (!res.ok) {
+        await logError("discord: getChannelPostStats failed", res.status, await res.text().catch(() => ""));
+        break;
+      }
+      const messages = (await res.json()) as RawDiscordMessage[];
+      if (messages.length === 0) break;
+
+      for (const msg of messages) {
+        cursor = msg.id;
+        if (toPost(msg)) {
+          total++;
+          if (!latestTimestamp) latestTimestamp = msg.timestamp;
+        }
+      }
+    }
+  } catch (err) {
+    await logError("discord: getChannelPostStats error", err);
+  }
+
+  return { total, latestTimestamp };
 }
 
 function getGuildId(): string {
