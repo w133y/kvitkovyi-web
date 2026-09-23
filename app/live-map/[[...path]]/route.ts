@@ -34,6 +34,8 @@ async function getPlayerMarkerSet() {
       z: true,
       nickname: true,
       expiresAt: true,
+      color: true,
+      icon: true,
     },
   });
   const set = buildPlayerMarkerSet(markers);
@@ -83,7 +85,14 @@ export async function GET(request: Request, { params }: { params: Promise<{ path
 
   const contentType = upstream.headers.get("content-type") ?? "";
   if (contentType.includes("text/html")) {
-    const html = (await upstream.text()).replace("<head>", '<head><base href="/live-map/">');
+    // Plus the site's popup styles for player markers (public/map-popup.css)
+    // and its font, so marker popups match the rest of the site.
+    const html = (await upstream.text()).replace(
+      "<head>",
+      '<head><base href="/live-map/">' +
+        '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Ubuntu+Sans:wght@400..800&display=swap">' +
+        '<link rel="stylesheet" href="/map-popup.css">'
+    );
     return new Response(html, { status: upstream.status, headers });
   }
 

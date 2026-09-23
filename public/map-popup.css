@@ -1,0 +1,124 @@
+/* Loaded into the BlueMap page by the /live-map proxy (app/live-map/[[...path]]/route.ts)
+   to style player-marker popups (lib/map-markers.ts builds the .kv-popup HTML)
+   the same way as the rest of the site: dark panel, thin soft border, gold-ish
+   accent per marker via --kv-accent. */
+
+@font-face {
+    font-family: "Minecraft";
+    src: url("/fonts/Minecraft.ttf") format("truetype");
+}
+
+/* BlueMap's own popup container around our HTML — strip its box so .kv-popup
+   is the whole visual, and let it take clicks (BlueMap leaves the label with
+   pointer-events off, which is why links inside couldn't be opened). */
+.bm-marker-poi-label:has(.kv-popup) {
+    padding: 0 !important;
+    background: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    pointer-events: auto !important;
+}
+
+.bm-marker-poi-label:has(.kv-popup)::after,
+.bm-marker-poi-label:has(.kv-popup)::before {
+    display: none !important;
+}
+
+.kv-popup {
+    --kv-accent: #ffd139;
+    box-sizing: border-box;
+    min-width: 200px;
+    max-width: 270px;
+    padding: 12px 14px;
+    border: 1px solid color-mix(in srgb, var(--kv-accent) 55%, transparent);
+    border-radius: 14px;
+    background: rgba(24, 24, 24, 0.96);
+    box-shadow: 0 8px 26px rgba(0, 0, 0, 0.5);
+    color: #fff;
+    font-family: "Ubuntu Sans", system-ui, sans-serif;
+    font-size: 13px;
+    line-height: 1.45;
+    text-align: left;
+    white-space: normal;
+    cursor: default;
+}
+
+.kv-popup-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.kv-popup-icon {
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border: 2px solid var(--kv-accent);
+    border-radius: 50%;
+    background: color-mix(in srgb, var(--kv-accent) 15%, #161616);
+    font-size: 18px;
+}
+
+.kv-popup-title {
+    font-family: "Minecraft", "Ubuntu Sans", sans-serif;
+    font-size: 15px;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+}
+
+.kv-popup-type {
+    margin-top: 2px;
+    color: var(--kv-accent);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.kv-popup-desc {
+    margin-top: 10px;
+    color: #d6d6d6;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.kv-popup-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    margin-top: 10px;
+    padding: 7px 10px;
+    border: 1px solid #5865f2;
+    border-radius: 10px;
+    color: #aab2ff;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.kv-popup-link::before {
+    content: "";
+    width: 16px;
+    height: 12px;
+    background: currentColor;
+    /* Discord glyph */
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 127 96'%3E%3Cpath d='M107.7 8.07A105 105 0 0 0 81.47 0a72 72 0 0 0-3.36 6.83 97.7 97.7 0 0 0-29.11 0A72 72 0 0 0 45.64 0a105.9 105.9 0 0 0-26.25 8.09C2.79 32.65-1.71 56.6.54 80.21a105.7 105.7 0 0 0 32.17 16.15 77.7 77.7 0 0 0 6.89-11.11 68.4 68.4 0 0 1-10.85-5.18c.91-.66 1.8-1.34 2.66-2a75.6 75.6 0 0 0 64.32 0c.87.71 1.76 1.39 2.66 2a68.7 68.7 0 0 1-10.87 5.19 77 77 0 0 0 6.89 11.1 105.3 105.3 0 0 0 32.19-16.14c2.64-27.38-4.51-51.11-18.9-72.15ZM42.45 65.69C36.18 65.69 31 60 31 53s5-12.74 11.43-12.74S54 46 53.89 53s-5.05 12.69-11.44 12.69Zm42.24 0C78.41 65.69 73.25 60 73.25 53s5-12.74 11.44-12.74S96.23 46 96.12 53s-5.04 12.69-11.43 12.69Z'/%3E%3C/svg%3E") center / contain no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 127 96'%3E%3Cpath d='M107.7 8.07A105 105 0 0 0 81.47 0a72 72 0 0 0-3.36 6.83 97.7 97.7 0 0 0-29.11 0A72 72 0 0 0 45.64 0a105.9 105.9 0 0 0-26.25 8.09C2.79 32.65-1.71 56.6.54 80.21a105.7 105.7 0 0 0 32.17 16.15 77.7 77.7 0 0 0 6.89-11.11 68.4 68.4 0 0 1-10.85-5.18c.91-.66 1.8-1.34 2.66-2a75.6 75.6 0 0 0 64.32 0c.87.71 1.76 1.39 2.66 2a68.7 68.7 0 0 1-10.87 5.19 77 77 0 0 0 6.89 11.1 105.3 105.3 0 0 0 32.19-16.14c2.64-27.38-4.51-51.11-18.9-72.15ZM42.45 65.69C36.18 65.69 31 60 31 53s5-12.74 11.43-12.74S54 46 53.89 53s-5.05 12.69-11.44 12.69Zm42.24 0C78.41 65.69 73.25 60 73.25 53s5-12.74 11.44-12.74S96.23 46 96.12 53s-5.04 12.69-11.43 12.69Z'/%3E%3C/svg%3E") center / contain no-repeat;
+}
+
+.kv-popup-link:hover {
+    background: rgba(88, 101, 242, 0.15);
+}
+
+.kv-popup-foot {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    color: #8c8c8c;
+    font-size: 11px;
+}

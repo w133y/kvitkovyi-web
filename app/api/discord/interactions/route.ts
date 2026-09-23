@@ -405,6 +405,7 @@ async function handleMarkerComponent(interaction: any, customId: string) {
           field("description", "Опис", 2, marker.description ?? "", 300, false),
           field("discordInvite", "Discord міста (лише для міст)", 1, marker.discordInvite ?? "", 60, false),
           field("durationDays", "Термін у днях (порожньо — назавжди)", 1, marker.durationDays?.toString() ?? "", 3, false),
+          field("color", "Колір обводки #RRGGBB (порожньо — як у типу)", 1, marker.color ?? "", 7, false),
         ],
       },
     });
@@ -457,6 +458,8 @@ async function handleMarkerEditModal(interaction: any, customId: string) {
     y: marker.y,
     z: marker.z,
     durationDays: values.durationDays?.trim() ? Number(values.durationDays) : null,
+    color: values.color ?? null,
+    icon: marker.icon,
   });
   if ("error" in clean) return ephemeral(`⚠️ ${clean.error}`);
 
@@ -474,6 +477,7 @@ async function handleMarkerEditModal(interaction: any, customId: string) {
       description: clean.description,
       discordInvite: clean.discordInvite,
       durationDays: clean.durationDays,
+      color: clean.color,
       expiresAt,
     },
   });

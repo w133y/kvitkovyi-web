@@ -597,6 +597,11 @@ model MapMarker {
   // Only meaningful for CITY — a validated discord.gg / discord.com/invite link.
   discordInvite String?
 
+  // Optional look overrides (null = the type's default): a #rrggbb pin/
+  // accent color, and an emoji from MARKER_ICONS in lib/map-markers.ts.
+  color String?
+  icon  String?
+
   x Int
   y Int
   z Int

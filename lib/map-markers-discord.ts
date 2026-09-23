@@ -3,7 +3,7 @@
 // scheme "marker:<action>:<markerId>"), mirroring lib/gallery-discord.ts.
 
 import { sendDiscordMessage, editDiscordMessage, type DiscordEmbed, type DiscordActionRow } from "@/lib/discord";
-import { MARKER_TYPES, MARKER_TYPE_EMOJI, MARKER_TYPE_LABEL, durationLabel } from "@/lib/map-markers";
+import { MARKER_TYPES, MARKER_TYPE_COLOR, MARKER_TYPE_EMOJI, MARKER_TYPE_LABEL, durationLabel } from "@/lib/map-markers";
 import type { MapMarker, MapMarkerStatus } from "@prisma/client";
 
 export const MAP_MARKERS_CHANNEL_ID = "1552440120223867010";
@@ -34,7 +34,7 @@ function termText(m: MapMarker): string {
 
 function buildEmbed(m: MapMarker): DiscordEmbed {
   return {
-    title: `${MARKER_TYPE_EMOJI[m.type]} ${m.label}`,
+    title: `${m.icon ?? MARKER_TYPE_EMOJI[m.type]} ${m.label}`,
     color: STATUS_COLOR[m.status],
     fields: [
       { name: "Тип", value: MARKER_TYPE_LABEL[m.type], inline: true },
@@ -43,6 +43,11 @@ function buildEmbed(m: MapMarker): DiscordEmbed {
       { name: "Опис", value: m.description?.trim() || "—", inline: false },
       ...(m.type === "CITY" ? [{ name: "Discord міста", value: m.discordInvite || "—", inline: false }] : []),
       { name: "Термін", value: termText(m), inline: true },
+      {
+        name: "Вигляд",
+        value: `${m.icon ?? MARKER_TYPE_EMOJI[m.type]} · ${m.color ?? `${MARKER_TYPE_COLOR[m.type]} (як у типу)`}`,
+        inline: true,
+      },
       { name: "Статус", value: STATUS_LABEL[m.status], inline: false },
     ],
     timestamp: m.createdAt.toISOString(),

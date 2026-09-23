@@ -1,0 +1,2 @@
+ALTER TABLE "MapMarker" ADD COLUMN "color" TEXT;
+ALTER TABLE "MapMarker" ADD COLUMN "icon" TEXT;

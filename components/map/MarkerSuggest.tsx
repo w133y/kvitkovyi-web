@@ -9,8 +9,10 @@ import type { MapMarkerType } from "@prisma/client";
 import { suggestMapMarker } from "@/lib/actions/map-markers";
 import {
   MARKER_DURATIONS,
+  MARKER_ICONS,
   MARKER_LIMITS,
   MARKER_TYPES,
+  MARKER_TYPE_COLOR,
   MARKER_TYPE_EMOJI,
   MARKER_TYPE_LABEL,
   durationLabel,
@@ -25,6 +27,9 @@ const EMPTY = {
   y: "",
   z: "",
   durationDays: null as number | null,
+  // null = follow the selected type's default look.
+  color: null as string | null,
+  icon: null as string | null,
 };
 
 type Vec3 = { x: number; y: number; z: number };
@@ -74,6 +79,9 @@ export default function MarkerSuggest({ signedIn, hasLink }: { signedIn: boolean
     events.addEventListener("bluemapMapInteraction", onClick);
     return () => events.removeEventListener("bluemapMapInteraction", onClick);
   }, [picking]);
+
+  const color = form.color ?? MARKER_TYPE_COLOR[form.type];
+  const icon = form.icon ?? MARKER_TYPE_EMOJI[form.type];
 
   const set = (field: "label" | "description" | "discordInvite" | "x" | "y" | "z") => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm((f) => ({ ...f, [field]: e.target.value }));
@@ -218,6 +226,43 @@ export default function MarkerSuggest({ signedIn, hasLink }: { signedIn: boolean
                   placeholder="Що тут знаходиться?"
                 />
               </label>
+
+              <div className="map-suggest-field">
+                <span className="map-suggest-coords-head">
+                  Вигляд
+                  <span className="map-suggest-pin" style={{ borderColor: color }} aria-hidden="true">
+                    {icon}
+                  </span>
+                </span>
+                <div className="map-suggest-icons">
+                  {MARKER_ICONS.map((i) => (
+                    <button
+                      type="button"
+                      key={i}
+                      className={icon === i ? "active" : ""}
+                      onClick={() => setForm((f) => ({ ...f, icon: i }))}
+                      aria-label={`Логотип ${i}`}
+                    >
+                      {i}
+                    </button>
+                  ))}
+                </div>
+                <div className="map-suggest-color">
+                  <label>
+                    <input
+                      type="color"
+                      value={color}
+                      onChange={(e) => setForm((f) => ({ ...f, color: e.target.value }))}
+                    />
+                    Колір обводки
+                  </label>
+                  {(form.color || form.icon) && (
+                    <button type="button" onClick={() => setForm((f) => ({ ...f, color: null, icon: null }))}>
+                      Як у типу
+                    </button>
+                  )}
+                </div>
+              </div>
 
               <div className="map-suggest-field">
                 Термін
