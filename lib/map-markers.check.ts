@@ -3,7 +3,7 @@
 import assert from "node:assert/strict";
 import { buildPlayerMarkerSet, validateMarker, type MarkerInput } from "./map-markers";
 
-const base: MarkerInput = { label: "Ню-Ріно", type: "CITY", description: "", discordInvite: "", x: 10, y: 64, z: -20, durationDays: null, color: null, icon: null };
+const base: MarkerInput = { label: "Ню-Ріно", type: "CITY", description: "", discordInvite: "", x: 10, y: 64, z: -20, durationDays: null, color: null, icon: null, iconImage: null };
 const ok = (i: Partial<MarkerInput>) => !("error" in validateMarker({ ...base, ...i }));
 
 assert.ok(ok({}));
@@ -15,6 +15,9 @@ assert.ok(ok({ durationDays: 30 }));
 assert.ok(ok({ color: "#FF00aa", icon: "🏯" }));
 assert.ok(!ok({ color: "red" }) && !ok({ color: '#fff" onload="x' }), "bad color");
 assert.ok(!ok({ icon: "<svg>" }), "icon not from the list");
+assert.ok(ok({ iconImage: "data:image/png;base64,iVBORw0KGgo=" }));
+assert.ok(!ok({ iconImage: 'data:image/png;base64,x"/><script>' }), "image data uri injection");
+assert.ok(!ok({ iconImage: "https://example.com/a.png" }), "raw url not accepted as image");
 assert.ok(!ok({ durationDays: 0 }) && !ok({ durationDays: 1000 }) && !ok({ durationDays: 2.5 }), "bad duration");
 assert.ok(ok({ discordInvite: "https://discord.gg/abc123" }));
 assert.ok(ok({ discordInvite: "https://discord.com/invite/abc-123" }));
@@ -25,7 +28,7 @@ const farm = validateMarker({ ...base, type: "FARM", discordInvite: "https://dis
 assert.ok(!("error" in farm) && farm.discordInvite === null);
 
 const set = buildPlayerMarkerSet([
-  { id: "m1", label: "Test", type: "CITY", description: "<script>alert(1)</script>", discordInvite: null, x: 1, y: 2, z: 3, nickname: "a&b", expiresAt: null, color: null, icon: null },
+  { id: "m1", label: "Test", type: "CITY", description: "<script>alert(1)</script>", discordInvite: null, x: 1, y: 2, z: 3, nickname: "a&b", expiresAt: null, color: null, icon: null, iconImage: null },
 ]);
 const detail = set.markers["player-m1"].detail;
 assert.ok(!detail.includes("<script>") && detail.includes("&lt;script&gt;"), "description escaped");

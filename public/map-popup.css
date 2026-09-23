@@ -60,6 +60,13 @@
     border-radius: 50%;
     background: color-mix(in srgb, var(--kv-accent) 15%, #161616);
     font-size: 18px;
+    overflow: hidden;
+}
+
+.kv-popup-icon img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
 }
 
 .kv-popup-title {

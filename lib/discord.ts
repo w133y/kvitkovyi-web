@@ -21,6 +21,7 @@ export type DiscordEmbed = {
   color?: number;
   fields?: { name: string; value: string; inline?: boolean }[];
   image?: { url: string };
+  thumbnail?: { url: string };
   footer?: { text: string };
   timestamp?: string;
 };

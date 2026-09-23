@@ -7530,17 +7530,18 @@ body {
     z-index: 900;
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 12px 18px;
+    justify-content: center;
+    width: 50px;
+    height: 50px;
+    padding: 0;
     border: 2px solid var(--color-gold);
-    border-radius: 14px;
+    border-radius: 50%;
     background: rgba(20, 20, 20, 0.85);
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     color: var(--color-gold);
     font-family: inherit;
-    font-size: 15px;
-    font-weight: 700;
+    font-size: 20px;
     cursor: pointer;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
 }
@@ -7833,4 +7834,86 @@ body {
     font-family: inherit;
     font-size: 12px;
     cursor: pointer;
+}
+
+.map-suggest-pin img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.map-suggest-pin {
+    overflow: hidden;
+}
+
+.map-suggest-tabs {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+    padding: 3px;
+    border-radius: 10px;
+    background: rgb(30, 30, 30);
+}
+
+.map-suggest-tabs button {
+    padding: 6px 4px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: none;
+    color: var(--text-secondary);
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.map-suggest-tabs button.active {
+    border-color: var(--color-gold);
+    color: var(--color-gold);
+}
+
+.map-suggest-file {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    padding: 14px;
+    border: 1px dashed var(--pill-border-soft-color);
+    border-radius: 10px;
+    cursor: pointer;
+    text-align: center;
+}
+
+.map-suggest-file input {
+    display: none;
+}
+
+.map-suggest-file span {
+    color: var(--text-primary);
+    font-size: 13px;
+}
+
+.map-suggest-file small {
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 400;
+}
+
+.map-suggest-panel .map-suggest-url {
+    width: 100%;
+    box-sizing: border-box;
+    padding: 9px 12px;
+    border: 1px solid var(--pill-border-soft-color);
+    border-radius: 10px;
+    background: rgb(35, 35, 35);
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 14px;
+}
+
+@media (max-width: 640px) {
+    .map-suggest-panel {
+        bottom: calc(74px + env(safe-area-inset-bottom));
+    }
 }

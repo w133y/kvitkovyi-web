@@ -26,7 +26,9 @@ export default async function MapPage({
   return (
     <>
       <iframe
-        src={`/live-map/${mapHash(params)}`}
+        // ?v= busts browsers' cached copy of the BlueMap page from before the
+        // proxy started injecting popup styles (see app/live-map route).
+        src={`/live-map?v=2${mapHash(params)}`}
         title="Мапа серверу"
         className="map-frame"
         // dvh, not vh: on iOS 100vh runs under Safari's toolbar, hiding the

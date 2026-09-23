@@ -601,6 +601,11 @@ model MapMarker {
   // accent color, and an emoji from MARKER_ICONS in lib/map-markers.ts.
   color String?
   icon  String?
+  // A player's own logo instead of an emoji: an uploaded or linked image,
+  // validated (real PNG/JPEG/GIF/WebP bytes, size-capped) and stored as a
+  // data: URI so it can be embedded inside the map pin's SVG. Served to
+  // Discord via /api/map-marker-icon/<id>.
+  iconImage String?
 
   x Int
   y Int

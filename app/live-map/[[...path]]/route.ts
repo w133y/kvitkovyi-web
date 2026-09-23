@@ -36,6 +36,7 @@ async function getPlayerMarkerSet() {
       expiresAt: true,
       color: true,
       icon: true,
+      iconImage: true,
     },
   });
   const set = buildPlayerMarkerSet(markers);
@@ -85,6 +86,12 @@ export async function GET(request: Request, { params }: { params: Promise<{ path
 
   const contentType = upstream.headers.get("content-type") ?? "";
   if (contentType.includes("text/html")) {
+    // BlueMap sends its page with max-age=86400 + ETag, so browsers kept
+    // serving the pre-injection copy (no popup styles, no clickable links)
+    // for a day. The patched HTML must always be revalidated.
+    headers.set("cache-control", "no-cache");
+    headers.delete("etag");
+    headers.delete("last-modified");
     // Plus the site's popup styles for player markers (public/map-popup.css)
     // and its font, so marker popups match the rest of the site.
     const html = (await upstream.text()).replace(

@@ -10,6 +10,7 @@ import { suggestMapMarker } from "@/lib/actions/map-markers";
 import {
   MARKER_DURATIONS,
   MARKER_ICONS,
+  MARKER_IMAGE_MAX_BYTES,
   MARKER_LIMITS,
   MARKER_TYPES,
   MARKER_TYPE_COLOR,
@@ -30,6 +31,11 @@ const EMPTY = {
   // null = follow the selected type's default look.
   color: null as string | null,
   icon: null as string | null,
+  // Logo source: an emoji from the grid, an uploaded file (read into a data:
+  // URI here, re-validated on the server) or an image link.
+  logoMode: "emoji" as "emoji" | "upload" | "url",
+  iconUpload: null as string | null,
+  iconUrl: "",
 };
 
 type Vec3 = { x: number; y: number; z: number };
@@ -82,6 +88,22 @@ export default function MarkerSuggest({ signedIn, hasLink }: { signedIn: boolean
 
   const color = form.color ?? MARKER_TYPE_COLOR[form.type];
   const icon = form.icon ?? MARKER_TYPE_EMOJI[form.type];
+  // What the pin preview shows for the current logo choice.
+  const previewImage =
+    form.logoMode === "upload" ? form.iconUpload : form.logoMode === "url" && form.iconUrl.startsWith("https://") ? form.iconUrl : null;
+
+  function onLogoFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (file.size > MARKER_IMAGE_MAX_BYTES) {
+      e.target.value = "";
+      return setError(`Картинка завелика — максимум ${Math.round(MARKER_IMAGE_MAX_BYTES / 1024)} КБ`);
+    }
+    setError(null);
+    const reader = new FileReader();
+    reader.onload = () => setForm((f) => ({ ...f, iconUpload: String(reader.result) }));
+    reader.readAsDataURL(file);
+  }
 
   const set = (field: "label" | "description" | "discordInvite" | "x" | "y" | "z") => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm((f) => ({ ...f, [field]: e.target.value }));
@@ -102,6 +124,10 @@ export default function MarkerSuggest({ signedIn, hasLink }: { signedIn: boolean
         x: Number(form.x),
         y: Number(form.y),
         z: Number(form.z),
+        icon: form.logoMode === "emoji" ? form.icon : null,
+        iconImage: null,
+        iconUpload: form.logoMode === "upload" ? form.iconUpload : null,
+        iconUrl: form.logoMode === "url" ? form.iconUrl : null,
       });
       if ("error" in result) return setError(result.error);
       setDone(true);
@@ -124,9 +150,15 @@ export default function MarkerSuggest({ signedIn, hasLink }: { signedIn: boolean
 
   return (
     <>
-      <button type="button" className="map-suggest-btn" onClick={toggle} aria-expanded={open}>
+      <button
+        type="button"
+        className="map-suggest-btn"
+        onClick={toggle}
+        aria-expanded={open}
+        aria-label={open ? "Закрити" : "Запропонувати мітку"}
+        title={open ? "Закрити" : "Запропонувати мітку"}
+      >
         <i className={open ? "fa-solid fa-xmark" : "fa-solid fa-location-dot"} aria-hidden="true"></i>
-        {open ? "Закрити" : "Запропонувати мітку"}
       </button>
 
       {open && picking && (
@@ -231,22 +263,66 @@ export default function MarkerSuggest({ signedIn, hasLink }: { signedIn: boolean
                 <span className="map-suggest-coords-head">
                   Вигляд
                   <span className="map-suggest-pin" style={{ borderColor: color }} aria-hidden="true">
-                    {icon}
+                    {previewImage ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={previewImage} alt="" />
+                    ) : (
+                      icon
+                    )}
                   </span>
                 </span>
-                <div className="map-suggest-icons">
-                  {MARKER_ICONS.map((i) => (
+                <div className="map-suggest-tabs">
+                  {(
+                    [
+                      ["emoji", "Смайлик"],
+                      ["upload", "Картинка"],
+                      ["url", "Посилання"],
+                    ] as const
+                  ).map(([mode, label]) => (
                     <button
                       type="button"
-                      key={i}
-                      className={icon === i ? "active" : ""}
-                      onClick={() => setForm((f) => ({ ...f, icon: i }))}
-                      aria-label={`Логотип ${i}`}
+                      key={mode}
+                      className={form.logoMode === mode ? "active" : ""}
+                      onClick={() => setForm((f) => ({ ...f, logoMode: mode }))}
                     >
-                      {i}
+                      {label}
                     </button>
                   ))}
                 </div>
+                {form.logoMode === "emoji" && (
+                  <div className="map-suggest-icons">
+                    {MARKER_ICONS.map((i) => (
+                      <button
+                        type="button"
+                        key={i}
+                        className={icon === i ? "active" : ""}
+                        onClick={() => setForm((f) => ({ ...f, icon: i }))}
+                        aria-label={`Логотип ${i}`}
+                      >
+                        {i}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {form.logoMode === "upload" && (
+                  <label className="map-suggest-file">
+                    <input type="file" accept="image/png,image/jpeg,image/gif,image/webp" onChange={onLogoFile} />
+                    <span>
+                      <i className="fa-solid fa-upload" aria-hidden="true"></i>{" "}
+                      {form.iconUpload ? "Замінити картинку" : "Вибрати PNG / JPG / GIF / WebP"}
+                    </span>
+                    <small>до {Math.round(MARKER_IMAGE_MAX_BYTES / 1024)} КБ, краще квадратна</small>
+                  </label>
+                )}
+                {form.logoMode === "url" && (
+                  <input
+                    className="map-suggest-url"
+                    value={form.iconUrl}
+                    onChange={(e) => setForm((f) => ({ ...f, iconUrl: e.target.value }))}
+                    placeholder="https://…/logo.png"
+                    inputMode="url"
+                  />
+                )}
                 <div className="map-suggest-color">
                   <label>
                     <input
@@ -256,8 +332,13 @@ export default function MarkerSuggest({ signedIn, hasLink }: { signedIn: boolean
                     />
                     Колір обводки
                   </label>
-                  {(form.color || form.icon) && (
-                    <button type="button" onClick={() => setForm((f) => ({ ...f, color: null, icon: null }))}>
+                  {(form.color || form.icon || form.logoMode !== "emoji") && (
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setForm((f) => ({ ...f, color: null, icon: null, logoMode: "emoji", iconUpload: null, iconUrl: "" }))
+                      }
+                    >
                       Як у типу
                     </button>
                   )}

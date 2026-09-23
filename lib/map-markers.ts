@@ -64,6 +64,11 @@ export const MARKER_ICONS = [
 
 export const HEX_COLOR_RE = /^#[0-9a-fA-F]{6}$/;
 
+// Custom logo image (lib/map-marker-image.ts produces these server-side).
+export const MARKER_IMAGE_MAX_BYTES = 100 * 1024;
+// Only this exact shape may reach the pin SVG — base64 has no quotes/brackets.
+export const MARKER_IMAGE_RE = /^data:image\/(?:png|jpeg|gif|webp);base64,[A-Za-z0-9+/=]+$/;
+
 // Only real invite links — this ends up inside an href in HTML the map
 // renders, so the pattern is deliberately strict (no quotes/spaces possible).
 export const DISCORD_INVITE_RE = /^https:\/\/(?:discord\.gg|discord\.com\/invite)\/[A-Za-z0-9-]{2,32}$/;
@@ -80,6 +85,7 @@ export type MarkerInput = {
   // null/"" = the type's default look.
   color: string | null;
   icon: string | null;
+  iconImage: string | null;
 };
 
 export type CleanMarker = Omit<MarkerInput, "description" | "discordInvite"> & {
@@ -129,6 +135,10 @@ export function validateMarker(input: MarkerInput): CleanMarker | { error: strin
   if (color && !HEX_COLOR_RE.test(color)) return { error: "Колір має бути у форматі #RRGGBB" };
   const icon = String(input.icon ?? "").trim() || null;
   if (icon && !MARKER_ICONS.includes(icon)) return { error: "Невідомий логотип" };
+  const iconImage = input.iconImage || null;
+  if (iconImage && (!MARKER_IMAGE_RE.test(iconImage) || iconImage.length > MARKER_IMAGE_MAX_BYTES * 1.4)) {
+    return { error: "Некоректна картинка логотипа" };
+  }
 
   return {
     label,
@@ -140,7 +150,9 @@ export function validateMarker(input: MarkerInput): CleanMarker | { error: strin
     z,
     durationDays,
     color: color?.toLowerCase() ?? null,
-    icon,
+    // An image logo replaces the emoji one.
+    icon: iconImage ? null : icon,
+    iconImage,
   };
 }
 
@@ -148,13 +160,17 @@ function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 }
 
-// A round pin in the marker's color with its emoji, as an inline SVG data
-// URI — no icon files to host. Both inputs are validated (hex / fixed list).
-function markerIcon(color: string, emoji: string): string {
+// A round pin in the marker's color with its emoji or image logo, as an
+// inline SVG data URI — no icon files to host. All inputs are validated
+// (hex / fixed emoji list / MARKER_IMAGE_RE).
+function markerIcon(color: string, emoji: string, image: string | null): string {
+  const logo = image
+    ? `<defs><clipPath id="c"><circle cx="17" cy="17" r="13.5"/></clipPath></defs>` +
+      `<image href="${image}" x="3.5" y="3.5" width="27" height="27" clip-path="url(#c)" preserveAspectRatio="xMidYMid slice"/>`
+    : `<text x="17" y="23" font-size="16" text-anchor="middle">${emoji}</text>`;
   const svg =
-    `<svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 34 34">` +
-    `<circle cx="17" cy="17" r="15" fill="#161616" stroke="${color}" stroke-width="3"/>` +
-    `<text x="17" y="23" font-size="16" text-anchor="middle">${emoji}</text></svg>`;
+    `<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="34" height="34" viewBox="0 0 34 34">` +
+    `<circle cx="17" cy="17" r="15" fill="#161616" stroke="${color}" stroke-width="3"/>${logo}</svg>`;
   return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
 }
 
@@ -171,6 +187,7 @@ type ApprovedMarker = {
   expiresAt: Date | null;
   color: string | null;
   icon: string | null;
+  iconImage: string | null;
 };
 
 // BlueMap's live markers.json "marker set" shape (as served by BlueMap 5.22
@@ -188,9 +205,14 @@ export function buildPlayerMarkerSet(markers: ApprovedMarker[]) {
       markers.map((m) => {
         const color = m.color && HEX_COLOR_RE.test(m.color) ? m.color : MARKER_TYPE_COLOR[m.type];
         const emoji = m.icon && MARKER_ICONS.includes(m.icon) ? m.icon : MARKER_TYPE_EMOJI[m.type];
+        const image = m.iconImage && MARKER_IMAGE_RE.test(m.iconImage) ? m.iconImage : null;
         const detail =
           `<div class="kv-popup" style="--kv-accent:${color}">` +
-          `<div class="kv-popup-head"><span class="kv-popup-icon">${emoji}</span>` +
+          `<div class="kv-popup-head"><span class="kv-popup-icon">` +
+          // The popup references the image by URL (one copy per marker in
+          // markers.json is enough — the pin already embeds it).
+          (image ? `<img src="/api/map-marker-icon/${m.id}" alt="">` : emoji) +
+          `</span>` +
           `<div><div class="kv-popup-title">${escapeHtml(m.label)}</div>` +
           `<div class="kv-popup-type">${MARKER_TYPE_LABEL[m.type]} · ${m.x} ${m.y} ${m.z}</div></div></div>` +
           (m.description ? `<div class="kv-popup-desc">${escapeHtml(m.description)}</div>` : "") +
@@ -210,7 +232,7 @@ export function buildPlayerMarkerSet(markers: ApprovedMarker[]) {
             type: "poi",
             label: m.label,
             detail,
-            icon: markerIcon(color, emoji),
+            icon: markerIcon(color, emoji, image),
             anchor: { x: 17, y: 17 },
             classes: [],
             position: { x: m.x + 0.5, y: m.y, z: m.z + 0.5 },

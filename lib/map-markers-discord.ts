@@ -20,9 +20,12 @@ const STATUS_COLOR: Record<MapMarkerStatus, number> = {
   REJECTED: 0xff5555,
 };
 
+function siteUrl(): string {
+  return process.env.SITE_URL?.replace(/\/$/, "") ?? "";
+}
+
 function mapLink(m: MapMarker): string {
-  const site = process.env.SITE_URL?.replace(/\/$/, "") ?? "";
-  return `${site}/map?x=${m.x}&y=${m.y}&z=${m.z}`;
+  return `${siteUrl()}/map?x=${m.x}&y=${m.y}&z=${m.z}`;
 }
 
 function termText(m: MapMarker): string {
@@ -34,8 +37,10 @@ function termText(m: MapMarker): string {
 
 function buildEmbed(m: MapMarker): DiscordEmbed {
   return {
-    title: `${m.icon ?? MARKER_TYPE_EMOJI[m.type]} ${m.label}`,
+    title: `${m.iconImage ? "" : `${m.icon ?? MARKER_TYPE_EMOJI[m.type]} `}${m.label}`,
     color: STATUS_COLOR[m.status],
+    // Custom logo — shown so moderators see the actual image they approve.
+    ...(m.iconImage ? { thumbnail: { url: `${siteUrl()}/api/map-marker-icon/${m.id}` } } : {}),
     fields: [
       { name: "Тип", value: MARKER_TYPE_LABEL[m.type], inline: true },
       { name: "Координати", value: `[${m.x} ${m.y} ${m.z}](${mapLink(m)})`, inline: true },
@@ -45,7 +50,7 @@ function buildEmbed(m: MapMarker): DiscordEmbed {
       { name: "Термін", value: termText(m), inline: true },
       {
         name: "Вигляд",
-        value: `${m.icon ?? MARKER_TYPE_EMOJI[m.type]} · ${m.color ?? `${MARKER_TYPE_COLOR[m.type]} (як у типу)`}`,
+        value: `${m.iconImage ? "картинка (праворуч)" : (m.icon ?? MARKER_TYPE_EMOJI[m.type])} · ${m.color ?? `${MARKER_TYPE_COLOR[m.type]} (як у типу)`}`,
         inline: true,
       },
       { name: "Статус", value: STATUS_LABEL[m.status], inline: false },

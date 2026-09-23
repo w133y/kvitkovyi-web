@@ -460,6 +460,7 @@ async function handleMarkerEditModal(interaction: any, customId: string) {
     durationDays: values.durationDays?.trim() ? Number(values.durationDays) : null,
     color: values.color ?? null,
     icon: marker.icon,
+    iconImage: marker.iconImage,
   });
   if ("error" in clean) return ephemeral(`⚠️ ${clean.error}`);
 
