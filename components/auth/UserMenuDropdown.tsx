@@ -44,6 +44,10 @@ export default function UserMenuDropdown({
         </span>
       </button>
 
+      {/* Filled via portal by pages that want something under the pill —
+          currently only /shop/cosmetics' flower balance. */}
+      <div id="user-menu-extra" className="user-menu-extra"></div>
+
       <div className={`user-dropdown ${open ? "open" : ""}`}>
         <Link href={profileHref} onClick={() => setOpen(false)}>
           <i className="fas fa-user"></i>Профіль

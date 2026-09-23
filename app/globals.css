@@ -3420,13 +3420,40 @@ header nav .auth-widget {
     height: 100%;
 }
 
+/* Flower balance, portaled under the header's profile pill
+   (#user-menu-extra) — only /shop/cosmetics renders into it. */
+.user-menu-extra {
+    position: absolute;
+    top: calc(100% + 10px);
+    right: 0;
+}
+
+.user-menu-extra:empty {
+    display: none;
+}
+
 .cosmetics-balance {
     display: flex;
     align-items: center;
     gap: 8px;
-    min-height: 28px;
+    padding: 8px 16px;
+    border: 2px solid var(--pill-border-soft-color);
+    border-radius: 16px;
+    background: var(--pill-bg);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    white-space: nowrap;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--color-gold);
+}
+
+.cosmetics-balance img {
+    image-rendering: pixelated;
+}
+
+.cosmetics-notice {
     margin-bottom: 16px;
-    font-size: 18px;
     font-weight: 700;
     color: var(--color-gold);
 }

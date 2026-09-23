@@ -7,6 +7,7 @@
 // generic /shop/cart or /shop/checkout routes.
 
 import { useEffect, useMemo, useState, useTransition } from "react";
+import { createPortal } from "react-dom";
 import ModelViewer3D from "@/components/cosmetics/ModelViewer3D";
 import { checkoutCosmetics } from "@/lib/actions/cosmetics-checkout";
 import type { CatalogCosmetic } from "@/lib/actions/cosmetics-shop";
@@ -76,6 +77,20 @@ export default function CosmeticsCatalog({
   // preview before a card is clicked anyway) sidesteps it entirely instead
   // of chasing the exact mechanism further.
   const [mounted, setMounted] = useState(false);
+  // The header's user menu (components/auth/UserMenuDropdown.tsx) streams in
+  // under its own Suspense boundary, so its slot may not exist yet on mount.
+  const [balanceSlot, setBalanceSlot] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    const find = () => document.getElementById("user-menu-extra");
+    const found = find();
+    if (found) return setBalanceSlot(found);
+    const observer = new MutationObserver(() => {
+      const el = find();
+      if (el) { setBalanceSlot(el); observer.disconnect(); }
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     setMounted(true);
@@ -157,15 +172,20 @@ export default function CosmeticsCatalog({
 
   return (
     <div className="cosmetics-shop">
-      <div className="cosmetics-balance">
-        {signedIn && initialBalance !== null && (
-          <>
-            <i className="fa-solid fa-seedling" aria-hidden="true"></i> {initialBalance} квіток
-          </>
+      {balanceSlot &&
+        signedIn &&
+        initialBalance !== null &&
+        createPortal(
+          <div className="cosmetics-balance">
+            <img src="/icon.ico" alt="" width={20} height={20} /> {initialBalance} квіток
+          </div>,
+          balanceSlot
         )}
-        {signedIn && initialBalance === null && "Прив'яжіть нікнейм, щоб бачити баланс квіток"}
-        {!signedIn && "Увійдіть через Discord, щоб купувати косметику"}
-      </div>
+      {(!signedIn || initialBalance === null) && (
+        <div className="cosmetics-notice">
+          {signedIn ? "Прив'яжіть нікнейм, щоб бачити баланс квіток" : "Увійдіть через Discord, щоб купувати косметику"}
+        </div>
+      )}
 
       <div className="cosmetics-layout">
         <div className="cosmetics-catalog-panel">
