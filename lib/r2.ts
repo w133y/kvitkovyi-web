@@ -33,6 +33,15 @@ function getClient(): S3Client {
   });
 }
 
+// Reconstructs a fetchable URL from a stored R2 object key — cosmetics
+// (unlike GalleryPhoto) only stores the key, not a pre-built url, since
+// every consumer already needs the key anyway (for cache-busting on
+// re-publish and eventual deletion on edit), and the public base never
+// changes per-object.
+export function getPublicUrl(key: string): string {
+  return `${getConfig().publicUrl}/${key}`;
+}
+
 export type UploadTarget = {
   uploadUrl: string; // presigned PUT URL — the browser uploads straight here
   publicUrl: string; // final URL to store/display once the upload succeeds
@@ -62,6 +71,31 @@ export async function createGalleryUploadTarget(contentType: string): Promise<Ga
 
 export async function createWikiUploadTarget(contentType: string): Promise<UploadTarget> {
   return createUploadTarget("wiki", contentType);
+}
+
+// Cosmetics admin upload: a single model's texture, or a whole pack zip —
+// both go straight from the browser to R2 (same 4.5MB serverless-body-cap
+// reasoning as above; a multi-MB pack zip would never fit through a Server
+// Action's own request body). The server action then reads the object back
+// from R2's own public URL, not from a request body.
+export async function createCosmeticUploadTarget(contentType: string): Promise<UploadTarget> {
+  return createUploadTarget("cosmetics", contentType);
+}
+
+// Model JSON and per-item textures extracted from an uploaded pack are
+// already in memory server-side (lib/cosmetics/nexo-pack.ts unzipped them),
+// so this uploads straight via the S3 client instead of round-tripping
+// through a presigned URL the server would just use on itself.
+export async function uploadCosmeticAsset(
+  key: string,
+  body: Buffer | string,
+  contentType: string
+): Promise<string> {
+  const { bucket, publicUrl } = getConfig();
+  await getClient().send(
+    new PutObjectCommand({ Bucket: bucket, Key: key, Body: body, ContentType: contentType })
+  );
+  return `${publicUrl}/${key}`;
 }
 
 // Best-effort — called when an admin rejects/deletes a submission via the

@@ -9,7 +9,11 @@ type Product = {
   slug: string;
   name: string;
   description: string;
-  priceCents: number;
+  // Only ever null for a COSMETIC-category product, which this generic
+  // card/cart never renders (see CosmeticsCatalog.tsx) — still typed as
+  // nullable because Product.priceCents itself is (it's null for cosmetics,
+  // priced in квітки instead), not because this component expects it.
+  priceCents: number | null;
   currency: string;
   imageUrl: string | null;
 };
@@ -19,6 +23,7 @@ export default function ProductCard({ product }: { product: Product }) {
   const [added, setAdded] = useState(false);
 
   const handleAdd = () => {
+    if (product.priceCents == null) return;
     addItem({
       productId: product.id,
       slug: product.slug,
@@ -39,7 +44,9 @@ export default function ProductCard({ product }: { product: Product }) {
       )}
       <h3>{product.name}</h3>
       <p>{product.description}</p>
-      <div className="price">{formatPrice(product.priceCents, product.currency)}</div>
+      {product.priceCents != null && (
+        <div className="price">{formatPrice(product.priceCents, product.currency)}</div>
+      )}
       <button type="button" className="add-to-cart" onClick={handleAdd} disabled={added}>
         {added ? "Додано!" : "Додати в кошик"}
       </button>

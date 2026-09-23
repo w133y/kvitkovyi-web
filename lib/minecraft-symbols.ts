@@ -521,6 +521,12 @@ export const FLORIST_COLOR_HEX = "#FFFF55";
 // cosmetic bug.
 export const HEX_COLOR_RE = /^#[0-9A-Fa-f]{6}$/;
 
+// A valid Minecraft nickname — used to validate a nickname before it's
+// embedded in a raw console command string sent to the live server (see
+// lib/donate-privilege-grants.ts, lib/cosmetics/grant.ts), even when it
+// came from our own DB rather than a request body directly.
+export const NICKNAME_RE = /^[A-Za-z0-9_]{1,16}$/;
+
 // Backs the hue slider in both the donate builder and the admin panel's
 // grant form. Full saturation/lightness only — enough range to pick any
 // <#RRGGBB> tag via drag, with a hex text field next to it for an exact or

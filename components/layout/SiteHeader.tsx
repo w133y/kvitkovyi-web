@@ -71,10 +71,12 @@ export default function SiteHeader({
   const isWikiPage = pathname.startsWith("/wiki");
   const isAuthErrorPage = pathname.startsWith("/auth/error");
   const isMapPage = pathname === "/map";
-  // /shop (the category chooser) and every /shop/sponsorship/* page (the
-  // builder, its info page, its payment page) drop the hero image;
-  // /shop/cosmetics, cart, and checkout are unaffected.
-  const isBareHeaderShopPage = pathname === "/shop" || pathname.startsWith("/shop/sponsorship");
+  // /shop (the category chooser), every /shop/sponsorship/* page (the
+  // builder, its info page, its payment page), and /shop/cosmetics (a dense
+  // catalog — a big hero image just pushes all 350+ items further down)
+  // drop the hero image.
+  const isBareHeaderShopPage =
+    pathname === "/shop" || pathname.startsWith("/shop/sponsorship") || pathname.startsWith("/shop/cosmetics");
   const isSlimHeader =
     isProfilePage ||
     isAdminPage ||

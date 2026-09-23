@@ -619,6 +619,11 @@ header .img .header-img-wide {
 /* ----------------------------- */
 body, html {
     overflow-x: hidden;
+    /* clip, not hidden, where supported: same visual result (no sideways
+       overflow/scrollbar), but hidden turns body into a scroll container,
+       which silently breaks every position:sticky element on the site —
+       it would stick relative to body, which never itself scrolls. */
+    overflow-x: clip;
     width: 100%;
     position: relative;
     /* Belt-and-suspenders for the nav's "skip past header" scroll — the JS
@@ -996,6 +1001,9 @@ body .box2 {
     padding: var(--section-padding);
     box-sizing: border-box;
     overflow: hidden;
+    /* Same clip, but doesn't become a scroll container — keeps sticky
+       children (the cosmetics cart/preview panel) working. */
+    overflow: clip;
 }
 
 .box2 .lbheader {
@@ -3391,6 +3399,459 @@ header nav .auth-widget {
     font-size: 20px;
 }
 
+/* Косметика — catalog (2/3) + sticky side panel (1/3, cart or 3D preview).
+   Everything that could move is sized up front: the shop spans the full
+   .box2 width (a centered flex column otherwise shrink-wraps it to its
+   content, which re-flowed the whole page as thumbnails loaded), grid
+   columns are fixed fractions, and the side panel has a fixed height with
+   a fixed-size name/actions area — so switching the previewed item or
+   switching tabs never shifts anything. Priced in квітки, not UAH. */
+.cosmetics-shop {
+    width: 100%;
+    max-width: 1280px;
+}
+
+/* ModelViewer3D's wrapper default — declared before the caller classes
+   (.cosmetics-preview-canvas, .admin-cosmetic-preview-canvas) so those
+   override it on equal specificity. */
+.model-viewer {
+    position: relative;
+    width: 100%;
+    height: 100%;
+}
+
+.cosmetics-balance {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 28px;
+    margin-bottom: 16px;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--color-gold);
+}
+
+.cosmetics-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(320px, 1fr);
+    gap: 24px;
+    align-items: start;
+}
+
+.cosmetics-catalog-panel {
+    min-width: 0;
+}
+
+.cosmetics-side-panel {
+    position: sticky;
+    top: 110px;
+    height: min(640px, calc(100vh - 140px));
+    min-height: 480px;
+    box-sizing: border-box;
+    background: var(--panel-bg);
+    border: var(--panel-border);
+    border-radius: var(--panel-radius);
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+@media (max-width: 900px) {
+    .cosmetics-layout {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    .cosmetics-side-panel {
+        position: static;
+        height: 560px;
+    }
+}
+
+.cosmetics-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.cosmetics-filters button {
+    padding: 8px 18px;
+    border-radius: 999px;
+    border: 1px solid var(--pill-border-soft-color);
+    background: rgb(35, 35, 35);
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-weight: 600;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+.cosmetics-filters button.active {
+    color: var(--color-gold);
+    border-color: var(--color-gold);
+}
+
+.cosmetics-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+}
+
+@media (max-width: 1100px) and (min-width: 901px) {
+    .cosmetics-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 640px) {
+    .cosmetics-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+    }
+}
+
+@media (max-width: 400px) {
+    .cosmetics-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+.cosmetics-card {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    background: var(--panel-bg);
+    border: var(--panel-border);
+    border-radius: var(--panel-radius);
+    overflow: hidden;
+    transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.cosmetics-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+/* An outline, not a border change — highlighting the selected card must
+   not change its size. */
+.cosmetics-card.selected {
+    outline: 2px solid var(--color-gold);
+    outline-offset: -2px;
+}
+
+.cosmetics-card-thumb {
+    position: relative;
+    display: block;
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    padding: 0;
+    border: none;
+    background: radial-gradient(circle at 50% 45%, rgb(34, 34, 34) 0%, rgb(20, 20, 20) 70%);
+    cursor: pointer;
+}
+
+.cosmetics-card-thumb img {
+    width: 100%;
+    height: 100%;
+    padding: 6%;
+    box-sizing: border-box;
+    object-fit: contain;
+}
+
+.cosmetics-card-thumb-fallback {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    font-size: 36px;
+    color: var(--text-muted);
+}
+
+.cosmetics-owned-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    background: var(--color-green);
+    color: #0a0a0a;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.cosmetics-card-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 12px 14px 0;
+    min-width: 0;
+}
+
+/* One line, ellipsised — so every card in a row is the same height. */
+.cosmetics-card-name {
+    font-weight: 700;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.cosmetics-card-type {
+    font-size: 13px;
+    color: var(--text-secondary);
+}
+
+.cosmetics-card-price {
+    font-weight: 700;
+    color: var(--color-gold);
+}
+
+.cosmetics-add-btn {
+    margin: 12px 14px 14px;
+    padding: 10px;
+    border: 1px solid var(--color-gold);
+    border-radius: 10px;
+    background: transparent;
+    color: var(--color-gold);
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.cosmetics-add-btn:hover,
+.cosmetics-shop .donate-continue-btn:hover:not(:disabled) {
+    background: rgba(255, 209, 57, 0.08);
+}
+
+/* Pay button reuses .donate-continue-btn — outlined here to match the
+   rest of the cosmetics controls. */
+.cosmetics-shop .donate-continue-btn {
+    border: 1px solid var(--color-gold);
+    background: transparent;
+    color: var(--color-gold);
+}
+
+.cosmetics-load-more {
+    display: block;
+    margin: 24px auto 0;
+}
+
+.cosmetics-side-tabs {
+    display: flex;
+    gap: 8px;
+    flex: none;
+}
+
+.cosmetics-side-tabs button {
+    flex: 1;
+    padding: 10px;
+    border-radius: 10px;
+    border: 1px solid var(--pill-border-soft-color);
+    background: rgb(35, 35, 35);
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.cosmetics-side-tabs button.active {
+    color: var(--color-gold);
+    border-color: var(--color-gold);
+}
+
+.cosmetics-side-tabs button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.cosmetics-cart {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.cosmetics-cart .empty-state {
+    padding: 40px 0;
+    font-size: 16px;
+}
+
+.cosmetics-cart-list {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.cosmetics-cart-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.cosmetics-cart-row-name {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.cosmetics-cart-total {
+    display: flex;
+    justify-content: space-between;
+    font-weight: 700;
+    padding-top: 10px;
+    border-top: 1px solid var(--pill-border-soft-color);
+}
+
+.cosmetics-preview {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.cosmetics-preview-canvas {
+    flex: 1;
+    min-height: 0;
+    height: auto;
+    background: radial-gradient(circle at 50% 45%, rgb(34, 34, 34) 0%, rgb(20, 20, 20) 70%);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.model-viewer-toolbar {
+    position: absolute;
+    left: 50%;
+    bottom: 10px;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 6px;
+    padding: 6px;
+    background: rgba(0, 0, 0, 0.55);
+    border: 1px solid var(--pill-border-soft-color);
+    border-radius: 12px;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+}
+
+.model-viewer-toolbar button {
+    width: 34px;
+    height: 34px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 14px;
+    transition: background 0.15s ease, color 0.15s ease;
+}
+
+.model-viewer-toolbar button:hover {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--text-primary);
+}
+
+.model-viewer-toolbar button.active {
+    color: var(--color-gold);
+    border-color: var(--color-gold);
+}
+
+/* Small corner spinner while the next model loads — the previous model's
+   frame stays visible underneath, so there's no blank flash. */
+.model-viewer-loading {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 16px;
+    height: 16px;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-top-color: var(--color-gold);
+    border-radius: 50%;
+    animation: model-viewer-spin 0.8s linear infinite;
+}
+
+@keyframes model-viewer-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.cosmetics-viewer-error {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    text-align: center;
+    font-size: 13px;
+    color: var(--text-muted);
+}
+
+/* Fixed height: two lines of name + the meta row, whatever the item — a
+   long name used to push the buttons down on some items and not others. */
+.cosmetics-preview-info {
+    flex: none;
+    height: 78px;
+}
+
+.cosmetics-preview-name {
+    margin: 0;
+    font-size: 20px;
+    line-height: 1.25;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    height: 50px;
+}
+
+.cosmetics-preview-meta {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 8px;
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+
+.cosmetics-preview-price {
+    color: var(--color-gold);
+    font-weight: 700;
+}
+
+.cosmetics-preview-actions {
+    flex: none;
+    display: flex;
+    gap: 10px;
+}
+
+.cosmetics-preview-actions .cosmetics-add-btn {
+    flex: 1;
+    margin: 0;
+}
+
+.cosmetics-save-btn {
+    width: 44px;
+    flex: none;
+    border-radius: 10px;
+    border: 1px solid var(--pill-border-soft-color);
+    background: rgb(35, 35, 35);
+    color: var(--text-secondary);
+    cursor: pointer;
+    font-size: 16px;
+}
+
+.cosmetics-save-btn.active {
+    color: var(--color-gold);
+    border-color: var(--color-gold);
+}
+
 /* ----------------------------- */
 /* No .box2 plate behind this page — the header sits directly on the page
    background, and .donate-builder's own cards (see below) provide all the
@@ -5557,6 +6018,90 @@ header nav .auth-widget {
     max-height: 600px;
     overflow-y: auto;
     padding-right: 4px;
+}
+
+.admin-cosmetics-upload {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    max-width: 420px;
+    padding: 16px;
+    background: rgb(35, 35, 35);
+    border-radius: 12px;
+    border: 1px solid var(--pill-border-soft-color);
+}
+
+.admin-cosmetics-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+}
+
+.admin-cosmetic-card {
+    display: flex;
+    flex-direction: column;
+    background: rgb(35, 35, 35);
+    border-radius: 12px;
+    border: 1px solid var(--pill-border-soft-color);
+    overflow: hidden;
+}
+
+.admin-cosmetic-preview {
+    height: 200px;
+    background: rgb(20, 20, 20);
+}
+
+.admin-cosmetic-preview-canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+
+.admin-cosmetic-preview-placeholder {
+    width: 100%;
+    height: 100%;
+    border: none;
+    padding: 0;
+    background: none;
+    cursor: pointer;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.admin-cosmetic-preview-placeholder img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.admin-thumbnail-baker {
+    margin: 20px 0;
+}
+
+/* Off-screen, not display:none — the canvas still needs real pixel
+   dimensions to render into and capture from (see CosmeticsAdmin.tsx's
+   ThumbnailBaker). */
+.admin-thumbnail-baker-hidden {
+    position: fixed;
+    top: -9999px;
+    left: -9999px;
+    width: 256px;
+    height: 256px;
+}
+
+.admin-cosmetic-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 14px;
+}
+
+.admin-cosmetic-source {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin: 0;
 }
 
 @media (min-width: 1100px) {

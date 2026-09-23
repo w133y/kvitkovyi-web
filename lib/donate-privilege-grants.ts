@@ -13,7 +13,7 @@ import { addGuildMemberRole, removeGuildMemberRole } from "@/lib/discord";
 import { getDiscordIdForNickname } from "@/lib/mc-db";
 import { logDonatePrivilegeRevoked, type DonatePrivilegeRevokeReason } from "@/lib/donate-order-log";
 import { logError } from "@/lib/admin-log";
-import { FLORIST_SYMBOL, FLORIST_COLOR_HEX, HEX_COLOR_RE } from "@/lib/minecraft-symbols";
+import { FLORIST_SYMBOL, FLORIST_COLOR_HEX, HEX_COLOR_RE, NICKNAME_RE } from "@/lib/minecraft-symbols";
 import type { DonateTier } from "@prisma/client";
 
 export const TIER_LP_GROUP: Record<DonateTier, string> = {
@@ -31,10 +31,6 @@ function getTierRoleId(tier: DonateTier): string | null {
 }
 
 const SUFFIX_PRIORITY = 100;
-
-// Nickname ends up inside a raw console command string sent to the live
-// server, so it must be validated even though it came from our own DB.
-const NICKNAME_RE = /^[A-Za-z0-9_]{1,16}$/;
 
 // Full RGB via MiniMessage's <#hex> tag now (the donate builder's picker is
 // a free hue slider + hex input, not the old 16-swatch grid) rather than

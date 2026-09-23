@@ -638,6 +638,25 @@ export async function getPlaytimeRank(nickname: string): Promise<number | null> 
   }
 }
 
+// simplecurrency_ (uuid, name, amount) — the SimpleCurrency plugin's own
+// balance table ("квітки"). Read-only here like everything else in this
+// file; a purchase deducts via the live `/currency take` console command
+// (see lib/cosmetics/grant.ts), never a direct write to this table.
+export async function getFlowerBalance(nickname: string): Promise<number | null> {
+  try {
+    const [rows] = await withRetry(() =>
+      getPool().query<mysql.RowDataPacket[]>(
+        "SELECT amount FROM simplecurrency_ WHERE name = ? LIMIT 1",
+        [nickname]
+      )
+    );
+    return rows.length > 0 ? Number(rows[0].amount) : null;
+  } catch (err) {
+    await logError("mc-db: getFlowerBalance failed", err);
+    return null;
+  }
+}
+
 export type SkinsRestorerSkin = {
   value: string;
   signature: string;

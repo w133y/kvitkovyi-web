@@ -13,12 +13,11 @@ export default function ShopPage() {
         <h2>Спонсорство</h2>
         <p>Привілеї та можливості, що підтримують розвиток серверу.</p>
       </Link>
-      <div className="shop-category-card shop-category-card-disabled">
-        <span className="shop-category-badge">Coming soon</span>
+      <Link href="/shop/cosmetics" className="shop-category-card">
         <i className="fa-solid fa-wand-magic-sparkles"></i>
         <h2>Косметика</h2>
         <p>Декорації та косметичні прикраси для твого персонажа.</p>
-      </div>
+      </Link>
     </div>
   );
 }

@@ -5,7 +5,7 @@ type Product = {
   slug: string;
   name: string;
   description: string;
-  priceCents: number;
+  priceCents: number | null;
   currency: string;
   imageUrl: string | null;
 };

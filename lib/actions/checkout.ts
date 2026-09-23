@@ -32,7 +32,10 @@ export async function checkout(
   const orderItemsData = [];
   for (const item of items) {
     const product = products.find((p) => p.id === item.productId);
-    if (!product || item.quantity <= 0) {
+    // priceCents is null for COSMETIC products (priced in квітки instead,
+    // via lib/actions/cosmetics-checkout.ts) — this generic checkout only
+    // ever handles UAH-priced (SPONSORSHIP) products.
+    if (!product || product.priceCents == null || item.quantity <= 0) {
       return { error: "Один із товарів у кошику більше недоступний" };
     }
     orderItemsData.push({

@@ -1,15 +1,19 @@
 import type { Metadata } from "next";
-import ProductGrid from "@/components/shop/ProductGrid";
-import { getProductsByCategory } from "@/lib/actions/products";
+import { auth } from "@/lib/auth";
+import CosmeticsCatalog from "@/components/shop/CosmeticsCatalog";
+import { listPublishedCosmeticsForShop, getMyFlowerBalance, getMyOwnedCosmeticIds } from "@/lib/actions/cosmetics-shop";
 
 export const metadata: Metadata = {
   title: "Косметика - Квітковий",
 };
 
-export const revalidate = 60;
-
 export default async function CosmeticsPage() {
-  const products = await getProductsByCategory("COSMETIC");
+  const session = await auth();
+  const [items, balance, ownedIds] = await Promise.all([
+    listPublishedCosmeticsForShop(),
+    getMyFlowerBalance(),
+    getMyOwnedCosmeticIds(),
+  ]);
 
   return (
     <div className="box2">
@@ -17,9 +21,9 @@ export default async function CosmeticsPage() {
         <h2>
           <b>Косметика</b>
         </h2>
-        <p>Декорації та косметичні прикраси для твого персонажа.</p>
+        <p>Декорації та косметичні прикраси для твого персонажа — за квітки.</p>
       </div>
-      <ProductGrid products={products} />
+      <CosmeticsCatalog items={items} initialBalance={balance} ownedIds={ownedIds} signedIn={!!session?.user} />
     </div>
   );
 }

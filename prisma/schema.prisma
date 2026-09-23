@@ -112,12 +112,13 @@ model User {
   // same wording the site used before this field existed.
   pronoun String?
 
-  accounts      Account[]
-  sessions      Session[]
-  orders        Order[]
-  donateOrders  DonateOrder[]
-  galleryPhotos GalleryPhoto[]
-  wikiArticles  WikiArticle[]
+  accounts       Account[]
+  sessions       Session[]
+  orders         Order[]
+  donateOrders   DonateOrder[]
+  cosmeticOrders CosmeticOrder[]
+  galleryPhotos  GalleryPhoto[]
+  wikiArticles   WikiArticle[]
 }
 
 // Keyed by Minecraft nickname (not User) so it survives a Discord relink and
@@ -352,7 +353,11 @@ model Product {
   name        String
   description String
   category    ProductCategory
-  priceCents  Int
+  // Null for COSMETIC rows — those are priced in квітки on the linked
+  // CosmeticItem.priceFlowers instead, a different unit entirely (not UAH
+  // cents). SPONSORSHIP rows still use this via the generic /shop/cart +
+  // /shop/checkout flow.
+  priceCents  Int?
   currency    String          @default("UAH")
   imageUrl    String?
   active      Boolean         @default(true)
@@ -360,7 +365,8 @@ model Product {
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
 
-  orderItems OrderItem[]
+  orderItems   OrderItem[]
+  cosmeticItem CosmeticItem?
 
   // Matches getProductsByCategory's exact where + orderBy shape (every
   // /shop/cosmetics and /shop/sponsorship page load).
@@ -412,6 +418,121 @@ model OrderItem {
 
   @@index([orderId])
   @@index([productId])
+}
+
+// Косметика — 3D models (Nexo furniture, HMCCosmetics hats/backpacks/
+// balloons) sold for квітки (in-game SimpleCurrency balance, see
+// lib/mc-db.ts getFlowerBalance), not UAH. Product (above) is still the
+// catalog row (name/active/sortOrder all fit); this holds the fields a
+// sponsorship Product never needs — which live-server item this maps to,
+// where its model/texture live in R2, and its price in flowers rather than
+// priceCents. See lib/cosmetics/*.
+enum CosmeticType {
+  HAT
+  BACKPACK
+  BALLOON
+  FURNITURE
+}
+
+enum CosmeticStatus {
+  // Admin uploaded/auto-detected but hasn't confirmed name/type/price yet —
+  // not pushed to the live server, not shown in the public catalog.
+  DRAFT
+  // Confirmed by the admin: files pushed to Nexo/HMCCosmetics, live in the
+  // public catalog.
+  PUBLISHED
+}
+
+model CosmeticItem {
+  id        String         @id @default(cuid())
+  productId String         @unique
+  product   Product        @relation(fields: [productId], references: [id], onDelete: Cascade)
+  type      CosmeticType
+  status    CosmeticStatus @default(DRAFT)
+
+  // The id this item is registered under in items.yml / hmccosmetics.yml on
+  // the live server (see lib/cosmetics/nexo-pack.ts) — unique because it's
+  // also the Nexo namespace key, which can't collide.
+  nexoItemId String  @unique
+  // Set for HAT/BACKPACK/BALLOON only — the id HMCCosmetics' own
+  // cosmetics.yml keys the permission/dye config under (often == nexoItemId
+  // but not guaranteed by the source packs, so tracked separately).
+  hmcCosmeticId String?
+
+  // HAT-only in v1 — HMCCosmetics dye-tints LEATHER_HORSE_ARMOR natively
+  // in-game after unlock; the site never sends a color at grant time (see
+  // lib/cosmetics/grant.ts). Furniture has no such native support (Nexo
+  // items have no color field), so it ships without recolor for now.
+  colorCustomizable Boolean @default(false)
+
+  modelKey       String // R2 key — the block-model JSON
+  textureKey     String // R2 key — the PNG
+  thumbnailUrl   String? // baked preview, captured client-side from the same 3D viewer
+  sourcePackName String? // which admin upload this came from (edit/lineage only)
+
+  priceFlowers Int // NOT priceCents on Product — a flower count
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  grants CosmeticGrant[]
+}
+
+enum CosmeticGrantStatus {
+  PENDING
+  DELIVERED
+  FAILED
+}
+
+// One checkout, possibly several items — mirrors DonateOrder's role for the
+// sponsorship flow, but settled in квітки via sendServerCommand("currency
+// take ...") instead of a Donatello UAH payment.
+model CosmeticOrder {
+  id     String @id @default(cuid())
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  // Snapshot, same reasoning as DonateOrder — the buyer's linked nickname
+  // at checkout time.
+  nickname     String
+  totalFlowers Int
+
+  // Client-generated once per checkout attempt (crypto.randomUUID(),
+  // cleared only on success/failure) — a rapid double-click resubmits the
+  // same key, which this unique constraint turns into a no-op instead of a
+  // second charge. See lib/actions/cosmetics-checkout.ts.
+  idempotencyKey String @unique
+
+  createdAt DateTime @default(now())
+
+  grants CosmeticGrant[]
+
+  @@index([userId])
+}
+
+// Per-item delivery record and retry unit — a CosmeticOrder can charge
+// квітки successfully while one item's in-game grant still fails (player
+// offline, a transient Kinetic error), so delivery is tracked per item, not
+// per order. See lib/cosmetics/sweep.ts, mirroring
+// sweepExpiredDonatePrivileges' opportunistic-sweep pattern.
+model CosmeticGrant {
+  id             String              @id @default(cuid())
+  orderId        String
+  order          CosmeticOrder       @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  cosmeticItemId String
+  cosmeticItem   CosmeticItem        @relation(fields: [cosmeticItemId], references: [id])
+  // FURNITURE only supports >1 (a `/nexo give` amount) — HAT/BACKPACK/
+  // BALLOON grant a boolean permission, so quantity is always 1 there (the
+  // cart UI only offers a quantity stepper for furniture in the first
+  // place, see components/shop/CosmeticsCatalog.tsx). Persisted (not just
+  // read off the order at checkout time) so a retry sweep grants the same
+  // amount, not just 1.
+  quantity       Int                 @default(1)
+  status         CosmeticGrantStatus @default(PENDING)
+  deliveredAt    DateTime?
+  createdAt      DateTime            @default(now())
+
+  @@index([status])
 }
 
 // Admin-authored, database-backed wiki — not literal Nextra (its file-based
