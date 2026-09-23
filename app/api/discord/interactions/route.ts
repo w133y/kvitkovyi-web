@@ -1,13 +1,21 @@
 // Discord Interactions HTTP endpoint — handles the /gallery slash command
 // and every button/modal click posted by lib/gallery-discord.ts (the
-// moderation queue) and lib/actions/gallery.ts (the season-change
-// confirmation). Registered as this app's "Interactions Endpoint URL" in
+// moderation queue), lib/actions/gallery.ts (the season-change
+// confirmation) and lib/map-markers-discord.ts (map marker review). Registered as this app's "Interactions Endpoint URL" in
 // the Discord Developer Portal; Discord POSTs every interaction here
 // instead of us needing a persistent gateway bot connection.
 
 import nacl from "tweetnacl";
+import { after } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { deleteGalleryPhoto } from "@/lib/r2";
+import { deleteGalleryPhoto, uploadR2Object } from "@/lib/r2";
+import { editInteractionResponse } from "@/lib/discord";
+import { logError } from "@/lib/admin-log";
+import { updateMarkerModeration } from "@/lib/map-markers-discord";
+import { MARKER_TYPES, validateMarker } from "@/lib/map-markers";
+
+const DAY_MS = 86_400_000;
+import type { MapMarkerType } from "@prisma/client";
 import { postGalleryModeration, updateGalleryModeration, editSeasonChangeResult } from "@/lib/gallery-discord";
 import { getGallerySettings } from "@/lib/actions/gallery";
 import type { GalleryPhoto } from "@prisma/client";
@@ -22,6 +30,7 @@ const MODAL_SUBMIT = 5;
 
 const PONG = 1;
 const CHANNEL_MESSAGE_WITH_SOURCE = 4;
+const DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE = 5;
 const DEFERRED_UPDATE_MESSAGE = 6;
 const MODAL = 9;
 
@@ -92,6 +101,15 @@ export async function POST(request: Request) {
 }
 
 // --- /gallery slash command — unlimited, no daily cap (see lib/actions/gallery.ts) ---
+//
+// Slash-command attachments live under cdn.discordapp.com/ephemeral-
+// attachments and expire within hours — storing that URL (as this used to)
+// left every Discord-submitted photo a dead link by the time it was
+// reviewed. So the photo is copied into R2, like site uploads. That plus the
+// moderation post doesn't reliably fit Discord's 3s reply window, so the
+// reply is deferred and the work finishes in after().
+
+const GALLERY_MAX_BYTES = 10 * 1024 * 1024;
 
 async function handleGalleryCommand(interaction: any) {
   if (interaction.data?.name !== "gallery") {
@@ -107,30 +125,55 @@ async function handleGalleryCommand(interaction: any) {
   if (!attachment) {
     return ephemeral("Не знайдено фото — спробуйте ще раз.");
   }
-  if (!String(attachment.content_type ?? "").startsWith("image/")) {
+  const contentType = String(attachment.content_type ?? "");
+  if (!contentType.startsWith("image/")) {
     return ephemeral("Файл має бути зображенням.");
+  }
+  if (Number(attachment.size) > GALLERY_MAX_BYTES) {
+    return ephemeral("Фото завелике — максимум 10 МБ.");
   }
 
   const discordUserId: string | undefined = interaction.member?.user?.id ?? interaction.user?.id;
-  const settings = await getGallerySettings();
-  const season = Number.isFinite(seasonOption) && (seasonOption as number) > 0 ? Math.floor(seasonOption as number) : settings.currentSeason;
 
-  const photo = await prisma.galleryPhoto.create({
-    data: {
-      url: attachment.url,
-      description: description?.trim() || null,
-      season,
-      source: "DISCORD",
-      submittedByDiscordId: discordUserId ?? null,
-    },
+  after(async () => {
+    let reply = "Дякуємо! Фото надіслано на модерацію 🌸";
+    try {
+      const res = await fetch(attachment.url);
+      if (!res.ok) throw new Error(`attachment download ${res.status}`);
+      const body = Buffer.from(await res.arrayBuffer());
+      const ext = contentType.split("/")[1]?.replace(/[^a-z0-9]/gi, "") || "png";
+      const key = `gallery/discord-${interaction.id}.${ext}`;
+      const url = await uploadR2Object(key, body, contentType);
+
+      const settings = await getGallerySettings();
+      const season =
+        Number.isFinite(seasonOption) && (seasonOption as number) > 0
+          ? Math.floor(seasonOption as number)
+          : settings.currentSeason;
+
+      const photo = await prisma.galleryPhoto.create({
+        data: {
+          url,
+          storageKey: key,
+          description: description?.trim() || null,
+          season,
+          source: "DISCORD",
+          submittedByDiscordId: discordUserId ?? null,
+        },
+      });
+
+      const messageId = await postGalleryModeration(photo);
+      if (messageId) {
+        await prisma.galleryPhoto.update({ where: { id: photo.id }, data: { discordMessageId: messageId } });
+      }
+    } catch (err) {
+      await logError("discord /gallery: failed to store photo", err);
+      reply = "Не вдалося зберегти фото — спробуйте ще раз.";
+    }
+    await editInteractionResponse(interaction.application_id, interaction.token, reply);
   });
 
-  const messageId = await postGalleryModeration(photo);
-  if (messageId) {
-    await prisma.galleryPhoto.update({ where: { id: photo.id }, data: { discordMessageId: messageId } });
-  }
-
-  return ephemeral("Дякуємо! Фото надіслано на модерацію 🌸");
+  return Response.json({ type: DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE, data: { flags: EPHEMERAL } });
 }
 
 // --- Buttons: gallery moderation + season confirm ---
@@ -144,6 +187,10 @@ async function handleComponent(interaction: any) {
 
   if (customId.startsWith("gallery:")) {
     return handleGalleryButton(interaction, customId);
+  }
+
+  if (customId.startsWith("marker:")) {
+    return handleMarkerComponent(interaction, customId);
   }
 
   return ephemeral("Невідома дія.");
@@ -286,6 +333,9 @@ async function handleModalSubmit(interaction: any) {
   if (customId.startsWith("gallery:edit_author_modal:")) {
     return handleEditAuthorModal(interaction, customId);
   }
+  if (customId.startsWith("marker:edit_modal:")) {
+    return handleMarkerEditModal(interaction, customId);
+  }
   return ephemeral("Невідома форма.");
 }
 
@@ -328,4 +378,105 @@ async function handleEditAuthorModal(interaction: any, customId: string) {
 
   await updateGalleryModeration(updated);
   return ephemeral("✅ Автора оновлено.");
+}
+
+// --- Map marker review (lib/map-markers-discord.ts) ---
+
+async function handleMarkerComponent(interaction: any, customId: string) {
+  if (!isModerator(interaction)) {
+    return ephemeral("🚫 У вас немає прав для цієї дії.");
+  }
+  const [, action, markerId] = customId.split(":");
+  const marker = await prisma.mapMarker.findUnique({ where: { id: markerId } });
+  if (!marker) return ephemeral("Мітку не знайдено.");
+
+  if (action === "edit") {
+    const field = (custom_id: string, label: string, style: 1 | 2, value: string, max: number, required: boolean) => ({
+      type: 1,
+      components: [{ type: 4, custom_id, label, style, value, max_length: max, required }],
+    });
+    return Response.json({
+      type: MODAL,
+      data: {
+        custom_id: `marker:edit_modal:${marker.id}`,
+        title: "Редагувати мітку",
+        components: [
+          field("label", "Назва", 1, marker.label, 40, true),
+          field("description", "Опис", 2, marker.description ?? "", 300, false),
+          field("discordInvite", "Discord міста (лише для міст)", 1, marker.discordInvite ?? "", 60, false),
+          field("durationDays", "Термін у днях (порожньо — назавжди)", 1, marker.durationDays?.toString() ?? "", 3, false),
+        ],
+      },
+    });
+  }
+
+  let data: { status?: "APPROVED" | "REJECTED"; reviewedAt?: Date; expiresAt?: Date | null; type?: MapMarkerType };
+  if (action === "approve") {
+    // The term starts now, at approval — not when the player suggested it.
+    const now = new Date();
+    data = {
+      status: "APPROVED",
+      reviewedAt: now,
+      expiresAt: marker.durationDays ? new Date(now.getTime() + marker.durationDays * DAY_MS) : null,
+    };
+  } else if (action === "reject") {
+    data = { status: "REJECTED", reviewedAt: new Date() };
+  } else if (action === "type") {
+    const value = interaction.data?.values?.[0];
+    if (!MARKER_TYPES.includes(value)) return ephemeral("Невідомий тип.");
+    data = { type: value };
+  } else {
+    return ephemeral("Невідома дія.");
+  }
+
+  const updated = await prisma.mapMarker.update({ where: { id: marker.id }, data });
+  await updateMarkerModeration(updated);
+  return Response.json({ type: DEFERRED_UPDATE_MESSAGE });
+}
+
+async function handleMarkerEditModal(interaction: any, customId: string) {
+  if (!isModerator(interaction)) {
+    return ephemeral("🚫 У вас немає прав для цієї дії.");
+  }
+  const markerId = customId.split(":")[2];
+  const marker = await prisma.mapMarker.findUnique({ where: { id: markerId } });
+  if (!marker) return ephemeral("Мітку не знайдено.");
+
+  const values: Record<string, string> = {};
+  for (const row of interaction.data.components ?? []) {
+    for (const c of row.components ?? []) values[c.custom_id] = c.value ?? "";
+  }
+
+  // Same validation as a player's suggestion — this text ends up in the map.
+  const clean = validateMarker({
+    label: values.label,
+    type: marker.type,
+    description: values.description,
+    discordInvite: values.discordInvite,
+    x: marker.x,
+    y: marker.y,
+    z: marker.z,
+    durationDays: values.durationDays?.trim() ? Number(values.durationDays) : null,
+  });
+  if ("error" in clean) return ephemeral(`⚠️ ${clean.error}`);
+
+  // An already-approved marker's expiry follows the edited term, counted
+  // from its original approval.
+  const expiresAt =
+    marker.status === "APPROVED" && marker.reviewedAt && clean.durationDays
+      ? new Date(marker.reviewedAt.getTime() + clean.durationDays * DAY_MS)
+      : null;
+
+  const updated = await prisma.mapMarker.update({
+    where: { id: marker.id },
+    data: {
+      label: clean.label,
+      description: clean.description,
+      discordInvite: clean.discordInvite,
+      durationDays: clean.durationDays,
+      expiresAt,
+    },
+  });
+  await updateMarkerModeration(updated);
+  return ephemeral("✅ Мітку оновлено.");
 }

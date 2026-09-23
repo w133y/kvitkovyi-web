@@ -1,0 +1,2 @@
+ALTER TABLE "MapMarker" ADD COLUMN "durationDays" INTEGER;
+ALTER TABLE "MapMarker" ADD COLUMN "expiresAt" TIMESTAMP(3);

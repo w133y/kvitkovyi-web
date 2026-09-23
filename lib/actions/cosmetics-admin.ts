@@ -3,7 +3,7 @@
 import crypto from "crypto";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { createCosmeticUploadTarget, uploadCosmeticAsset, getPublicUrl, type UploadTarget } from "@/lib/r2";
+import { createCosmeticUploadTarget, uploadR2Object, getPublicUrl, type UploadTarget } from "@/lib/r2";
 import { cosmeticAssetUrl } from "@/lib/cosmetics/asset-url";
 import { parseNexoPack } from "@/lib/cosmetics/nexo-pack";
 import { suggestCosmeticNameAndType } from "@/lib/cosmetics/translate";
@@ -64,8 +64,8 @@ export async function stageUploadedPack(packKey: string, sourcePackName: string)
     const uid = crypto.randomBytes(4).toString("hex");
     const modelKey = `cosmetics/${model.suggestedId}-${uid}/model.json`;
     const textureKey = `cosmetics/${model.suggestedId}-${uid}/texture.png`;
-    await uploadCosmeticAsset(modelKey, JSON.stringify(model.modelJson), "application/json");
-    await uploadCosmeticAsset(textureKey, model.textureBuffer, "image/png");
+    await uploadR2Object(modelKey, JSON.stringify(model.modelJson), "application/json");
+    await uploadR2Object(textureKey, model.textureBuffer, "image/png");
 
     await createDraft({
       nexoItemId: `${model.suggestedId}_${uid}`,

@@ -142,7 +142,7 @@ export default async function PublicProfilePage({
 
       {achievements.length > 0 && (
         <div className="profile-achievements-card">
-          <h3 className="profile-achievements-title">Досягнення</h3>
+          <h3 className="profile-achievements-title">Картки</h3>
           <div className="achievements-grid">
             {achievements.map((a) => (
               <AchievementCard

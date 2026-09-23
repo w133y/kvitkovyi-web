@@ -7,7 +7,6 @@
 // generic /shop/cart or /shop/checkout routes.
 
 import { useEffect, useMemo, useState, useTransition } from "react";
-import { createPortal } from "react-dom";
 import ModelViewer3D from "@/components/cosmetics/ModelViewer3D";
 import { checkoutCosmetics } from "@/lib/actions/cosmetics-checkout";
 import type { CatalogCosmetic } from "@/lib/actions/cosmetics-shop";
@@ -16,6 +15,13 @@ import type { CatalogCosmetic } from "@/lib/actions/cosmetics-shop";
 const PAGE_SIZE = 12;
 const CART_STORAGE_KEY = "kvitkovyi-cosmetics-cart";
 const SAVED_STORAGE_KEY = "kvitkovyi-cosmetics-saved";
+
+// "1 квітка", "3 квітки", "5 квіток", "21 квітка" — Ukrainian plural rules.
+const FLOWER_FORMS: Partial<Record<Intl.LDMLPluralRule, string>> = { one: "квітка", few: "квітки" };
+const ukPlural = new Intl.PluralRules("uk");
+function flowers(n: number): string {
+  return `${n} ${FLOWER_FORMS[ukPlural.select(n)] ?? "квіток"}`;
+}
 
 const TYPE_LABEL: Record<CatalogCosmetic["type"], string> = {
   HAT: "Шапочка",
@@ -58,6 +64,10 @@ export default function CosmeticsCatalog({
   const [saved, setSaved] = useState<string[]>([]);
   const [rightTab, setRightTab] = useState<"cart" | "preview">("cart");
   const [previewId, setPreviewId] = useState<string | null>(null);
+  // Phones/tablets (≤900px) show the cart/preview column as a bottom sheet
+  // instead of a sticky side column — this flag only has an effect there
+  // (pure CSS), so desktop needs no viewport detection.
+  const [sheetOpen, setSheetOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [orderDone, setOrderDone] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -77,21 +87,6 @@ export default function CosmeticsCatalog({
   // preview before a card is clicked anyway) sidesteps it entirely instead
   // of chasing the exact mechanism further.
   const [mounted, setMounted] = useState(false);
-  // The header's user menu (components/auth/UserMenuDropdown.tsx) streams in
-  // under its own Suspense boundary, so its slot may not exist yet on mount.
-  const [balanceSlot, setBalanceSlot] = useState<HTMLElement | null>(null);
-  useEffect(() => {
-    const find = () => document.getElementById("user-menu-extra");
-    const found = find();
-    if (found) return setBalanceSlot(found);
-    const observer = new MutationObserver(() => {
-      const el = find();
-      if (el) { setBalanceSlot(el); observer.disconnect(); }
-    });
-    observer.observe(document.body, { childList: true, subtree: true });
-    return () => observer.disconnect();
-  }, []);
-
   useEffect(() => {
     setMounted(true);
     setIdempotencyKey(crypto.randomUUID());
@@ -149,6 +144,12 @@ export default function CosmeticsCatalog({
   function openPreview(id: string) {
     setPreviewId(id);
     setRightTab("preview");
+    setSheetOpen(true);
+  }
+
+  function openCart() {
+    setRightTab("cart");
+    setSheetOpen(true);
   }
 
   function checkout() {
@@ -172,15 +173,6 @@ export default function CosmeticsCatalog({
 
   return (
     <div className="cosmetics-shop">
-      {balanceSlot &&
-        signedIn &&
-        initialBalance !== null &&
-        createPortal(
-          <div className="cosmetics-balance">
-            <img src="/icon.ico" alt="" width={20} height={20} /> {initialBalance} квіток
-          </div>,
-          balanceSlot
-        )}
       {(!signedIn || initialBalance === null) && (
         <div className="cosmetics-notice">
           {signedIn ? "Прив'яжіть нікнейм, щоб бачити баланс квіток" : "Увійдіть через Discord, щоб купувати косметику"}
@@ -227,7 +219,7 @@ export default function CosmeticsCatalog({
                   <div className="cosmetics-card-info">
                     <span className="cosmetics-card-name">{item.name}</span>
                     <span className="cosmetics-card-type">{TYPE_LABEL[item.type]}</span>
-                    <span className="cosmetics-card-price">{item.priceFlowers} квіток</span>
+                    <span className="cosmetics-card-price">{flowers(item.priceFlowers)}</span>
                   </div>
                   <button type="button" className="cosmetics-add-btn" onClick={() => addToCart(item)}>
                     {item.type !== "FURNITURE" && cart[item.id] > 0 ? "У кошику" : "Додати в кошик"}
@@ -248,8 +240,24 @@ export default function CosmeticsCatalog({
           )}
         </div>
 
+        {/* Sticky as one column, so the balance scrolls along with the panel. */}
+        <div className={`cosmetics-sheet-backdrop${sheetOpen ? " open" : ""}`} onClick={() => setSheetOpen(false)} />
+        <div className={`cosmetics-side${sheetOpen ? " open" : ""}`}>
+          {signedIn && initialBalance !== null && (
+            <div className="cosmetics-balance">
+              <img src="/icon.ico" alt="" width={20} height={20} /> {flowers(initialBalance)}
+            </div>
+          )}
         <div className="cosmetics-side-panel">
           <div className="cosmetics-side-tabs">
+            <button
+              type="button"
+              className="cosmetics-sheet-close"
+              onClick={() => setSheetOpen(false)}
+              aria-label="Закрити"
+            >
+              <i className="fa-solid fa-xmark" aria-hidden="true"></i>
+            </button>
             <button type="button" className={rightTab === "cart" ? "active" : ""} onClick={() => setRightTab("cart")}>
               Кошик{cartLines.length > 0 ? ` (${cartLines.length})` : ""}
             </button>
@@ -296,13 +304,13 @@ export default function CosmeticsCatalog({
                             <i className="fas fa-trash"></i>
                           </button>
                         )}
-                        <span className="cosmetics-cart-row-price">{item.priceFlowers * quantity} квіток</span>
+                        <span className="cosmetics-cart-row-price">{flowers(item.priceFlowers * quantity)}</span>
                       </div>
                     ))}
                   </div>
                   <div className="cosmetics-cart-total">
                     <span>Разом:</span>
-                    <span>{totalFlowers} квіток</span>
+                    <span>{flowers(totalFlowers)}</span>
                   </div>
                   {!signedIn ? (
                     <p className="admin-cosmetic-source">Увійдіть через Discord, щоб оплатити.</p>
@@ -336,7 +344,7 @@ export default function CosmeticsCatalog({
                 </h3>
                 <div className="cosmetics-preview-meta">
                   <span>{TYPE_LABEL[previewItem.type]}</span>
-                  <span className="cosmetics-preview-price">{previewItem.priceFlowers} квіток</span>
+                  <span className="cosmetics-preview-price">{flowers(previewItem.priceFlowers)}</span>
                 </div>
               </div>
               <div className="cosmetics-preview-actions">
@@ -356,6 +364,20 @@ export default function CosmeticsCatalog({
             </div>
           ) : null}
         </div>
+        </div>
+      </div>
+
+      {/* Phones/tablets only (CSS) — the always-reachable way into the sheet. */}
+      <div className="cosmetics-mobile-bar">
+        {signedIn && initialBalance !== null && (
+          <span className="cosmetics-mobile-balance">
+            <img src="/icon.ico" alt="" width={18} height={18} /> {flowers(initialBalance)}
+          </span>
+        )}
+        <button type="button" className="cosmetics-mobile-cart-btn" onClick={openCart}>
+          <i className="fa-solid fa-basket-shopping" aria-hidden="true"></i>
+          Кошик{cartLines.length > 0 ? ` (${cartLines.length}) · ${flowers(totalFlowers)}` : ""}
+        </button>
       </div>
     </div>
   );

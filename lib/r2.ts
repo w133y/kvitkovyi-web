@@ -82,11 +82,11 @@ export async function createCosmeticUploadTarget(contentType: string): Promise<U
   return createUploadTarget("cosmetics", contentType);
 }
 
-// Model JSON and per-item textures extracted from an uploaded pack are
-// already in memory server-side (lib/cosmetics/nexo-pack.ts unzipped them),
-// so this uploads straight via the S3 client instead of round-tripping
+// For bytes that are already in memory server-side — pack models/textures
+// extracted by lib/cosmetics/nexo-pack.ts, and /gallery photos downloaded
+// from Discord — upload straight via the S3 client instead of round-tripping
 // through a presigned URL the server would just use on itself.
-export async function uploadCosmeticAsset(
+export async function uploadR2Object(
   key: string,
   body: Buffer | string,
   contentType: string

@@ -35,6 +35,9 @@ export default function SiteHeader({
 }) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  // Close the mobile menu on any navigation — covers links it doesn't own
+  // (the profile/donate/admin links inside {userMenu}).
+  useEffect(() => setMenuOpen(false), [pathname]);
   const [scrolled, setScrolled] = useState(false);
 
   useEffect(() => {

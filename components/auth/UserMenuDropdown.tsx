@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import PlayerAvatar from "@/components/leaderboard/PlayerAvatar";
 import SignOutConfirm from "./SignOutConfirm";
@@ -16,6 +17,7 @@ export default function UserMenuDropdown({
   profileHref: string;
   isAdmin: boolean;
 }) {
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -44,10 +46,6 @@ export default function UserMenuDropdown({
         </span>
       </button>
 
-      {/* Filled via portal by pages that want something under the pill —
-          currently only /shop/cosmetics' flower balance. */}
-      <div id="user-menu-extra" className="user-menu-extra"></div>
-
       <div className={`user-dropdown ${open ? "open" : ""}`}>
         <Link href={profileHref} onClick={() => setOpen(false)}>
           <i className="fas fa-user"></i>Профіль
@@ -63,6 +61,34 @@ export default function UserMenuDropdown({
         <div className="user-dropdown-divider"></div>
         <SignOutConfirm />
       </div>
+
+      {/* Same links as the dropdown, flat — shown instead of the pill+dropdown
+          inside the burger menu (CSS: .mobile-menu-auth), matching its items. */}
+      <ul className="mobile-menutext user-menu-mobile">
+        <li>
+          <Link href={profileHref} className={pathname.startsWith("/profile") ? "active" : ""}>
+            <i className="fas fa-user" aria-hidden="true"></i>
+            <span className="nav-icon-label">Профіль</span>
+          </Link>
+        </li>
+        <li>
+          <Link href="/shop" className={pathname.startsWith("/shop") ? "active" : ""}>
+            <i className="fa-solid fa-crown" aria-hidden="true"></i>
+            <span className="nav-icon-label">Донат</span>
+          </Link>
+        </li>
+        {isAdmin && (
+          <li>
+            <Link href="/admin" className={pathname.startsWith("/admin") ? "active" : ""}>
+              <i className="fa-solid fa-shield-halved" aria-hidden="true"></i>
+              <span className="nav-icon-label">Панель</span>
+            </Link>
+          </li>
+        )}
+        <li>
+          <SignOutConfirm />
+        </li>
+      </ul>
     </div>
   );
 }

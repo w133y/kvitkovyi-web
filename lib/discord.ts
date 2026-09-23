@@ -38,9 +38,17 @@ export type DiscordButton = {
   disabled?: boolean;
 };
 
+// String select menu (component type 3) — must sit alone in its action row.
+export type DiscordSelectMenu = {
+  type: 3;
+  custom_id: string;
+  placeholder?: string;
+  options: { label: string; value: string; emoji?: { name: string }; default?: boolean }[];
+};
+
 export type DiscordActionRow = {
   type: 1;
-  components: DiscordButton[];
+  components: DiscordButton[] | [DiscordSelectMenu];
 };
 
 export type DiscordMessagePayload = {
@@ -73,6 +81,23 @@ export async function sendDiscordMessage(
   } catch (err) {
     await logError("discord: sendDiscordMessage error", err);
     return null;
+  }
+}
+
+// Replaces the "thinking…" placeholder of a deferred interaction response.
+// Authenticated by the interaction token itself (valid 15 min), not the bot
+// token — used when a slash command needs longer than Discord's 3s reply
+// window (e.g. /gallery downloading and re-uploading the photo).
+export async function editInteractionResponse(applicationId: string, interactionToken: string, content: string): Promise<void> {
+  try {
+    const res = await fetch(`${DISCORD_API}/webhooks/${applicationId}/${interactionToken}/messages/@original`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content }),
+    });
+    if (!res.ok) await logError("discord: editInteractionResponse failed", res.status, await res.text().catch(() => ""));
+  } catch (err) {
+    await logError("discord: editInteractionResponse error", err);
   }
 }
 

@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Suspense } from "react";
 import Script from "next/script";
 import SiteHeader from "@/components/layout/SiteHeader";
@@ -15,6 +15,12 @@ export const metadata: Metadata = {
   icons: {
     icon: "/icon.ico",
   },
+};
+
+// Tints iOS Safari's status/toolbar areas to the page background (--bg-page)
+// instead of white.
+export const viewport: Viewport = {
+  themeColor: "#141414",
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {

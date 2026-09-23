@@ -118,6 +118,7 @@ model User {
   donateOrders   DonateOrder[]
   cosmeticOrders CosmeticOrder[]
   galleryPhotos  GalleryPhoto[]
+  mapMarkers     MapMarker[]
   wikiArticles   WikiArticle[]
 }
 
@@ -568,4 +569,56 @@ model WikiArticle {
   updatedAt DateTime @updatedAt
 
   @@index([categoryId])
+}
+
+// Player-suggested BlueMap markers (the "Запропонувати мітку" form on /map).
+// Moderated in Discord (lib/map-markers-discord.ts); APPROVED ones are merged
+// into BlueMap's live markers.json by the /live-map proxy — nothing is
+// written to the Minecraft server's own BlueMap config.
+enum MapMarkerType {
+  CITY
+  FARM
+  EVENT
+  MONUMENT
+}
+
+enum MapMarkerStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model MapMarker {
+  id String @id @default(cuid())
+
+  label       String
+  type        MapMarkerType
+  description String?
+  // Only meaningful for CITY — a validated discord.gg / discord.com/invite link.
+  discordInvite String?
+
+  x Int
+  y Int
+  z Int
+
+  status MapMarkerStatus @default(PENDING)
+
+  // Temporary markers: null = permanent. expiresAt is set from durationDays
+  // at approval (not submission), so review time doesn't eat into it; the
+  // /live-map proxy stops showing the marker once it has passed.
+  durationDays Int?
+  expiresAt    DateTime?
+
+  submittedByUserId String
+  submittedByUser   User   @relation(fields: [submittedByUserId], references: [id])
+  nickname          String // linked Minecraft nickname at submission time
+
+  // The moderation message in the map channel — edited in place on clicks.
+  discordMessageId String?
+
+  createdAt  DateTime  @default(now())
+  reviewedAt DateTime?
+
+  @@index([status])
+  @@index([submittedByUserId, createdAt])
 }

@@ -16,7 +16,7 @@ export default async function CosmeticsPage() {
   ]);
 
   return (
-    <div className="box2">
+    <div className="box2 box2-bare">
       <div className="lbheader">
         <h2>
           <b>Косметика</b>

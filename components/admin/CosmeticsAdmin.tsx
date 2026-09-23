@@ -15,6 +15,8 @@ import {
 } from "@/lib/actions/cosmetics-admin";
 import type { CosmeticType } from "@prisma/client";
 
+const ADMIN_PAGE_SIZE = 20;
+
 type CosmeticItemRow = {
   id: string;
   type: CosmeticType;
@@ -345,6 +347,10 @@ export default function CosmeticsAdmin({
 }) {
   const [drafts, setDrafts] = useState(initialDrafts);
   const [published, setPublished] = useState(initialPublished);
+  // Each card can mount a 3D viewer and several inputs — rendering all ~350
+  // at once made the admin page sluggish, so both lists page in.
+  const [draftsShown, setDraftsShown] = useState(ADMIN_PAGE_SIZE);
+  const [publishedShown, setPublishedShown] = useState(ADMIN_PAGE_SIZE);
   const [mode, setMode] = useState<"single" | "pack">("single");
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
@@ -498,10 +504,19 @@ export default function CosmeticsAdmin({
         <>
           <h4 className="admin-gallery-photos-title">Чернетки ({drafts.length})</h4>
           <div className="admin-cosmetics-list">
-            {drafts.map((item) => (
+            {drafts.slice(0, draftsShown).map((item) => (
               <DraftCard key={item.id} item={item} onChanged={refresh} />
             ))}
           </div>
+          {draftsShown < drafts.length && (
+            <button
+              type="button"
+              className="leaderboard-load-more"
+              onClick={() => setDraftsShown((n) => n + ADMIN_PAGE_SIZE)}
+            >
+              Завантажити ще ({drafts.length - draftsShown})
+            </button>
+          )}
         </>
       )}
 
@@ -510,10 +525,19 @@ export default function CosmeticsAdmin({
         <p>Поки що нічого не опубліковано.</p>
       ) : (
         <div className="admin-cosmetics-list">
-          {published.map((item) => (
+          {published.slice(0, publishedShown).map((item) => (
             <PublishedCard key={item.id} item={item} onChanged={refresh} />
           ))}
         </div>
+      )}
+      {publishedShown < published.length && (
+        <button
+          type="button"
+          className="leaderboard-load-more"
+          onClick={() => setPublishedShown((n) => n + ADMIN_PAGE_SIZE)}
+        >
+          Завантажити ще ({published.length - publishedShown})
+        </button>
       )}
     </div>
   );
