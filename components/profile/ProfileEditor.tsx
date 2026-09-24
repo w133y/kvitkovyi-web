@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { updateProfile } from "@/lib/actions/profile";
+import { BIO_LINK_ERROR, bioContainsLink } from "@/lib/bio-links";
 import { PRONOUN_OPTIONS } from "@/lib/format-last-seen";
 
 const MAX_BIO_LENGTH = 160;
@@ -57,6 +58,12 @@ export default function ProfileEditor({
 
   function save() {
     setError(null);
+    // Same check the server enforces — here for an instant, readable message
+    // (production hides server-action error text).
+    if (bioContainsLink(bioInput)) {
+      setError(BIO_LINK_ERROR);
+      return;
+    }
     startTransition(async () => {
       try {
         await updateProfile(nickname, {

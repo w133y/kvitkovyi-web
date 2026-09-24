@@ -5,6 +5,7 @@ import { getDiscordLink } from "@/lib/mc-db";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import type { Pronoun } from "@/lib/format-last-seen";
+import { BIO_LINK_ERROR, bioContainsLink } from "@/lib/bio-links";
 
 const VALID_PRONOUNS = new Set<Pronoun>(["he", "she", "they"]);
 
@@ -86,6 +87,9 @@ export async function updateProfile(
   const pronoun = VALID_PRONOUNS.has(data.pronoun as Pronoun) ? data.pronoun : null;
 
   const trimmedBio = data.bio.trim().slice(0, MAX_BIO_LENGTH);
+  if (bioContainsLink(trimmedBio)) {
+    throw new Error(BIO_LINK_ERROR);
+  }
   if (trimmedBio.length === 0) {
     await prisma.playerBio.deleteMany({ where: { nickname } });
   } else {
@@ -106,5 +110,22 @@ export async function updateProfile(
     },
   });
 
+  revalidatePath(`/profile/${nickname}`);
+}
+
+async function requireAdmin() {
+  const session = await auth();
+  if (session?.user?.role !== "ADMIN") throw new Error("Доступ заборонено");
+}
+
+// /admin → "Описи гравців"
+export async function listPlayerBios(): Promise<{ nickname: string; bio: string }[]> {
+  await requireAdmin();
+  return prisma.playerBio.findMany({ select: { nickname: true, bio: true }, orderBy: { updatedAt: "desc" } });
+}
+
+export async function clearPlayerBio(nickname: string): Promise<void> {
+  await requireAdmin();
+  await prisma.playerBio.deleteMany({ where: { nickname } });
   revalidatePath(`/profile/${nickname}`);
 }

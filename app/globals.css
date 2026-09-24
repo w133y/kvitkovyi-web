@@ -8179,3 +8179,58 @@ body {
         animation: none;
     }
 }
+
+/* /admin → "Описи гравців" */
+.admin-bios {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.admin-bios-search {
+    padding: 8px 12px;
+    border: 1px solid var(--pill-border-soft-color);
+    border-radius: 10px;
+    background: rgb(35, 35, 35);
+    color: var(--text-primary);
+    font-family: inherit;
+}
+
+.admin-bios-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 12px;
+    border: 1px solid var(--pill-border-soft-color);
+    border-radius: 10px;
+}
+
+.admin-bios-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.admin-bios-text a {
+    color: var(--color-gold);
+    font-weight: 700;
+    text-decoration: none;
+}
+
+.admin-bios-text span {
+    color: var(--text-secondary);
+    font-size: 13px;
+    overflow-wrap: anywhere;
+}
+
+.admin-bios-row button {
+    flex: none;
+    padding: 6px 12px;
+    border: 1px solid;
+    border-radius: 8px;
+    background: none;
+    font-family: inherit;
+    cursor: pointer;
+}

@@ -17,6 +17,8 @@ import CosmeticsAdmin from "@/components/admin/CosmeticsAdmin";
 import SitePagesAdmin from "@/components/admin/SitePagesAdmin";
 import ServerIpAdmin from "@/components/admin/ServerIpAdmin";
 import MapMarkersAdmin from "@/components/admin/MapMarkersAdmin";
+import PlayerBiosAdmin from "@/components/admin/PlayerBiosAdmin";
+import { listPlayerBios } from "@/lib/actions/profile";
 import { countMapMarkers } from "@/lib/actions/map-markers";
 import { getServerInfo } from "@/lib/page-access";
 import { listDisabledPages } from "@/lib/actions/site-pages";
@@ -47,6 +49,7 @@ export default async function AdminPage() {
   const disabledPages = await listDisabledPages();
   const serverInfo = await getServerInfo();
   const markerCounts = await countMapMarkers();
+  const playerBios = await listPlayerBios();
 
   return (
     <div className="admin-page">
@@ -70,6 +73,11 @@ export default async function AdminPage() {
       <div className="admin-section">
         <h3>Мітки на мапі</h3>
         <MapMarkersAdmin initialCounts={markerCounts} />
+      </div>
+
+      <div className="admin-section">
+        <h3>Описи гравців</h3>
+        <PlayerBiosAdmin initialBios={playerBios} />
       </div>
 
       <div className="admin-section">
