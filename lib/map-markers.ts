@@ -195,12 +195,12 @@ type ApprovedMarker = {
 // as HTML in the marker popup, hence every user string is escaped. Its look
 // comes from public/map-popup.css (injected into BlueMap by the /live-map
 // proxy); the per-marker accent is passed as a CSS variable.
-export function buildPlayerMarkerSet(markers: ApprovedMarker[]) {
+function buildMarkerSet(label: string, sorting: number, maxDistance: number, markers: ApprovedMarker[]) {
   return {
-    label: "Мітки гравців",
+    label,
     toggleable: true,
     defaultHidden: false,
-    sorting: 1,
+    sorting,
     markers: Object.fromEntries(
       markers.map((m) => {
         const color = m.color && HEX_COLOR_RE.test(m.color) ? m.color : MARKER_TYPE_COLOR[m.type];
@@ -239,10 +239,33 @@ export function buildPlayerMarkerSet(markers: ApprovedMarker[]) {
             sorting: 0,
             listed: true,
             minDistance: 0,
-            maxDistance: 10_000_000,
+            maxDistance,
           },
         ];
       })
     ),
   };
+}
+
+// BlueMap camera distance (blocks) past which a marker hides. The map zooms
+// out to 7000 (settings.json maxZoomDistance), so 2500 ≈ "about 3x closer
+// than fully zoomed out" — farms/monuments only appear once you zoom in,
+// while cities and events stay visible at any zoom.
+const ALWAYS_VISIBLE = 10_000_000;
+export const MINOR_MARKER_MAX_DISTANCE = 2500;
+
+// One BlueMap marker set per group, each with its own toggle in the map's
+// marker menu; empty groups are left out.
+export function buildPlayerMarkerSets(markers: ApprovedMarker[]) {
+  const groups = [
+    { id: "player-cities", label: "Міста", types: ["CITY"], maxDistance: ALWAYS_VISIBLE },
+    { id: "player-events", label: "Івенти", types: ["EVENT"], maxDistance: ALWAYS_VISIBLE },
+    { id: "player-other", label: "Інше", types: ["FARM", "MONUMENT"], maxDistance: MINOR_MARKER_MAX_DISTANCE },
+  ] as const;
+  const sets: Record<string, ReturnType<typeof buildMarkerSet>> = {};
+  groups.forEach((g, i) => {
+    const inGroup = markers.filter((m) => (g.types as readonly MapMarkerType[]).includes(m.type));
+    if (inGroup.length) sets[g.id] = buildMarkerSet(g.label, i + 1, g.maxDistance, inGroup);
+  });
+  return sets;
 }

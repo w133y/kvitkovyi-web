@@ -90,7 +90,7 @@ export default function MarkerSuggest({ signedIn, hasLink }: { signedIn: boolean
   const icon = form.icon ?? MARKER_TYPE_EMOJI[form.type];
   // What the pin preview shows for the current logo choice.
   const previewImage =
-    form.logoMode === "upload" ? form.iconUpload : form.logoMode === "url" && form.iconUrl.startsWith("https://") ? form.iconUrl : null;
+    form.logoMode === "upload" ? form.iconUpload : form.logoMode === "url" && form.iconUrl?.startsWith("https://") ? form.iconUrl : null;
 
   function onLogoFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];

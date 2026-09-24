@@ -1,7 +1,7 @@
 // Self-check for the marker validation/escaping — player text ends up as
 // HTML inside BlueMap's marker popups. Run: npx tsx lib/map-markers.check.ts
 import assert from "node:assert/strict";
-import { buildPlayerMarkerSet, validateMarker, type MarkerInput } from "./map-markers";
+import { MINOR_MARKER_MAX_DISTANCE, buildPlayerMarkerSets, validateMarker, type MarkerInput } from "./map-markers";
 
 const base: MarkerInput = { label: "Ню-Ріно", type: "CITY", description: "", discordInvite: "", x: 10, y: 64, z: -20, durationDays: null, color: null, icon: null, iconImage: null };
 const ok = (i: Partial<MarkerInput>) => !("error" in validateMarker({ ...base, ...i }));
@@ -27,11 +27,18 @@ assert.ok(!ok({ discordInvite: "javascript:alert(1)" }), "non-discord link");
 const farm = validateMarker({ ...base, type: "FARM", discordInvite: "https://discord.gg/abc123" });
 assert.ok(!("error" in farm) && farm.discordInvite === null);
 
-const set = buildPlayerMarkerSet([
+const sets = buildPlayerMarkerSets([
   { id: "m1", label: "Test", type: "CITY", description: "<script>alert(1)</script>", discordInvite: null, x: 1, y: 2, z: 3, nickname: "a&b", expiresAt: null, color: null, icon: null, iconImage: null },
 ]);
-const detail = set.markers["player-m1"].detail;
+const detail = sets["player-cities"].markers["player-m1"].detail;
 assert.ok(!detail.includes("<script>") && detail.includes("&lt;script&gt;"), "description escaped");
 assert.ok(detail.includes("a&amp;b"), "nickname escaped");
+
+// Grouping + zoom visibility: farms/monuments only when zoomed in; no empty sets.
+const grouped = buildPlayerMarkerSets([
+  { id: "f", label: "Farm", type: "FARM", description: null, discordInvite: null, x: 0, y: 0, z: 0, nickname: "n", expiresAt: null, color: null, icon: null, iconImage: null },
+]);
+assert.deepEqual(Object.keys(grouped), ["player-other"]);
+assert.equal(grouped["player-other"].markers["player-f"].maxDistance, MINOR_MARKER_MAX_DISTANCE);
 
 console.log("map-markers: all checks passed");

@@ -6,7 +6,7 @@
 // whenever the browser ends up on the no-trailing-slash "/live-map" URL
 // (which Next's own routing normalizes to, redirecting away "/live-map/").
 import { prisma } from "@/lib/prisma";
-import { buildPlayerMarkerSet } from "@/lib/map-markers";
+import { buildPlayerMarkerSets } from "@/lib/map-markers";
 
 const TARGET = "http://REDACTED:25585";
 
@@ -17,10 +17,10 @@ const MARKERS_PATH = "maps/map/live/markers.json";
 
 // ponytail: per-instance 30s cache so every open map tab polling markers.json
 // doesn't hit the DB each time; approvals show up within 30s.
-let playerMarkersCache: { at: number; set: ReturnType<typeof buildPlayerMarkerSet> } | null = null;
+let playerMarkersCache: { at: number; sets: ReturnType<typeof buildPlayerMarkerSets> } | null = null;
 
-async function getPlayerMarkerSet() {
-  if (playerMarkersCache && Date.now() - playerMarkersCache.at < 30_000) return playerMarkersCache.set;
+async function getPlayerMarkerSets() {
+  if (playerMarkersCache && Date.now() - playerMarkersCache.at < 30_000) return playerMarkersCache.sets;
   const markers = await prisma.mapMarker.findMany({
     where: { status: "APPROVED", OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }] },
     select: {
@@ -39,9 +39,9 @@ async function getPlayerMarkerSet() {
       iconImage: true,
     },
   });
-  const set = buildPlayerMarkerSet(markers);
-  playerMarkersCache = { at: Date.now(), set };
-  return set;
+  const sets = buildPlayerMarkerSets(markers);
+  playerMarkersCache = { at: Date.now(), sets };
+  return sets;
 }
 
 // Headers that don't make sense (or would be wrong) to forward as-is from
@@ -76,7 +76,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ path
   if (subPath === MARKERS_PATH && upstream.ok) {
     try {
       const sets = (await upstream.json()) as Record<string, unknown>;
-      sets["player-markers"] = await getPlayerMarkerSet();
+      Object.assign(sets, await getPlayerMarkerSets());
       return Response.json(sets, { status: upstream.status, headers });
     } catch (err) {
       console.error("live-map proxy: failed to merge player markers", err);

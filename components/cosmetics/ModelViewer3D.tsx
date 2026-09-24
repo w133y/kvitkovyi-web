@@ -65,7 +65,14 @@ async function buildAtlas(textureRefs: string[], blob: Blob): Promise<TextureAtl
   canvas.height = size;
   const ctx = canvas.getContext("2d")!;
   ctx.drawImage(img, 0, 0);
-  const uv: [number, number, number, number] = [0, 0, img.width / size, img.height / size];
+  // An animated texture (.png.mcmeta in the pack) is a vertical strip of
+  // square frames — map only the first frame, like the game's first tick,
+  // instead of squashing the whole strip onto the model.
+  // ponytail: detected by shape (height an exact multiple of width); a
+  // genuinely tall non-animated texture would be cropped too — store an
+  // "animated" flag per item if one ever turns up.
+  const frameHeight = img.height > img.width && img.height % img.width === 0 ? img.width : img.height;
+  const uv: [number, number, number, number] = [0, 0, img.width / size, frameHeight / size];
   // Keyed through Identifier so an un-namespaced ref ("block/x") matches
   // the "minecraft:block/x" deepslate looks it up by. Every ref maps to the
   // one texture this app stores per item.
