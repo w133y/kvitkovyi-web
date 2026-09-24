@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="128" height="128" shape-rendering="crispEdges">
+  <!-- Animated "Флорист" card icon (lib/sponsor-cards.ts): pixel flower in
+       the Florist badge's yellow (#FFFF55), petals slowly turning and
+       breathing, with twinkling sparkles. CSS-only, plays inside <img>. -->
+  <style>
+    .petals { animation: turn 9s linear infinite, breathe 2.4s ease-in-out infinite; transform-origin: 8px 7px; }
+    .spark { animation: twinkle 1.8s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+    .s2 { animation-delay: .6s; }
+    .s3 { animation-delay: 1.2s; }
+    @keyframes turn { to { rotate: 360deg; } }
+    @keyframes breathe { 0%, 100% { scale: 1; } 50% { scale: 1.08; } }
+    @keyframes twinkle { 0%, 100% { opacity: 0; transform: scale(.3); } 50% { opacity: 1; transform: scale(1); } }
+  </style>
+  <!-- stem + leaves -->
+  <rect x="7" y="10" width="2" height="6" fill="#2f8f3a"/>
+  <rect x="4" y="12" width="3" height="2" fill="#3ecf6e"/>
+  <rect x="9" y="13" width="3" height="2" fill="#3ecf6e"/>
+  <g class="petals">
+    <!-- petals (outline, then fill) -->
+    <path fill="#b3a300" d="M6 1h4v3h3v2h1v2h-1v2h-3v3H6v-3H3V8H2V6h1V4h3z"/>
+    <path fill="#ffff55" d="M7 2h2v3h3v1h1v2h-1v1H9v3H7V9H4V8H3V6h1V5h3z"/>
+    <path fill="#fffbb3" d="M7 2h2v1H7zM3 6h1v1H3zM12 6h1v1h-1z"/>
+    <!-- center -->
+    <rect x="6" y="5" width="4" height="4" fill="#e07a00"/>
+    <rect x="7" y="6" width="2" height="2" fill="#ffb13b"/>
+  </g>
+  <!-- sparkles -->
+  <path class="spark" fill="#fffde0" d="M1 1h1v1H1z" stroke="#fffde0" stroke-width=".5"/>
+  <path class="spark s2" fill="#fffde0" d="M14 2h1v1h-1z" stroke="#fffde0" stroke-width=".5"/>
+  <path class="spark s3" fill="#fffde0" d="M13 11h1v1h-1z" stroke="#fffde0" stroke-width=".5"/>
+</svg>

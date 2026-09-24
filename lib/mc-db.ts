@@ -134,6 +134,45 @@ export async function searchPlayerNicknames(query: string, limit = 20): Promise<
   }
 }
 
+export type PlayerFilterRow = {
+  nickname: string;
+  hours: number; // total playtime
+  activeHours: number; // playtime minus AFK time
+  firstJoin: number | null; // ms timestamp
+  lastSeen: number | null; // ms timestamp
+  votes: number;
+  hasDiscord: boolean;
+};
+
+// Every player with the stats the admin card-award filters work on
+// (lib/actions/achievements.ts filterPlayers). A few hundred rows at most,
+// so filtering happens in JS rather than building dynamic SQL.
+export async function listPlayersForFilter(): Promise<PlayerFilterRow[]> {
+  try {
+    const [rows] = await withRetry(() =>
+      getPool().query<mysql.RowDataPacket[]>(
+        `SELECT pt.nickname, pt.playtime, pt.afk_playtime, pt.first_join, pt.last_seen, vp.AllTimeTotal,
+           EXISTS (SELECT 1 FROM discordsrv_accounts d WHERE d.uuid = pt.uuid COLLATE utf8mb4_general_ci) AS has_discord
+         FROM play_time pt
+         LEFT JOIN VotingPlugin_Users vp ON vp.uuid COLLATE utf8mb4_unicode_ci = pt.uuid`
+      )
+    );
+    const toHours = (ticks: unknown) => Math.floor(Number(ticks ?? 0) / 20 / 3600);
+    return rows.map((row) => ({
+      nickname: row.nickname as string,
+      hours: toHours(row.playtime),
+      activeHours: toHours(Number(row.playtime ?? 0) - Number(row.afk_playtime ?? 0)),
+      firstJoin: row.first_join ? Number(row.first_join) : null,
+      lastSeen: row.last_seen ? Number(row.last_seen) : null,
+      votes: Number(row.AllTimeTotal) || 0,
+      hasDiscord: Boolean(Number(row.has_discord)),
+    }));
+  } catch (err) {
+    await logError("mc-db: listPlayersForFilter failed", err);
+    return [];
+  }
+}
+
 // Just the uuid, for callers that only need it to look up something else
 // (e.g. the donate-order gift picker fetching a recipient's skin) —
 // deliberately not routed through getPlayerProfileByNickname, whose 3-way
@@ -164,6 +203,8 @@ export type FullLeaderboardEntry = {
   aviateKm: number;
   votes: number;
   lastSeen: number | null;
+  // Added by app/api/leaderboard from the site DB (lib/sponsorship.ts).
+  sponsorDays?: number;
 };
 
 // Column each sort key orders by — raw ticks/cm rather than the derived

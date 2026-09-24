@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from "react";
 import { searchPlayers } from "@/lib/actions/achievements";
 
+const VISIBLE_TAGS = 20;
+
 export default function NicknameMultiSelect({
   selected,
   onChange,
@@ -73,7 +75,9 @@ export default function NicknameMultiSelect({
   return (
     <div className="nickname-multiselect" ref={containerRef}>
       <div className="nickname-multiselect-tags">
-        {selected.map((n) => (
+        {/* After "Усі гравці" this can be 100+ names — show the first few and
+            a count rather than a wall of tags. */}
+        {selected.slice(0, VISIBLE_TAGS).map((n) => (
           <span className="nickname-multiselect-tag" key={n}>
             {n}
             <button type="button" onClick={() => remove(n)} aria-label={`Прибрати ${n}`}>
@@ -81,6 +85,9 @@ export default function NicknameMultiSelect({
             </button>
           </span>
         ))}
+        {selected.length > VISIBLE_TAGS && (
+          <span className="nickname-multiselect-more">+{selected.length - VISIBLE_TAGS} ще</span>
+        )}
         {!atMax && (
           <input
             type="text"

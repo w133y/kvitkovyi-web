@@ -1,4 +1,5 @@
 import { getLeaderboardPage, isLeaderboardSortKey } from "@/lib/mc-db";
+import { getSponsorDaysByNickname } from "@/lib/sponsorship";
 
 // Backs the /leaderboard page's search box, sort list, direction toggle,
 // and "Завантажити ще" button — each page (20 initially, then 10 at a
@@ -9,6 +10,10 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
 
   const sortParam = searchParams.get("sort") ?? "totalMinutes";
+  // "sponsorDays" lives in the site DB, not the MC DB the SQL sorts in — so
+  // that sort fetches every (search-matching) player and orders them here.
+  // A few hundred rows at most.
+  const bySponsorship = sortParam === "sponsorDays";
   const sortKey = isLeaderboardSortKey(sortParam) ? sortParam : "totalMinutes";
 
   const direction = searchParams.get("direction") === "asc" ? "asc" : "desc";
@@ -24,11 +29,19 @@ export async function GET(request: Request) {
   // is unnecessary in those cases.
   const withCount = searchParams.get("count") !== "0";
 
-  const { entries, total, error } = await getLeaderboardPage(sortKey, offset, limit, {
-    search,
-    direction,
-    withCount,
-  });
+  const [page, sponsorDays] = await Promise.all([
+    bySponsorship
+      ? getLeaderboardPage("totalMinutes", 0, 5000, { search, direction: "desc", withCount: true })
+      : getLeaderboardPage(sortKey, offset, limit, { search, direction, withCount }),
+    getSponsorDaysByNickname(),
+  ]);
+  const { total, error } = page;
+  let entries = page.entries.map((e) => ({ ...e, sponsorDays: sponsorDays.get(e.nickname.toLowerCase()) ?? 0 }));
+  if (bySponsorship) {
+    const sign = direction === "asc" ? 1 : -1;
+    // Ties (e.g. all the non-sponsors at 0) keep the playtime order.
+    entries = entries.sort((a, b) => sign * (a.sponsorDays - b.sponsorDays)).slice(offset, offset + limit);
+  }
 
   // A non-200 here (vs. always 200 with an empty list) is what lets the
   // client tell "this query genuinely matched nothing" apart from "the DB

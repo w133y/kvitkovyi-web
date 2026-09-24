@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { auth } from "@/lib/auth";
+import { getSession } from "@/lib/auth";
 import SignInButton from "@/components/auth/SignInButton";
 import CheckoutForm from "@/components/shop/CheckoutForm";
 
@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 };
 
 export default async function CheckoutPage() {
-  const session = await auth();
+  const session = await getSession();
 
   return (
     <div className="box2">

@@ -6,9 +6,11 @@ import {
   deleteAchievement,
   updateAchievement,
   type AchievementInput,
+  listAllPlayers,
 } from "@/lib/actions/achievements";
 import AchievementCard from "@/components/profile/AchievementCard";
 import NicknameMultiSelect from "@/components/admin/NicknameMultiSelect";
+import PlayerFilters from "@/components/admin/PlayerFilters";
 
 type Achievement = {
   id: string;
@@ -62,6 +64,18 @@ export default function AchievementsAdmin({
   const [achievements, setAchievements] = useState(initialAchievements);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const [loadingPlayers, setLoadingPlayers] = useState(false);
+
+  // Awarding a card to everyone who ever played (play_time).
+  async function selectAllPlayers() {
+    setLoadingPlayers(true);
+    try {
+      const all = await listAllPlayers();
+      setForm((f) => ({ ...f, nicknames: Array.from(new Set([...f.nicknames, ...all])) }));
+    } finally {
+      setLoadingPlayers(false);
+    }
+  }
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const [openPlayer, setOpenPlayer] = useState<string | null>(null);
@@ -226,13 +240,39 @@ export default function AchievementsAdmin({
       <div className="admin-achievements-form">
         <div className="admin-form-fields">
           <label className="admin-field">
-            {editingId ? "Гравець" : "Гравці"}
+            <span className="admin-field-head">
+              {editingId ? "Гравець" : "Гравці"}
+              {!editingId && (
+                <span className="admin-field-head-actions">
+                  <button type="button" onClick={selectAllPlayers} disabled={loadingPlayers}>
+                    {loadingPlayers ? "Завантаження..." : "Усі гравці"}
+                  </button>
+                  {form.nicknames.length > 0 && (
+                    <button type="button" onClick={() => setForm((f) => ({ ...f, nicknames: [] }))}>
+                      Очистити
+                    </button>
+                  )}
+                </span>
+              )}
+            </span>
             <NicknameMultiSelect
               selected={form.nicknames}
               onChange={(nicknames) => setForm((f) => ({ ...f, nicknames }))}
               max={editingId ? 1 : undefined}
             />
           </label>
+
+          {!editingId && (
+            <PlayerFilters
+              card={{ category, title: form.title }}
+              onSelect={(found, mode) =>
+                setForm((f) => ({
+                  ...f,
+                  nicknames: mode === "replace" ? found : Array.from(new Set([...f.nicknames, ...found])),
+                }))
+              }
+            />
+          )}
 
           <label className="admin-field">
             Категорія

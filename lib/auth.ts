@@ -1,3 +1,4 @@
+import { cache } from "react";
 import NextAuth from "next-auth";
 import Discord from "next-auth/providers/discord";
 import { PrismaAdapter } from "@auth/prisma-adapter";
@@ -31,3 +32,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
   },
 });
+
+// auth() hits the session table on every call; the root layout and the
+// per-section access check both need it on every page. This shares one
+// lookup per request between them.
+export const getSession = cache(() => auth());

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { auth } from "@/lib/auth";
+import { getSession } from "@/lib/auth";
 import { getPlayerProfileByNickname, getDiscordLink, getDiscordIdForPlayer, getPlaytimeRank } from "@/lib/mc-db";
 import { getSkinTexture, STEVE_SKIN } from "@/lib/mojang-skin";
 import { getBio } from "@/lib/bio";
@@ -35,7 +35,7 @@ export default async function PublicProfilePage({
   const { nickname } = await params;
   // profile and the viewer's own session are independent lookups (neither
   // needs the other), so they run together instead of back to back.
-  const [profile, session] = await Promise.all([getPlayerProfileByNickname(nickname), auth()]);
+  const [profile, session] = await Promise.all([getPlayerProfileByNickname(nickname), getSession()]);
 
   if (!profile) {
     notFound();
@@ -121,6 +121,10 @@ export default async function PublicProfilePage({
         </div>
       )}
 
+      {/* Right column as its own block, so its cards don't follow the left
+          column's row heights (expanding the skin viewer used to push the
+          cards down). display: contents on phones — see globals.css. */}
+      <div className="profile-right">
       <div className="profile-stats-card">
         <div className="profile-stats-grid">
           <StatBox icon={<SwordsIcon />} label="Вбивств гравців" value={profile.playerKills} />
@@ -159,6 +163,7 @@ export default async function PublicProfilePage({
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

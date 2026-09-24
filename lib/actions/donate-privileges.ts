@@ -1,5 +1,6 @@
 "use server";
 
+import { awardSponsorCard } from "@/lib/sponsor-cards";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import {
@@ -66,6 +67,7 @@ export async function grantPrivilege(input: GrantPrivilegeInput): Promise<{ id: 
   // The DB row alone only drives the site's own badge — grant the actual
   // LuckPerms group + suffix too, same as a confirmed Donatello payment does.
   await grantDonatePrivilegeInGame({ nickname, tier: input.tier, iconSymbol, iconColorHex });
+  await awardSponsorCard(nickname, input.tier);
   await logDonatePrivilegeGranted({
     nickname,
     tier: input.tier,

@@ -21,12 +21,13 @@ async function countSubmittedToday(userId: string): Promise<number> {
   });
 }
 
+// Read first — this runs on every home page render (ImageSlider); the upsert
+// (a write) is only needed the very first time, before the row exists.
 export async function getGallerySettings() {
-  return prisma.gallerySettings.upsert({
-    where: { id: "default" },
-    update: {},
-    create: { id: "default" },
-  });
+  return (
+    (await prisma.gallerySettings.findUnique({ where: { id: "default" } })) ??
+    prisma.gallerySettings.upsert({ where: { id: "default" }, update: {}, create: { id: "default" } })
+  );
 }
 
 export type UploadTargetResult = ({ ok: true } & GalleryUploadTarget) | { error: string };

@@ -3,11 +3,12 @@ import { Suspense } from "react";
 import Script from "next/script";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
+import ScrollReveal from "@/components/layout/ScrollReveal";
 import UserMenu from "@/components/auth/UserMenu";
 import UserMenuSkeleton from "@/components/auth/UserMenuSkeleton";
 import ResumeDonatePrompt from "@/components/shop/ResumeDonatePrompt";
 import { CartProvider } from "@/lib/cart/CartContext";
-import { auth } from "@/lib/auth";
+import { getSession } from "@/lib/auth";
 import { getHiddenPagesForViewer } from "@/lib/page-access";
 import "../globals.css";
 
@@ -25,15 +26,16 @@ export const viewport: Viewport = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const [session, hiddenPages] = await Promise.all([auth(), getHiddenPagesForViewer()]);
+  const [session, hiddenPages] = await Promise.all([getSession(), getHiddenPagesForViewer()]);
 
   return (
     <html lang="uk">
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossOrigin="anonymous" />
         <link
-          href="https://fonts.googleapis.com/css2?family=Ubuntu+Sans:ital,wght@0,100..800;1,100..800&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Ubuntu+Sans:wght@400..800&display=swap"
           rel="stylesheet"
         />
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
@@ -53,6 +55,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
             }
           />
           <main className="site-main">{children}</main>
+          <ScrollReveal />
           <SiteFooter />
           {session && <ResumeDonatePrompt />}
         </CartProvider>

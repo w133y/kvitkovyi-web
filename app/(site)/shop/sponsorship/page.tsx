@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { auth } from "@/lib/auth";
+import { getSession } from "@/lib/auth";
 import { getDiscordLink } from "@/lib/mc-db";
 import { getSkinTexture, STEVE_SKIN } from "@/lib/mojang-skin";
 import DonateBuilder from "@/components/shop/DonateBuilder";
@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 };
 
 export default async function SponsorshipPage() {
-  const session = await auth();
+  const session = await getSession();
   const link = session?.user?.discordId ? await getDiscordLink(session.user.discordId) : null;
 
   return (

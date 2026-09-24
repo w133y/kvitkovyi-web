@@ -16,7 +16,8 @@ type StatKey =
   | "sprintKm"
   | "swimKm"
   | "aviateKm"
-  | "votes";
+  | "votes"
+  | "sponsorDays";
 
 type SortMode = "stat" | "alpha";
 type Direction = "asc" | "desc";
@@ -27,6 +28,7 @@ type Direction = "asc" | "desc";
 const STAT_OPTIONS: { key: StatKey; label: string; icon?: string; iconImg?: string }[] = [
   { key: "totalMinutes", label: "Час у грі", icon: "fa-regular fa-clock" },
   { key: "votes", label: "Голоси", iconImg: "/favicon.ico" },
+  { key: "sponsorDays", label: "Спонсорство", icon: "fa-solid fa-crown" },
   { key: "playerKills", label: "Вбивств гравців", icon: "fa-solid fa-skull-crossbones" },
   { key: "deaths", label: "Смертей", icon: "fa-solid fa-heart-crack" },
   { key: "walkKm", label: "Пішки", icon: "fa-solid fa-shoe-prints" },
@@ -49,6 +51,11 @@ const DEFAULT_DIRECTION: Direction = "desc";
 function formatValue(entry: FullLeaderboardEntry, key: StatKey) {
   if (key === "totalMinutes") return `${entry.hours}г ${entry.minutes}хв`;
   if (key === "votes") return `${entry.votes} голосів`;
+  if (key === "sponsorDays") {
+    const days = entry.sponsorDays ?? 0;
+    if (days === 0) return "—";
+    return days >= 30 ? `${Math.round(days / 30)} міс.` : `${days} дн.`;
+  }
   if (key === "playerKills" || key === "deaths") return String(entry[key]);
   return `${entry[key]} км`;
 }

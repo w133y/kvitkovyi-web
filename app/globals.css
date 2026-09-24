@@ -5165,7 +5165,7 @@ header nav .auth-widget {
     width: 100%;
     height: 260px;
     overflow: hidden;
-    transition: height 0.4s ease;
+    transition: height 0.45s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .skin-viewer-wrapper.expanded {
@@ -5174,7 +5174,7 @@ header nav .auth-widget {
 
 .skin-viewer-wrapper canvas {
     cursor: default;
-    transition: opacity 0.25s ease, transform 0.4s ease;
+    transition: opacity 0.25s ease, transform 0.45s cubic-bezier(0.4, 0, 0.2, 1);
     transform: translateY(19px);
 }
 
@@ -5577,6 +5577,22 @@ header nav .auth-widget {
    already used by the left sidebar (bio/icons/edit button) on profiles that
    don't have any yet. align-self: start keeps it from stretching down to
    match the sidebar's full height when it's shorter than that. */
+/* Desktop: stats + cards stacked in one right-hand column spanning the
+   left column's rows, independent of their heights. */
+.profile-right {
+    grid-column: 2;
+    grid-row: 2 / 7;
+    align-self: start;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    min-width: 0;
+}
+
+.profile-right > * {
+    align-self: stretch;
+}
+
 .profile-achievements-card {
     grid-column: 2;
     grid-row: 3 / 7;
@@ -5917,6 +5933,10 @@ header nav .auth-widget {
         width: 100%;
         max-width: 400px;
         box-sizing: border-box;
+    }
+
+    .profile-right {
+        display: contents;
     }
 
     .profile-stats-card {
@@ -7954,4 +7974,208 @@ body {
     border-radius: 999px;
     color: var(--color-red);
     font-size: 11px;
+}
+
+/* /admin — "Усі гравці / Очистити" next to a field label, collapsed tag
+   overflow, and a destructive button. */
+.admin-field-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.admin-field-head-actions {
+    display: flex;
+    gap: 6px;
+}
+
+.admin-field-head-actions button {
+    padding: 3px 10px;
+    border: 1px solid var(--pill-border-soft-color);
+    border-radius: 8px;
+    background: rgb(35, 35, 35);
+    color: var(--text-secondary);
+    font-family: inherit;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.nickname-multiselect-more {
+    align-self: center;
+    padding: 2px 8px;
+    color: var(--color-gold);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.admin-danger-btn {
+    border-color: var(--color-red) !important;
+    color: var(--color-red) !important;
+}
+
+/* /admin card form — "Фільтри гравців" (components/admin/PlayerFilters.tsx) */
+.player-filters-toggle,
+.player-filters-actions button {
+    padding: 6px 12px;
+    border: 1px solid var(--pill-border-soft-color);
+    border-radius: 8px;
+    background: rgb(35, 35, 35);
+    color: var(--text-secondary);
+    font-family: inherit;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.player-filters-toggle {
+    align-self: flex-start;
+}
+
+.player-filters {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 14px;
+    border: 1px solid var(--pill-border-soft-color);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.02);
+}
+
+.player-filters-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 10px;
+}
+
+.player-filters-grid label {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    color: var(--text-secondary);
+    font-size: 12px;
+}
+
+.player-filters-grid input,
+.player-filters-grid select {
+    padding: 7px 9px;
+    border: 1px solid var(--pill-border-soft-color);
+    border-radius: 8px;
+    background: rgb(35, 35, 35);
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 13px;
+    color-scheme: dark;
+}
+
+.player-filters-checks {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.player-filters-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.player-filters-result p {
+    margin: 0 0 8px;
+    color: var(--text-secondary);
+    font-size: 13px;
+}
+
+.player-filters-result b {
+    color: var(--color-gold);
+}
+
+.player-filters-preview {
+    color: var(--text-muted);
+}
+
+/* ----------------------------- */
+/* Motion — scroll reveal (components/layout/ScrollReveal.tsx) and small
+   press/hover feedback. Everything here is disabled for visitors who asked
+   their OS for reduced motion. */
+.reveal {
+    opacity: 0;
+    transform: translateY(18px);
+    transition:
+        opacity 0.6s ease,
+        transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.reveal.reveal-in {
+    opacity: 1;
+    transform: none;
+}
+
+/* Tactile press on the main buttons. */
+.custom-button,
+.cosmetics-add-btn,
+.donate-continue-btn,
+.leaderboard-load-more,
+.map-suggest-btn,
+.join-button,
+.copy-button {
+    transition:
+        transform 0.15s ease,
+        background 0.2s ease,
+        border-color 0.2s ease,
+        color 0.2s ease,
+        opacity 0.2s ease;
+}
+
+.custom-button:active,
+.cosmetics-add-btn:active,
+.donate-continue-btn:active:not(:disabled),
+.leaderboard-load-more:active,
+.map-suggest-btn:active,
+.join-button:active,
+.copy-button:active {
+    transform: scale(0.96);
+}
+
+/* Cards lift a little on hover (pointer devices only — no sticky hover on
+   touch screens). */
+@media (hover: hover) {
+    .feature,
+    .stat-box,
+    .shop-category-card:not(.shop-category-card-disabled) {
+        transition: transform 0.25s ease, border-color 0.25s ease;
+    }
+
+    .stat-box:hover {
+        transform: translateY(-3px);
+    }
+}
+
+/* Soft glow pulse on the gold accent buttons' hover. */
+@keyframes kv-glow {
+    0%, 100% { box-shadow: 0 0 0 rgba(255, 209, 57, 0); }
+    50% { box-shadow: 0 0 18px rgba(255, 209, 57, 0.25); }
+}
+
+@media (hover: hover) {
+    .cosmetics-add-btn:hover,
+    .map-suggest-btn:hover {
+        animation: kv-glow 1.6s ease-in-out infinite;
+    }
+}
+
+/* Reduced motion: drop only the decorative effects above (scroll reveal,
+   glow). Functional transitions — e.g. the profile skin card expanding —
+   stay: killing every transition site-wide made those snap instantly. */
+@media (prefers-reduced-motion: reduce) {
+    .reveal,
+    .reveal.reveal-in {
+        opacity: 1;
+        transform: none;
+        transition: none;
+    }
+
+    .cosmetics-add-btn:hover,
+    .map-suggest-btn:hover {
+        animation: none;
+    }
 }

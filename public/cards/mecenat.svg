@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="128" height="128" shape-rendering="crispEdges">
+  <!-- Animated "Меценат" card icon (lib/sponsor-cards.ts): pixel crown that
+       bobs, with a light sweep across it and twinkling sparkles. CSS
+       animation inside the SVG, so it also plays when loaded via <img>. -->
+  <style>
+    .bob { animation: bob 2.4s ease-in-out infinite; transform-origin: 8px 8px; }
+    .shine { animation: shine 2.8s ease-in-out infinite; }
+    .spark { animation: twinkle 1.8s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+    .s2 { animation-delay: .6s; }
+    .s3 { animation-delay: 1.2s; }
+    @keyframes bob { 0%, 100% { transform: translateY(0.4px); } 50% { transform: translateY(-0.6px); } }
+    @keyframes shine { 0% { transform: translateX(-10px); } 55%, 100% { transform: translateX(14px); } }
+    @keyframes twinkle { 0%, 100% { opacity: 0; transform: scale(.3); } 50% { opacity: 1; transform: scale(1); } }
+  </style>
+  <defs>
+    <clipPath id="crown">
+      <path d="M2 13V5h1v1h1v1h1v1h1V7h1V5h1V3h1v2h1v2h1v1h1V7h1V6h1V5h1v8z"/>
+    </clipPath>
+  </defs>
+  <g class="bob">
+    <!-- outline -->
+    <path fill="#8a5a00" d="M1 14V4h2v1h1v1h1v1h1V6h1V4h1V2h2v2h1v2h1v1h1V6h1V5h1V4h2v10z"/>
+    <!-- body -->
+    <path fill="#ffd139" d="M2 13V5h1v1h1v1h1v1h1V7h1V5h1V3h1v2h1v2h1v1h1V7h1V6h1V5h1v8z"/>
+    <!-- base band -->
+    <rect x="2" y="11" width="12" height="2" fill="#e0a800"/>
+    <rect x="2" y="11" width="12" height="1" fill="#ffe680"/>
+    <!-- gems -->
+    <rect x="7" y="8" width="2" height="2" fill="#ff4d6d"/>
+    <rect x="4" y="9" width="1" height="1" fill="#4dabff"/>
+    <rect x="11" y="9" width="1" height="1" fill="#3ecf6e"/>
+    <!-- tip pearls -->
+    <rect x="1" y="3" width="2" height="1" fill="#fff4c2"/>
+    <rect x="7" y="1" width="2" height="1" fill="#fff4c2"/>
+    <rect x="13" y="3" width="2" height="1" fill="#fff4c2"/>
+    <!-- light sweep, clipped to the crown -->
+    <g clip-path="url(#crown)">
+      <path class="shine" fill="#ffffff" fill-opacity=".55" d="M2 14 6 2h2L4 14z"/>
+    </g>
+  </g>
+  <!-- sparkles -->
+  <path class="spark" fill="#fff8d6" d="M1 1h1v1H1zM0 1.5h3M1.5 0v3" stroke="#fff8d6" stroke-width=".5"/>
+  <path class="spark s2" fill="#fff8d6" d="M14 0h1v1h-1z" stroke="#fff8d6" stroke-width=".5"/>
+  <path class="spark s3" fill="#fff8d6" d="M13.5 14.5h1v1h-1z" stroke="#fff8d6" stroke-width=".5"/>
+</svg>

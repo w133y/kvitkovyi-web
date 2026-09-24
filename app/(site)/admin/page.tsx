@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { auth } from "@/lib/auth";
+import { getSession } from "@/lib/auth";
 import { listAchievements } from "@/lib/actions/achievements";
 import { listPrivileges } from "@/lib/actions/donate-privileges";
 import { getGallerySettings, listGalleryPhotosForAdmin } from "@/lib/actions/gallery";
@@ -16,6 +16,8 @@ import AdminLog from "@/components/admin/AdminLog";
 import CosmeticsAdmin from "@/components/admin/CosmeticsAdmin";
 import SitePagesAdmin from "@/components/admin/SitePagesAdmin";
 import ServerIpAdmin from "@/components/admin/ServerIpAdmin";
+import MapMarkersAdmin from "@/components/admin/MapMarkersAdmin";
+import { countMapMarkers } from "@/lib/actions/map-markers";
 import { getServerInfo } from "@/lib/page-access";
 import { listDisabledPages } from "@/lib/actions/site-pages";
 
@@ -24,7 +26,7 @@ export const metadata: Metadata = {
 };
 
 export default async function AdminPage() {
-  const session = await auth();
+  const session = await getSession();
 
   // Same response (404) whether the visitor is logged out or logged in as a
   // regular user — this route shouldn't confirm its own existence to anyone
@@ -44,6 +46,7 @@ export default async function AdminPage() {
   const publishedCosmetics = await listPublishedCosmetics();
   const disabledPages = await listDisabledPages();
   const serverInfo = await getServerInfo();
+  const markerCounts = await countMapMarkers();
 
   return (
     <div className="admin-page">
@@ -62,6 +65,11 @@ export default async function AdminPage() {
       <div className="admin-section">
         <h3>Сервер</h3>
         <ServerIpAdmin initialIp={serverInfo.ip} initialVersion={serverInfo.version} />
+      </div>
+
+      <div className="admin-section">
+        <h3>Мітки на мапі</h3>
+        <MapMarkersAdmin initialCounts={markerCounts} />
       </div>
 
       <div className="admin-section">

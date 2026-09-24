@@ -2,6 +2,7 @@
 
 import crypto from "crypto";
 import { isPageAvailable } from "@/lib/page-access";
+import { awardSponsorCard } from "@/lib/sponsor-cards";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getDiscordLink, getPlaytimeByNickname, searchPlayerNicknames, getUuidByNickname } from "@/lib/mc-db";
@@ -288,6 +289,11 @@ export async function checkDonateOrderPayment(orderId: string): Promise<CheckDon
 
   await logDonateOrderPaid({ ...order, status: "PAID", paidAt, donatelloPubId: match.pubId });
 
+  // The "Спонсор" card goes to whoever paid — on a gift that's the buyer,
+  // not the recipient who gets the privilege itself.
+  await awardSponsorCard(order.buyerNickname, order.tier);
+
   revalidatePath(`/profile/${order.nickname}`);
+  revalidatePath(`/profile/${order.buyerNickname}`);
   return { status: "PAID" };
 }

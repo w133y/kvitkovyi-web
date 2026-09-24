@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { auth } from "@/lib/auth";
+import { getSession } from "@/lib/auth";
 import { getDiscordLink } from "@/lib/mc-db";
 import MarkerSuggest from "@/components/map/MarkerSuggest";
 
@@ -20,7 +20,7 @@ export default async function MapPage({
 }: {
   searchParams: Promise<{ x?: string; y?: string; z?: string }>;
 }) {
-  const [params, session] = await Promise.all([searchParams, auth()]);
+  const [params, session] = await Promise.all([searchParams, getSession()]);
   const link = session?.user?.discordId ? await getDiscordLink(session.user.discordId) : null;
 
   return (

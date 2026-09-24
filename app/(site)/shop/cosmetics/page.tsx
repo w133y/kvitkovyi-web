@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { auth } from "@/lib/auth";
+import { getSession } from "@/lib/auth";
 import CosmeticsCatalog from "@/components/shop/CosmeticsCatalog";
 import { listPublishedCosmeticsForShop, getMyFlowerBalance, getMyOwnedCosmeticIds } from "@/lib/actions/cosmetics-shop";
 
@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 };
 
 export default async function CosmeticsPage() {
-  const session = await auth();
+  const session = await getSession();
   const [items, balance, ownedIds] = await Promise.all([
     listPublishedCosmeticsForShop(),
     getMyFlowerBalance(),

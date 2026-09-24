@@ -73,3 +73,23 @@ export async function suggestMapMarker(
 
   return { ok: true };
 }
+
+async function requireAdmin() {
+  const session = await auth();
+  if (session?.user?.role !== "ADMIN") throw new Error("Доступ заборонено");
+}
+
+export async function countMapMarkers(): Promise<{ approved: number; pending: number; rejected: number }> {
+  await requireAdmin();
+  const groups = await prisma.mapMarker.groupBy({ by: ["status"], _count: true });
+  const n = (s: string) => groups.find((g) => g.status === s)?._count ?? 0;
+  return { approved: n("APPROVED"), pending: n("PENDING"), rejected: n("REJECTED") };
+}
+
+// /admin → "Мітки на мапі". Removes every player marker (any status); the map
+// drops them within the /live-map proxy's 30s cache. Old review messages in
+// Discord stay, their buttons just answer "Мітку не знайдено".
+export async function deleteAllMapMarkers(): Promise<number> {
+  await requireAdmin();
+  return (await prisma.mapMarker.deleteMany({})).count;
+}
