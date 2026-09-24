@@ -2,16 +2,15 @@
 
 import { useState } from "react";
 
-const SERVER_IP = "mc.kvitkovyii.pp.ua";
-
 type CopyState = "idle" | "copied" | "error";
 
-export default function CopyIpButton() {
+// The address comes from /admin (SiteSettings.serverIp) via the /join page.
+export default function CopyIpButton({ ip }: { ip: string }) {
   const [state, setState] = useState<CopyState>("idle");
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(SERVER_IP);
+      await navigator.clipboard.writeText(ip);
       setState("copied");
     } catch (err) {
       console.error("Помилка копіювання:", err);

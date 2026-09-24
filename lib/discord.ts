@@ -47,13 +47,22 @@ export type DiscordSelectMenu = {
   options: { label: string; value: string; emoji?: { name: string }; default?: boolean }[];
 };
 
+// User select menu (component type 5) — picks a member of the server.
+export type DiscordUserSelect = {
+  type: 5;
+  custom_id: string;
+  placeholder?: string;
+};
+
 export type DiscordActionRow = {
   type: 1;
-  components: DiscordButton[] | [DiscordSelectMenu];
+  components: DiscordButton[] | [DiscordSelectMenu] | [DiscordUserSelect];
 };
 
 export type DiscordMessagePayload = {
   content?: string;
+  // e.g. { parse: [] } — show <@id> mentions without pinging anyone.
+  allowed_mentions?: { parse: string[] };
   embeds?: DiscordEmbed[];
   components?: DiscordActionRow[];
 };

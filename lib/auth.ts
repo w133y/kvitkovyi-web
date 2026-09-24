@@ -2,6 +2,7 @@ import NextAuth from "next-auth";
 import Discord from "next-auth/providers/discord";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
+import { promotePendingAdmin } from "@/lib/site-admins";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: PrismaAdapter(prisma),
@@ -24,6 +25,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           where: { id: user.id },
           data: { discordId: account.providerAccountId },
         });
+        // Granted site admin from the Discord panel before they had an account.
+        await promotePendingAdmin(user.id!, account.providerAccountId);
       }
     },
   },

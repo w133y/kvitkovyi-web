@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
 import Image from "next/image";
 import CopyIpButton from "@/components/join/CopyIpButton";
+import { getServerInfo } from "@/lib/page-access";
 
 export const metadata: Metadata = {
   title: "Приєднатися - Квітковий",
 };
 
-export default function JoinPage() {
+export default async function JoinPage() {
+  const { ip: serverIp, version: serverVersion } = await getServerInfo();
   return (
     <>
       <div className="box" id="join-info">
@@ -16,7 +18,7 @@ export default function JoinPage() {
           </h2>
           <p>
             Для того, щоб приєднатися до пригоди на сервері Квітковий, все, що вам необхідно, —
-            це приєднатися за нашою IP-адресою: <b>mc.kvitkovyii.pp.ua</b> з версії <b>1.21+</b> При
+            це приєднатися за нашою IP-адресою: <b>{serverIp}</b> з версії <b>{serverVersion}</b> При
             першому вході у вас з&apos;явиться код, який необхідно ввести нашому боту в приватні
             повідомлення <span>Kvitkovy#7712</span>, після чого при повторному підключенні ви
             зможете почати свою пригоду на нашому чудовому сервері!.
@@ -25,7 +27,7 @@ export default function JoinPage() {
             <a href="https://discord.gg/qHy6kckJu8" target="_blank" rel="noopener noreferrer" className="join-button">
               <i className="fab fa-discord"></i>Приєднатися до Discord
             </a>
-            <CopyIpButton />
+            <CopyIpButton ip={serverIp} />
           </div>
           <p>
             Наш сервер підтримує як ліцензійні, так і неліцензійні облікові записи. Якщо у вас є

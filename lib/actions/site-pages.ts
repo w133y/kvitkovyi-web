@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getDisabledPages } from "@/lib/page-access";
-import { isSitePageKey, type SitePageKey } from "@/lib/site-pages";
+import { SERVER_ADDRESS_RE, SERVER_VERSION_RE, isSitePageKey, type SitePageKey } from "@/lib/site-pages";
 
 async function requireAdmin() {
   const session = await auth();
@@ -33,4 +33,27 @@ export async function setSitePageEnabled(key: string, enabled: boolean): Promise
   // Nav links and the /shop cards change on every page.
   revalidatePath("/", "layout");
   return next;
+}
+
+export async function setServerInfo(
+  rawIp: string,
+  rawVersion: string
+): Promise<{ ok: true; serverIp: string; serverVersion: string } | { error: string }> {
+  await requireAdmin();
+  const serverIp = rawIp.trim().toLowerCase();
+  if (!SERVER_ADDRESS_RE.test(serverIp)) {
+    return { error: "Вкажіть адресу на кшталт mc.example.com або 1.2.3.4:25565" };
+  }
+  const serverVersion = rawVersion.trim().replace(/\s+/g, " ");
+  if (!SERVER_VERSION_RE.test(serverVersion)) {
+    return { error: "Версія — на кшталт 26.2 або 1.21+" };
+  }
+  await prisma.siteSettings.upsert({
+    where: { id: "default" },
+    update: { serverIp, serverVersion },
+    create: { id: "default", serverIp, serverVersion },
+  });
+  revalidatePath("/join");
+  revalidatePath("/admin");
+  return { ok: true, serverIp, serverVersion };
 }

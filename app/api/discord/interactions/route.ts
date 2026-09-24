@@ -9,9 +9,10 @@ import nacl from "tweetnacl";
 import { after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { deleteGalleryPhoto, uploadR2Object } from "@/lib/r2";
-import { editInteractionResponse } from "@/lib/discord";
+import { editInteractionResponse, sendDiscordMessage } from "@/lib/discord";
 import { logError } from "@/lib/admin-log";
 import { updateMarkerModeration } from "@/lib/map-markers-discord";
+import { SITE_ADMINS_CHANNEL_ID, addSiteAdmin, buildAdminPanel, isDiscordAdministrator, removeSiteAdmin } from "@/lib/site-admins";
 import { MARKER_TYPES, validateMarker } from "@/lib/map-markers";
 
 const DAY_MS = 86_400_000;
@@ -32,6 +33,7 @@ const PONG = 1;
 const CHANNEL_MESSAGE_WITH_SOURCE = 4;
 const DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE = 5;
 const DEFERRED_UPDATE_MESSAGE = 6;
+const UPDATE_MESSAGE = 7;
 const MODAL = 9;
 
 const EPHEMERAL = 64;
@@ -191,6 +193,10 @@ async function handleComponent(interaction: any) {
 
   if (customId.startsWith("marker:")) {
     return handleMarkerComponent(interaction, customId);
+  }
+
+  if (customId.startsWith("siteadmin:")) {
+    return handleSiteAdminComponent(interaction, customId);
   }
 
   return ephemeral("Невідома дія.");
@@ -484,4 +490,41 @@ async function handleMarkerEditModal(interaction: any, customId: string) {
   });
   await updateMarkerModeration(updated);
   return ephemeral("✅ Мітку оновлено.");
+}
+
+// --- Site admin panel (lib/site-admins.ts) ---
+
+async function handleSiteAdminComponent(interaction: any, customId: string) {
+  // Only in the admin channel, only for Discord ADMINISTRATORs — both come
+  // from Discord's signed payload, not from anything the clicker can edit.
+  if (interaction.channel_id !== SITE_ADMINS_CHANNEL_ID) return ephemeral("Ця панель працює лише в каналі адмінів.");
+  if (!isDiscordAdministrator(interaction.member?.permissions)) {
+    return ephemeral("🚫 Керувати адмінами сайту можуть лише адміністратори Discord-сервера.");
+  }
+
+  const actorId: string | undefined = interaction.member?.user?.id;
+  const value: string | undefined = interaction.data?.values?.[0];
+  if (!value) return ephemeral("Нічого не вибрано.");
+
+  let result: { ok: string; discordId?: string | null } | { error: string };
+  let targetId: string | null;
+  if (customId === "siteadmin:add") {
+    if (interaction.data?.resolved?.users?.[value]?.bot) return ephemeral("Бота не можна зробити адміном.");
+    result = await addSiteAdmin(value);
+    targetId = value;
+  } else if (customId === "siteadmin:remove") {
+    result = await removeSiteAdmin(value);
+    targetId = "discordId" in result ? result.discordId ?? null : null;
+  } else {
+    return ephemeral("Невідома дія.");
+  }
+  if ("error" in result) return ephemeral(`⚠️ ${result.error}`);
+
+  // Audit line in the channel (mentions shown, nobody pinged).
+  await sendDiscordMessage(SITE_ADMINS_CHANNEL_ID, {
+    content: `${customId === "siteadmin:add" ? "👑" : "🗑️"} <@${actorId}>: ${targetId ? `<@${targetId}>` : "користувач"} ${result.ok}.`,
+    allowed_mentions: { parse: [] },
+  });
+
+  return Response.json({ type: UPDATE_MESSAGE, data: await buildAdminPanel() });
 }

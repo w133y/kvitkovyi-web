@@ -15,6 +15,8 @@ import AdminWiki from "@/components/admin/AdminWiki";
 import AdminLog from "@/components/admin/AdminLog";
 import CosmeticsAdmin from "@/components/admin/CosmeticsAdmin";
 import SitePagesAdmin from "@/components/admin/SitePagesAdmin";
+import ServerIpAdmin from "@/components/admin/ServerIpAdmin";
+import { getServerInfo } from "@/lib/page-access";
 import { listDisabledPages } from "@/lib/actions/site-pages";
 
 export const metadata: Metadata = {
@@ -41,6 +43,7 @@ export default async function AdminPage() {
   const cosmeticDrafts = await listCosmeticDrafts();
   const publishedCosmetics = await listPublishedCosmetics();
   const disabledPages = await listDisabledPages();
+  const serverInfo = await getServerInfo();
 
   return (
     <div className="admin-page">
@@ -54,6 +57,11 @@ export default async function AdminPage() {
       <div className="admin-section">
         <h3>Вкладки сайту</h3>
         <SitePagesAdmin initialDisabled={disabledPages} />
+      </div>
+
+      <div className="admin-section">
+        <h3>Сервер</h3>
+        <ServerIpAdmin initialIp={serverInfo.ip} initialVersion={serverInfo.version} />
       </div>
 
       <div className="admin-section">

@@ -652,4 +652,13 @@ model SiteSettings {
   // Keys from SITE_PAGES in lib/site-pages.ts — hidden from the nav and
   // 404 for everyone except admins.
   disabledPages String[] @default([])
+  // Minecraft server address shown on /join, copied by its button and sent
+  // in the Discord welcome DM.
+  serverIp String @default("mc.kvitkovyi.pp.ua")
+  // Game version shown next to it ("з версії …" / "на версії …").
+  serverVersion String @default("26.2")
+  // Discord ids granted site admin from the Discord admin panel
+  // (lib/site-admins.ts) before they ever signed in to the site — promoted
+  // on their first login (lib/auth.ts linkAccount), then removed from here.
+  pendingAdminDiscordIds String[] @default([])
 }

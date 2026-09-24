@@ -7,6 +7,7 @@
 import { prisma } from "@/lib/prisma";
 import { getOrCreateDmChannel, sendDiscordMessage } from "@/lib/discord";
 import { logError } from "@/lib/admin-log";
+import { getServerInfo } from "@/lib/page-access";
 
 const DISCORD_API = "https://discord.com/api/v10";
 
@@ -14,9 +15,9 @@ const DISCORD_API = "https://discord.com/api/v10";
 // down for a while) never DMs the whole existing server.
 const RECENT_JOIN_MS = 48 * 60 * 60 * 1000;
 
-const WELCOME_TEXT = `**Ласкаво просимо на сервер Квітковий🌸 **
+const welcomeText = ({ ip, version }: { ip: string; version: string }) => `**Ласкаво просимо на сервер Квітковий🌸 **
 Щоб долучитися до гри на нашому сервері, тобі потрібно🤓  :
->     1.    **Ввести наш IP: mc.kvitkovyi.pp.ua — сервер працює на версії 26.2.**
+>     1.    **Ввести наш IP: ${ip} — сервер працює на версії ${version}.**
 >     2.    **На екрані після входу з'явиться код.**
 >     3.    **Напиши цей код мені в особисті, і я тебе додам у білий список сервера.**
 *Перед грою ознайомся з правилами спільноти на сайті https://kvitkovyi.pp.ua/join або в каналі *https://discord.com/channels/1041732637628321833/1299774292032229446.
@@ -60,6 +61,7 @@ export async function sendWelcomeDms(): Promise<{ newMembers: number; sent: numb
   );
   const toWelcome = recent.filter((m) => !already.has(m.user!.id));
 
+  const text = welcomeText(await getServerInfo());
   let sent = 0;
   let failed = 0;
   for (const m of toWelcome) {
@@ -72,7 +74,7 @@ export async function sendWelcomeDms(): Promise<{ newMembers: number; sent: numb
       continue;
     }
     const dm = await getOrCreateDmChannel(userId);
-    const ok = dm !== null && (await sendDiscordMessage(dm, { content: WELCOME_TEXT })) !== null;
+    const ok = dm !== null && (await sendDiscordMessage(dm, { content: text })) !== null;
     if (ok) {
       await prisma.welcomeDm.update({ where: { discordUserId: userId }, data: { delivered: true } });
       sent++;

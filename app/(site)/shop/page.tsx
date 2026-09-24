@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { isPageAvailable } from "@/lib/page-access";
+import { getDisabledPages, isPageAvailable } from "@/lib/page-access";
 
 export const metadata: Metadata = {
   title: "Донат - Квітковий",
@@ -24,7 +24,10 @@ const CATEGORIES = [
 ] as const;
 
 export default async function ShopPage() {
-  const available = await Promise.all(CATEGORIES.map((c) => isPageAvailable(c.key)));
+  const [available, disabled] = await Promise.all([
+    Promise.all(CATEGORIES.map((c) => isPageAvailable(c.key))),
+    getDisabledPages(),
+  ]);
 
   return (
     <div className="shop-categories">
@@ -40,6 +43,9 @@ export default async function ShopPage() {
         // itself 404s too — see its layout).
         return available[i] ? (
           <Link key={c.key} href={c.href} className="shop-category-card">
+            {/* Admins can still open a switched-off section — the badge is
+                what tells them it's off for everyone else. */}
+            {disabled.includes(c.key) && <span className="shop-category-badge">Вимкнено для гравців</span>}
             {body}
           </Link>
         ) : (

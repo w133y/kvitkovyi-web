@@ -209,23 +209,26 @@ export async function checkDonateOrderPayment(orderId: string): Promise<CheckDon
   let order = await prisma.donateOrder.findUnique({ where: { id: orderId } });
   if (!order || order.userId !== session.user.id) return { error: "Замовлення не знайдено" };
   if (order.status === "PAID") return { status: "PAID" };
-
-  order = await expireIfStale(order);
   if (order.status === "EXPIRED") return { status: "EXPIRED" };
 
+  // Look for the payment BEFORE expiring the order: a donation made just
+  // before the 10-minute mark can show up in Donatello's list a bit later,
+  // and expiring first would drop a real payment.
   let donates;
   try {
     donates = await fetchRecentDonates(30);
   } catch {
     // Transient Donatello API hiccup — just report "still pending" and let
     // the next poll try again rather than surfacing an error to the buyer.
-    return { status: "PENDING" };
+    return { status: (await expireIfStale(order)).status === "EXPIRED" ? "EXPIRED" : "PENDING" };
   }
 
-  const match = donates.find(
-    (d) => d.currency === "UAH" && Number(d.amount) >= order.amountUah && d.message.includes(order.code)
-  );
-  if (!match) return { status: "PENDING" };
+  const { amountUah, code } = order;
+  const match = donates.find((d) => d.currency === "UAH" && Number(d.amount) >= amountUah && d.message.includes(code));
+  if (!match) {
+    order = await expireIfStale(order);
+    return { status: order.status === "EXPIRED" ? "EXPIRED" : "PENDING" };
+  }
 
   // Atomic PENDING -> PAID claim, guarding against two concurrent polls
   // (e.g. the same payment page open in two tabs) both trying to grant the

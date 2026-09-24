@@ -1,0 +1,1 @@
+ALTER TABLE "SiteSettings" ADD COLUMN "serverVersion" TEXT NOT NULL DEFAULT '26.2';
