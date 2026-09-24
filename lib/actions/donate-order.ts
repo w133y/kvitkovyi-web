@@ -246,13 +246,22 @@ export async function checkDonateOrderPayment(orderId: string): Promise<CheckDon
   }
 
   try {
+    // A renewal stacks onto the time the player still has on the same tier
+    // (the "expires soon" DM invites renewing early) instead of restarting
+    // from now and silently dropping the remaining days.
+    const current = await prisma.donatePrivilege.findFirst({
+      where: { nickname: order.nickname, tier: order.tier, revokedAt: null, expiresAt: { gt: paidAt } },
+      orderBy: { expiresAt: "desc" },
+      select: { expiresAt: true },
+    });
+    const startsAt = current?.expiresAt ?? paidAt;
     await prisma.donatePrivilege.create({
       data: {
         nickname: order.nickname,
         tier: order.tier,
         iconSymbol: order.iconSymbol,
         iconColorHex: order.iconColorHex,
-        expiresAt: new Date(Date.now() + order.months * PRIVILEGE_DURATION_DAYS_PER_MONTH * 24 * 60 * 60 * 1000),
+        expiresAt: new Date(startsAt.getTime() + order.months * PRIVILEGE_DURATION_DAYS_PER_MONTH * 24 * 60 * 60 * 1000),
       },
     });
   } catch (err) {

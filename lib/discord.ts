@@ -53,6 +53,7 @@ export type DiscordActionRow = {
 };
 
 export type DiscordMessagePayload = {
+  content?: string;
   embeds?: DiscordEmbed[];
   components?: DiscordActionRow[];
 };
