@@ -645,3 +645,11 @@ model WelcomeDm {
   delivered     Boolean
   sentAt        DateTime @default(now())
 }
+
+// Site-wide switches set from /admin. Single row (id "default").
+model SiteSettings {
+  id String @id @default("default")
+  // Keys from SITE_PAGES in lib/site-pages.ts — hidden from the nav and
+  // 404 for everyone except admins.
+  disabledPages String[] @default([])
+}

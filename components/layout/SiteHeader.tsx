@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { SITE_PAGES, type SitePageKey } from "@/lib/site-pages";
 import { useEffect, useRef, useState } from "react";
 
 const NAV_LINKS = [
@@ -26,8 +27,12 @@ const MORE_LINKS = [
 export default function SiteHeader({
   userMenu,
   heroImage,
+  hiddenPages = [],
 }: {
   userMenu?: React.ReactNode;
+  // Sections an admin switched off (lib/page-access.ts) — their links are
+  // dropped for this visitor; the pages themselves 404 server-side.
+  hiddenPages?: SitePageKey[];
   // global-not-found.tsx wants the exact same full hero everyone else gets
   // (same header.webp scene, same 100vh treatment, nav floating on top) —
   // just showing 404.png in the image slot instead of the usual logo.
@@ -35,6 +40,9 @@ export default function SiteHeader({
 }) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
+  const hiddenPaths = new Set<string>(SITE_PAGES.filter((p) => hiddenPages.includes(p.key)).map((p) => p.path));
+  const navLinks = NAV_LINKS.filter((l) => !hiddenPaths.has(l.href));
+  const moreLinks = MORE_LINKS.filter((l) => !hiddenPaths.has(l.href));
   // Close the mobile menu on any navigation — covers links it doesn't own
   // (the profile/donate/admin links inside {userMenu}).
   useEffect(() => setMenuOpen(false), [pathname]);
@@ -191,7 +199,7 @@ export default function SiteHeader({
       return () => document.removeEventListener("click", handleClickOutside);
     }, [open]);
 
-    const active = MORE_LINKS.some((link) => isActive(link.href));
+    const active = moreLinks.some((link) => isActive(link.href));
 
     return (
       <li className="nav-more" ref={rootRef}>
@@ -202,7 +210,7 @@ export default function SiteHeader({
           </span>
         </button>
         <div className={`nav-more-dropdown${open ? " open" : ""}`}>
-          {MORE_LINKS.map((link) => (
+          {moreLinks.map((link) => (
             <Link
               key={link.href}
               href={link.href}
@@ -223,12 +231,12 @@ export default function SiteHeader({
       <nav>
         <div className="container-text">
           <ul className="menutext">
-            {NAV_LINKS.map((link) => (
+            {navLinks.map((link) => (
               <li key={link.href}>
                 <NavItem href={link.href} label={link.label} />
               </li>
             ))}
-            <MoreMenu />
+            {moreLinks.length > 0 && <MoreMenu />}
           </ul>
         </div>
         <div className="auth-widget">
@@ -247,19 +255,16 @@ export default function SiteHeader({
       <div className={`mobile-menu ${menuOpen ? "active" : ""}`}>
         <div className="mobile-menu-container">
           <ul className="mobile-menutext">
-            {NAV_LINKS.map((link) => (
+            {navLinks.map((link) => (
               <li key={link.href}>
                 <NavItem href={link.href} label={link.label} onNavigate={() => setMenuOpen(false)} />
               </li>
             ))}
-            {MORE_LINKS.map((link) => (
+            {/* Plain text like the rest of the mobile menu — the icons are for
+                the desktop "Інше" dropdown only. */}
+            {moreLinks.map((link) => (
               <li key={link.href}>
-                <NavItem
-                  href={link.href}
-                  label={link.label}
-                  icon={link.icon}
-                  onNavigate={() => setMenuOpen(false)}
-                />
+                <NavItem href={link.href} label={link.label} onNavigate={() => setMenuOpen(false)} />
               </li>
             ))}
           </ul>

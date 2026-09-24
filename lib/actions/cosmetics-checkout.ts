@@ -1,5 +1,6 @@
 "use server";
 
+import { isPageAvailable } from "@/lib/page-access";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getDiscordLink, getFlowerBalance } from "@/lib/mc-db";
@@ -33,6 +34,7 @@ export async function checkoutCosmetics(
   const session = await auth();
   if (!session?.user) return { error: "Потрібно увійти через Discord" };
   if (!session.user.discordId) return { error: "Discord-акаунт не прив'язано" };
+  if (!(await isPageAvailable("cosmetics"))) return { error: "Косметика тимчасово недоступна" };
   if (items.length === 0) return { error: "Кошик порожній" };
   if (!/^[0-9a-f-]{16,64}$/i.test(idempotencyKey)) return { error: "Некоректний запит" };
 

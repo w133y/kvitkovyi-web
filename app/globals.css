@@ -7518,6 +7518,23 @@ body {
     .donate-signin-prompt {
         text-align: center;
     }
+
+    /* /join rules: the box margin, box padding, rule-card padding and the
+       paragraph's own 30px left margin stacked up to ~97px from the screen
+       edge, leaving the text a narrow column. */
+    body .box3 {
+        margin-left: 12px;
+        margin-right: 12px;
+        padding: 12px;
+    }
+
+    .rules-column {
+        padding: 16px;
+    }
+
+    .rules-column p {
+        margin: 12px 0;
+    }
 }
 
 /* ----------------------------- */
@@ -7916,4 +7933,25 @@ body {
     .map-suggest-panel {
         bottom: calc(74px + env(safe-area-inset-bottom));
     }
+}
+
+/* /admin → "Вкладки сайту" */
+.admin-site-pages {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.admin-site-pages-path {
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+.admin-site-pages-off {
+    margin-left: 6px;
+    padding: 1px 8px;
+    border: 1px solid var(--color-red);
+    border-radius: 999px;
+    color: var(--color-red);
+    font-size: 11px;
 }

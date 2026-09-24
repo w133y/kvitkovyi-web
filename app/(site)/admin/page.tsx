@@ -14,6 +14,8 @@ import AdminGalleryPhotos from "@/components/admin/AdminGalleryPhotos";
 import AdminWiki from "@/components/admin/AdminWiki";
 import AdminLog from "@/components/admin/AdminLog";
 import CosmeticsAdmin from "@/components/admin/CosmeticsAdmin";
+import SitePagesAdmin from "@/components/admin/SitePagesAdmin";
+import { listDisabledPages } from "@/lib/actions/site-pages";
 
 export const metadata: Metadata = {
   title: "Панель — Квітковий",
@@ -38,6 +40,7 @@ export default async function AdminPage() {
   const errorLoggingEnabled = await getErrorLoggingEnabled();
   const cosmeticDrafts = await listCosmeticDrafts();
   const publishedCosmetics = await listPublishedCosmetics();
+  const disabledPages = await listDisabledPages();
 
   return (
     <div className="admin-page">
@@ -46,6 +49,11 @@ export default async function AdminPage() {
           <b>Адмін-панель</b>
         </h2>
         <p>Вітаємо, {session.user.name}.</p>
+      </div>
+
+      <div className="admin-section">
+        <h3>Вкладки сайту</h3>
+        <SitePagesAdmin initialDisabled={disabledPages} />
       </div>
 
       <div className="admin-section">

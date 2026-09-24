@@ -8,6 +8,7 @@ import UserMenuSkeleton from "@/components/auth/UserMenuSkeleton";
 import ResumeDonatePrompt from "@/components/shop/ResumeDonatePrompt";
 import { CartProvider } from "@/lib/cart/CartContext";
 import { auth } from "@/lib/auth";
+import { getHiddenPagesForViewer } from "@/lib/page-access";
 import "../globals.css";
 
 export const metadata: Metadata = {
@@ -24,7 +25,7 @@ export const viewport: Viewport = {
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const session = await auth();
+  const [session, hiddenPages] = await Promise.all([auth(), getHiddenPagesForViewer()]);
 
   return (
     <html lang="uk">
@@ -44,6 +45,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       <body suppressHydrationWarning>
         <CartProvider>
           <SiteHeader
+            hiddenPages={hiddenPages}
             userMenu={
               <Suspense fallback={<UserMenuSkeleton />}>
                 <UserMenu session={session} />

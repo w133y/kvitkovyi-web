@@ -1,6 +1,7 @@
 "use server";
 
 import crypto from "crypto";
+import { isPageAvailable } from "@/lib/page-access";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getDiscordLink, getPlaytimeByNickname, searchPlayerNicknames, getUuidByNickname } from "@/lib/mc-db";
@@ -71,6 +72,9 @@ export async function createDonateOrder(
   const session = await auth();
   if (!session?.user) return { error: "Потрібно увійти через Discord" };
   if (!session.user.discordId) return { error: "Discord-акаунт не прив'язано" };
+  // Section switched off in /admin — no new orders (already-started ones can
+  // still be paid and checked).
+  if (!(await isPageAvailable("sponsorship"))) return { error: "Спонсорство тимчасово недоступне" };
 
   const link = await getDiscordLink(session.user.discordId);
   if (!link) return { error: "До вашого Discord-акаунту не прив'язано нікнейм на сервері" };

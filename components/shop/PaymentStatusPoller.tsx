@@ -6,6 +6,8 @@ import { checkDonateOrderPayment } from "@/lib/actions/donate-order";
 
 const POLL_INTERVAL_MS = 5000;
 const ORDER_TIMEOUT_MS = 10 * 60 * 1000;
+// How long after the deadline to wait for the final check's answer.
+const EXPIRE_GRACE_MS = 15_000;
 
 type Status = "PENDING" | "PAID" | "EXPIRED";
 
@@ -35,18 +37,38 @@ export default function PaymentStatusPoller({
   useEffect(() => {
     if (status !== "PENDING") return;
 
-    const pollInterval = setInterval(async () => {
+    async function poll() {
       if (inFlight.current) return;
       inFlight.current = true;
       try {
         const result = await checkDonateOrderPayment(orderId);
         if ("status" in result) setStatus(result.status);
+      } catch {
+        // A failed check (network, Donatello/Discord hiccup) must not stop
+        // the loop or leave the page waiting forever — the next tick retries.
       } finally {
         inFlight.current = false;
       }
-    }, POLL_INTERVAL_MS);
+    }
 
-    const countdownInterval = setInterval(() => setRemainingMs(deadline - Date.now()), 1000);
+    const pollInterval = setInterval(poll, POLL_INTERVAL_MS);
+
+    // The 10-minute window ends on the client too: one last check once the
+    // countdown hits zero (a payment made at the last second still counts),
+    // then give up instead of spinning at "0:00" whenever the server's
+    // answer never arrives.
+    let finalCheckDone = false;
+    const countdownInterval = setInterval(() => {
+      const left = deadline - Date.now();
+      setRemainingMs(left);
+      if (left > 0) return;
+      if (!finalCheckDone) {
+        finalCheckDone = true;
+        void poll();
+      } else if (left < -EXPIRE_GRACE_MS) {
+        setStatus((s) => (s === "PENDING" ? "EXPIRED" : s));
+      }
+    }, 1000);
 
     return () => {
       clearInterval(pollInterval);
