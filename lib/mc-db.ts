@@ -81,17 +81,24 @@ export type LeaderboardEntry = {
   votes: number;
 };
 
+// Votes: VotingPlugin's voting_VotingPlugin_Users (AllTimeTotal). Joined by
+// NICKNAME, not uuid — the plugin keys players by offline-mode UUIDs (derived
+// from the name), which never match play_time's real online UUIDs. Grouped
+// per name so a duplicate plugin row can't duplicate a leaderboard entry.
+const VOTES_JOIN =
+  "(SELECT PlayerName, MAX(AllTimeTotal) AS AllTimeTotal FROM voting_VotingPlugin_Users GROUP BY PlayerName)";
+
 // Ports leaderboard.php's query and tick->time conversion (playtime is
 // stored in game ticks, 20 ticks/second). Votes come from VotingPlugin's own
-// table (AllTimeTotal) — a separate plugin's data, stored as text, joined by
-// uuid with an explicit COLLATE since its collation doesn't match play_time's.
+// table via VOTES_JOIN above, with an explicit COLLATE since its collation
+// doesn't match play_time's.
 export async function getLeaderboard(limit = 67): Promise<LeaderboardEntry[]> {
   try {
     const [rows] = await withRetry(() =>
       getPool().query<mysql.RowDataPacket[]>(
         `SELECT pt.nickname, pt.uuid, pt.playtime, vp.AllTimeTotal
          FROM play_time pt
-         LEFT JOIN VotingPlugin_Users vp ON vp.uuid COLLATE utf8mb4_unicode_ci = pt.uuid
+         LEFT JOIN ${VOTES_JOIN} vp ON vp.PlayerName COLLATE utf8mb4_unicode_ci = pt.nickname
          ORDER BY pt.playtime DESC
          LIMIT ?`,
         [limit]
@@ -154,7 +161,7 @@ export async function listPlayersForFilter(): Promise<PlayerFilterRow[]> {
         `SELECT pt.nickname, pt.playtime, pt.afk_playtime, pt.first_join, pt.last_seen, vp.AllTimeTotal,
            EXISTS (SELECT 1 FROM discordsrv_accounts d WHERE d.uuid = pt.uuid COLLATE utf8mb4_general_ci) AS has_discord
          FROM play_time pt
-         LEFT JOIN VotingPlugin_Users vp ON vp.uuid COLLATE utf8mb4_unicode_ci = pt.uuid`
+         LEFT JOIN ${VOTES_JOIN} vp ON vp.PlayerName COLLATE utf8mb4_unicode_ci = pt.nickname`
       )
     );
     const toHours = (ticks: unknown) => Math.floor(Number(ticks ?? 0) / 20 / 3600);
@@ -212,7 +219,7 @@ export type FullLeaderboardEntry = {
 // change the order, so there's no need to compute it in SQL. Whitelisted so
 // a sort key can be interpolated straight into ORDER BY without risking
 // injection: only these exact column expressions ever reach the query.
-// Votes is stored as text by VotingPlugin, hence the CAST for a numeric sort.
+// AllTimeTotal was text in the old VotingPlugin table — the CAST keeps the sort numeric either way.
 const LEADERBOARD_SORT_COLUMNS = {
   totalMinutes: "pt.playtime",
   playerKills: "ds.player_kills",
@@ -327,7 +334,7 @@ async function getLeaderboardPageUncached(
            vp.AllTimeTotal
          FROM play_time pt
          LEFT JOIN defstats_player_stats ds ON ds.uuid = pt.uuid COLLATE utf8mb4_general_ci
-         LEFT JOIN VotingPlugin_Users vp ON vp.uuid COLLATE utf8mb4_unicode_ci = pt.uuid
+         LEFT JOIN ${VOTES_JOIN} vp ON vp.PlayerName COLLATE utf8mb4_unicode_ci = pt.nickname
          ${whereSql}
          ORDER BY ${column} ${direction}
          LIMIT ? OFFSET ?`,
