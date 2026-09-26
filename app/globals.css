@@ -332,53 +332,6 @@ header.header-map {
     color: #ffd900e0;
     text-shadow: none;
 }
-/* Кнопка меню */
-.mobile-menu-button {
-    display: none;
-    position: fixed;
-    top: 20px;
-    right: 20px;
-    z-index: 1000;
-    cursor: pointer;
-    padding: 10px;
-
-}
-
-.hamburger {
-    width: 30px;
-    height: 25px;
-    position: relative;
-}
-
-.hamburger span {
-    display: block;
-    position: absolute;
-    height: 3px;
-    width: 100%;
-    background: white;
-    border-radius: 3px;
-    transition: all 0.3s ease;
-}
-
-.hamburger span:nth-child(1) { top: 0; }
-.hamburger span:nth-child(2) { top: 10px; }
-.hamburger span:nth-child(3) { top: 20px; }
-
-/* Анімація кнопки при відкритті */
-.hamburger.active span:nth-child(1) {
-    transform: rotate(45deg);
-    top: 10px;
-}
-
-.hamburger.active span:nth-child(2) {
-    opacity: 0;
-}
-
-.hamburger.active span:nth-child(3) {
-    transform: rotate(-45deg);
-    top: 10px;
-}
-
 /* Мобільне меню */
 .mobile-menu {
     display: none;
@@ -400,7 +353,7 @@ header.header-map {
 }
 
 .mobile-menu-container {
-    padding: 80px 20px 20px;
+    padding: 40px 20px calc(20px + var(--bottom-nav-h));
     height: 100%;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
@@ -463,20 +416,11 @@ header.header-map {
         display: none;
     }
 
-    .mobile-menu-button {
-        display: block;
-    }
-
     .mobile-menu {
         display: block;
     }
 }
 
-@media (max-width: 480px) {
-    .mobile-menu-button {
-        top: 15px; /* Трохи зменшено відступ зверху */
-    }
-}
 
 /*-------------------------------*/
 
@@ -7484,14 +7428,6 @@ body {
     }
 }
 
-/* The burger had no backdrop, so on scroll it sat directly on top of
-   whatever text/panel was underneath (and over the live map's own menu). */
-.mobile-menu-button {
-    border-radius: 12px;
-    background: rgba(20, 20, 20, 0.65);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-}
 
 @media (max-width: 768px) {
     /* Any input under 16px makes iOS zoom the whole page in on focus. */
@@ -8233,4 +8169,296 @@ body {
     background: none;
     font-family: inherit;
     cursor: pointer;
+}
+
+/* Profile editor → "Видалити акаунт на сайті" */
+.profile-delete-account {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-soft-color);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.profile-delete-account p {
+    margin: 0;
+    color: var(--text-secondary);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.profile-delete-account input {
+    padding: 8px 12px;
+    border: 1px solid var(--pill-border-soft-color);
+    border-radius: 10px;
+    background: rgb(35, 35, 35);
+    color: var(--text-primary);
+    font-family: inherit;
+}
+
+.profile-delete-link {
+    align-self: flex-start;
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--color-red);
+    font-family: inherit;
+    font-size: 13px;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+/* Cookie consent (components/layout/CookieConsent.tsx) */
+.cookie-banner {
+    position: fixed;
+    left: 50%;
+    bottom: calc(20px + env(safe-area-inset-bottom));
+    transform: translateX(-50%);
+    z-index: 1100;
+    width: min(720px, calc(100% - 32px));
+    box-sizing: border-box;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 14px 16px;
+    border: 1px solid var(--pill-border-soft-color);
+    border-radius: 16px;
+    background: rgba(24, 24, 24, 0.97);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+    color: var(--text-secondary);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.cookie-banner p {
+    margin: 0;
+    flex: 1;
+    font-size: 13px;
+}
+
+.cookie-banner a {
+    color: var(--color-gold);
+}
+
+.cookie-banner-actions {
+    display: flex;
+    gap: 8px;
+    flex: none;
+}
+
+.cookie-banner-actions button {
+    padding: 9px 14px;
+    border: 1px solid var(--pill-border-soft-color);
+    border-radius: 10px;
+    background: rgb(35, 35, 35);
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.cookie-banner-actions .cookie-accept {
+    border-color: var(--color-gold);
+    color: var(--color-gold);
+}
+
+@media (max-width: 640px) {
+    .cookie-banner {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .cookie-banner-actions button {
+        flex: 1;
+    }
+}
+
+/* Phones/tablets: bottom icon navigation (SiteHeader .bottom-nav). Anything
+   else fixed to the bottom sits above it via --bottom-nav-h. */
+:root {
+    --bottom-nav-h: 0px;
+}
+
+.bottom-nav {
+    display: none;
+}
+
+@media (max-width: 1024px) {
+    :root {
+        --bottom-nav-h: calc(64px + env(safe-area-inset-bottom));
+    }
+
+    body {
+        padding-bottom: var(--bottom-nav-h);
+    }
+
+    .bottom-nav {
+        display: flex;
+        position: fixed;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 1000; /* above the .mobile-menu overlay, so "Меню" closes it */
+        height: var(--bottom-nav-h);
+        box-sizing: border-box;
+        padding: 0 4px env(safe-area-inset-bottom);
+        border-top: 1px solid var(--border-soft-color);
+        background: rgba(20, 20, 20, 0.92);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+    }
+
+    .bottom-nav a,
+    .bottom-nav button {
+        flex: 1;
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        padding: 0;
+        border: none;
+        background: none;
+        color: var(--text-secondary);
+        font-family: inherit;
+        font-size: 11px;
+        font-weight: 600;
+        text-decoration: none;
+        cursor: pointer;
+        transition: color 0.2s ease;
+    }
+
+    .bottom-nav i {
+        font-size: 20px;
+    }
+
+    .bottom-nav .nav-icon-label {
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .bottom-nav a.active,
+    .bottom-nav button.active {
+        color: var(--color-gold);
+    }
+
+    .cosmetics-mobile-bar {
+        bottom: calc(var(--bottom-nav-h) + 10px);
+    }
+
+    .map-suggest-btn {
+        bottom: calc(var(--bottom-nav-h) + 12px);
+    }
+
+    .map-suggest-panel {
+        bottom: calc(var(--bottom-nav-h) + 74px);
+        max-height: calc(100dvh - var(--bottom-nav-h) - 150px);
+    }
+
+    .cookie-banner {
+        bottom: calc(var(--bottom-nav-h) + 12px);
+    }
+}
+
+/* /privacy, /terms, /offer */
+body .legal-page {
+    display: block;
+}
+
+.legal-text {
+    max-width: 820px;
+    margin: 0 auto;
+    text-align: left;
+}
+
+.legal-text h2 {
+    text-align: center;
+}
+
+.legal-text h3 {
+    margin: 28px 0 8px;
+    font-size: 24px;
+    color: var(--text-primary);
+}
+
+.legal-text p,
+.legal-text li {
+    font-size: 16px;
+    line-height: 1.65;
+    color: var(--text-secondary);
+}
+
+.legal-text p {
+    margin: 0 0 10px;
+}
+
+.legal-text ul {
+    margin: 0 0 10px;
+    padding-left: 22px;
+}
+
+.legal-text a {
+    color: var(--color-gold);
+}
+
+.legal-text .legal-updated {
+    text-align: center;
+    font-size: 14px;
+}
+
+.cookie-settings-btn {
+    padding: 9px 14px;
+    border: 1px solid var(--color-gold);
+    border-radius: 10px;
+    background: none;
+    color: var(--color-gold);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.footer-legal {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px 18px;
+}
+
+.footer-legal a {
+    color: var(--text-secondary);
+    font-size: 14px;
+    text-decoration: none;
+}
+
+.footer-legal a:hover {
+    color: var(--color-gold);
+}
+
+/* SignInButton's consent note: only in the burger menu and sign-in prompts. */
+.signin-consent {
+    display: none;
+}
+
+.mobile-menu-auth .signin-consent,
+.donate-signin-prompt .signin-consent {
+    display: block;
+    max-width: 300px;
+    margin: 10px auto 0;
+    font-size: 13px;
+    line-height: 1.5;
+    text-align: center;
+    color: var(--text-secondary);
+}
+
+.signin-consent a {
+    color: var(--color-gold);
 }

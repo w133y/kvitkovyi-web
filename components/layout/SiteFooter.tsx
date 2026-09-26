@@ -45,6 +45,11 @@ export default function SiteFooter() {
 
         <div className="footer-bottom">
           <p className="copyright">© Kvitkoviy 2024-2026</p>
+          <nav className="footer-legal">
+            <Link href="/privacy">Конфіденційність</Link>
+            <Link href="/terms">Умови</Link>
+            <Link href="/offer">Оферта</Link>
+          </nav>
           <p className="disclaimer">Ми не пов&apos;язані з Mojang AB</p>
         </div>
       </div>

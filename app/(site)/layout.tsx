@@ -1,9 +1,9 @@
 import type { Metadata, Viewport } from "next";
 import { Suspense } from "react";
-import Script from "next/script";
 import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
 import ScrollReveal from "@/components/layout/ScrollReveal";
+import CookieConsent from "@/components/layout/CookieConsent";
 import UserMenu from "@/components/auth/UserMenu";
 import UserMenuSkeleton from "@/components/auth/UserMenuSkeleton";
 import ResumeDonatePrompt from "@/components/shop/ResumeDonatePrompt";
@@ -59,15 +59,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           <SiteFooter />
           {session && <ResumeDonatePrompt />}
         </CartProvider>
-        <Script async src="https://www.googletagmanager.com/gtag/js?id=AW-17089484935" />
-        <Script id="gtag-init">
-          {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', 'AW-17089484935');
-          `}
-        </Script>
+        {/* Google Ads tag loads only after consent — see CookieConsent. */}
+        <CookieConsent />
       </body>
     </html>
   );

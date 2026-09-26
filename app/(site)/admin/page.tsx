@@ -18,6 +18,7 @@ import SitePagesAdmin from "@/components/admin/SitePagesAdmin";
 import ServerIpAdmin from "@/components/admin/ServerIpAdmin";
 import MapMarkersAdmin from "@/components/admin/MapMarkersAdmin";
 import PlayerBiosAdmin from "@/components/admin/PlayerBiosAdmin";
+import AccountDeletionAdmin from "@/components/admin/AccountDeletionAdmin";
 import { listPlayerBios } from "@/lib/actions/profile";
 import { countMapMarkers } from "@/lib/actions/map-markers";
 import { getServerInfo } from "@/lib/page-access";
@@ -78,6 +79,11 @@ export default async function AdminPage() {
       <div className="admin-section">
         <h3>Описи гравців</h3>
         <PlayerBiosAdmin initialBios={playerBios} />
+      </div>
+
+      <div className="admin-section">
+        <h3>Видалення даних</h3>
+        <AccountDeletionAdmin />
       </div>
 
       <div className="admin-section">

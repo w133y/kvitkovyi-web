@@ -33,7 +33,7 @@ export default async function MapPage({
         className="map-frame"
         // dvh, not vh: on iOS 100vh runs under Safari's toolbar, hiding the
         // map's own bottom controls.
-        style={{ display: "block", width: "100%", height: "100dvh", border: "none" }}
+        style={{ display: "block", width: "100%", height: "calc(100dvh - var(--bottom-nav-h))", border: "none" }}
         allowFullScreen
       />
       <MarkerSuggest signedIn={!!session?.user} hasLink={!!link} />

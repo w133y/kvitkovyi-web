@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { updateProfile } from "@/lib/actions/profile";
+import { deleteMyAccount } from "@/lib/actions/account";
 import { BIO_LINK_ERROR, bioContainsLink } from "@/lib/bio-links";
 import { PRONOUN_OPTIONS } from "@/lib/format-last-seen";
 
@@ -54,6 +55,19 @@ export default function ProfileEditor({
     setPronounInput(initialPronoun ?? "");
     setError(null);
     setEditing(true);
+  }
+
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteConfirm, setDeleteConfirm] = useState("");
+
+  function deleteAccount() {
+    setError(null);
+    startTransition(async () => {
+      const result = await deleteMyAccount(deleteConfirm);
+      if ("error" in result) return setError(result.error);
+      // Sessions are gone server-side; a full reload lands logged out.
+      window.location.href = "/";
+    });
   }
 
   function save() {
@@ -216,6 +230,36 @@ export default function ProfileEditor({
             </div>
           </div>
           {error && <p className="profile-bio-error">{error}</p>}
+
+          {/* Account deletion (see /privacy) — typed confirmation, since it
+              can't be undone. */}
+          <div className="profile-delete-account">
+            {!deleteOpen ? (
+              <button type="button" className="profile-delete-link" onClick={() => setDeleteOpen(true)}>
+                Видалити акаунт на сайті
+              </button>
+            ) : (
+              <>
+                <p>
+                  Буде видалено ваш опис, мітки на мапі, прив&apos;язку до Discord та інші дані профілю. Записи
+                  про покупки зберігаються для обліку, але без ваших даних. Скасувати це неможливо.
+                </p>
+                <input
+                  value={deleteConfirm}
+                  onChange={(e) => setDeleteConfirm(e.target.value)}
+                  placeholder="Введіть ВИДАЛИТИ"
+                />
+                <div className="profile-bio-actions">
+                  <button type="button" onClick={() => setDeleteOpen(false)} disabled={pending}>
+                    Скасувати
+                  </button>
+                  <button type="button" className="admin-danger-btn" onClick={deleteAccount} disabled={pending}>
+                    Видалити назавжди
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       )}
 

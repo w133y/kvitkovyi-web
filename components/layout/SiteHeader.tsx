@@ -6,11 +6,12 @@ import { usePathname } from "next/navigation";
 import { SITE_PAGES, type SitePageKey } from "@/lib/site-pages";
 import { useEffect, useRef, useState } from "react";
 
+// icon: the phone/tablet bottom bar only — the desktop plate stays text.
 const NAV_LINKS = [
-  { href: "/", label: "Головна" },
-  { href: "/join", label: "Приєднатися" },
-  { href: "/wiki", label: "Вікі" },
-  { href: "/map", label: "Мапа" },
+  { href: "/", label: "Головна", icon: "fa-solid fa-house" },
+  { href: "/join", label: "Приєднатися", icon: "fa-solid fa-play" },
+  { href: "/wiki", label: "Вікі", icon: "fa-solid fa-book" },
+  { href: "/map", label: "Мапа", icon: "fa-solid fa-map" },
 ];
 
 // Tucked behind the "Інше" dropdown on the desktop plate instead of their
@@ -82,6 +83,7 @@ export default function SiteHeader({
   const isWikiPage = pathname.startsWith("/wiki");
   const isAuthErrorPage = pathname.startsWith("/auth/error");
   const isMapPage = pathname === "/map";
+  const isLegalPage = pathname === "/privacy" || pathname === "/terms" || pathname === "/offer";
   // /shop (the category chooser), every /shop/sponsorship/* page (the
   // builder, its info page, its payment page), and /shop/cosmetics (a dense
   // catalog — a big hero image just pushes all 350+ items further down)
@@ -97,6 +99,7 @@ export default function SiteHeader({
     isWikiPage ||
     isAuthErrorPage ||
     isMapPage ||
+    isLegalPage ||
     isBareHeaderShopPage;
 
   const isActive = (href: string) =>
@@ -244,22 +247,33 @@ export default function SiteHeader({
         </div>
       </nav>
 
-      <div className="mobile-menu-button" onClick={() => setMenuOpen((open) => !open)}>
-        <div className={`hamburger ${menuOpen ? "active" : ""}`}>
-          <span></span>
-          <span></span>
-          <span></span>
-        </div>
+      {/* Phones/tablets: the main tabs as a bottom icon bar; "Меню" opens the
+          overlay with everything else (other pages, profile, sign-in). */}
+      {/* A div, not <nav>: "header nav" styles belong to the desktop plate. */}
+      <div className="bottom-nav" role="navigation" aria-label="Навігація">
+        {navLinks.map((link) => (
+          <NavItem
+            key={link.href}
+            href={link.href}
+            label={link.label}
+            icon={link.icon}
+            onNavigate={() => setMenuOpen(false)}
+          />
+        ))}
+        <button
+          type="button"
+          className={menuOpen || !navLinks.some((l) => isActive(l.href)) ? "active" : ""}
+          onClick={() => setMenuOpen((open) => !open)}
+          aria-expanded={menuOpen}
+        >
+          <i className={menuOpen ? "fa-solid fa-xmark" : "fa-solid fa-bars"} aria-hidden="true"></i>
+          <span className="nav-icon-label">Меню</span>
+        </button>
       </div>
 
       <div className={`mobile-menu ${menuOpen ? "active" : ""}`}>
         <div className="mobile-menu-container">
           <ul className="mobile-menutext">
-            {navLinks.map((link) => (
-              <li key={link.href}>
-                <NavItem href={link.href} label={link.label} onNavigate={() => setMenuOpen(false)} />
-              </li>
-            ))}
             {/* Plain text like the rest of the mobile menu — the icons are for
                 the desktop "Інше" dropdown only. */}
             {moreLinks.map((link) => (

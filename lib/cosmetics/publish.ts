@@ -58,38 +58,121 @@ async function readOwnedYaml(path: string): Promise<Record<string, unknown>> {
   }
 }
 
-const HMC_HATS_MENU_FILE = "/plugins/HMCCosmetics/menus/defaultmenu_hats.yml";
+const HMC_MENU_DIR = "/plugins/HMCCosmetics/menus";
+
+// Which /cosmetic menu each wearable type is listed in (matches HMC_SLOT:
+// BALLOON is an OFFHAND item here, hence the "hands" menu).
+const HMC_MENU_FOR: Record<Exclude<CosmeticType, "FURNITURE">, string> = {
+  HAT: "defaultmenu_hats",
+  BACKPACK: "defaultmenu_backpacks",
+  BALLOON: "defaultmenu_hands",
+};
+
+// Column 0 holds the menu's own category buttons (and the page arrows), so
+// cosmetics fill columns 1-8 of the 6 rows.
+const COSMETIC_SLOTS = Array.from({ length: 54 }, (_, i) => i).filter((i) => i % 9 !== 0);
+const PREV_PAGE_SLOT = 9;
+const NEXT_PAGE_SLOT = 45;
+const MAX_PAGES = 20;
+
+type MenuItemConfig = { slots?: number[]; type?: string; cosmetic?: string; [key: string]: unknown };
+type MenuFile = { title?: string; rows?: number; items: Record<string, MenuItemConfig> };
+
+const pageName = (base: string, page: number) => (page === 1 ? base : `${base}_${page}`);
+
+function pageButton(target: string, slot: number, label: string): MenuItemConfig {
+  return {
+    slots: [slot],
+    item: { material: "ARROW", name: label, amount: 1 },
+    type: "empty",
+    actions: { any: [`[MENU] ${target}`, "[SOUND] minecraft:ui.button.click 1 1"] },
+  };
+}
+
+async function readMenu(name: string): Promise<MenuFile | null> {
+  try {
+    const menu = parse(await readServerFile(`${HMC_MENU_DIR}/${name}.yml`)) as MenuFile | null;
+    return menu?.items ? menu : null;
+  } catch {
+    return null;
+  }
+}
 
 // HMCCosmetics menus list every cosmetic explicitly — one merely defined in
-// cosmetics/*.yml loads fine but never shows up in /cosmetic. So a published
-// hat also gets a button in the hats menu, in the first free slot (column 0
-// holds the menu's own category buttons).
-// ponytail: single page, 45 free slots; needs paging past that.
-export async function addToHatsMenu(hmcId: string, nexoItemId: string): Promise<boolean> {
-  const menu = parse(await readServerFile(HMC_HATS_MENU_FILE)) as { items: Record<string, { slots?: number[] }> };
-  if (menu.items[hmcId]) return true;
-  const used = new Set(Object.values(menu.items).flatMap((i) => i.slots ?? []));
-  const slot = Array.from({ length: 54 }, (_, i) => i).find((i) => i % 9 !== 0 && !used.has(i));
-  if (slot === undefined) return false;
-  menu.items[hmcId] = {
-    slots: [slot],
-    item: {
-      material: `nexo:${nexoItemId}`,
-      lore: [
-        "",
-        `<gray>Одягнено: <#6D9DC5>%HMCCosmetics_equipped_${hmcId}%`,
-        `<gray>Доступно: <#6D9DC5>%HMCCosmetics_unlocked_${hmcId}%`,
-      ],
-    },
-    // Shown instead of `item` when the player lacks hmccosmetics.<id> —
-    // AIR leaves the slot empty, so the menu only shows purchased hats
-    // (confirmed from HMC 2.9.1's TypeCosmetic.setItem bytecode).
-    "locked-item": { material: "AIR" },
-    type: "cosmetic",
-    cosmetic: hmcId,
-  } as (typeof menu.items)[string];
-  await writeServerFile(HMC_HATS_MENU_FILE, stringify(menu));
-  return true;
+// cosmetics/*.yml loads fine but never shows up in /cosmetic. So published
+// wearables get a button in their type's menu, first free slot. HMC has no
+// paging of its own, so a full menu continues in "<menu>_2", "<menu>_3", …
+// linked by arrow buttons ([MENU] actions, like the category buttons).
+// Batched: pages are read once and each changed page written once.
+export async function addToCosmeticMenu(
+  type: Exclude<CosmeticType, "FURNITURE">,
+  entries: { hmcId: string; nexoItemId: string }[]
+): Promise<number> {
+  const base = HMC_MENU_FOR[type];
+  const pages: MenuFile[] = [];
+  for (let page = 1; page <= MAX_PAGES; page++) {
+    const menu = await readMenu(pageName(base, page));
+    if (!menu) break;
+    pages.push(menu);
+  }
+  if (pages.length === 0) throw new Error(`HMC menu ${base} not found`);
+
+  const listed = new Set(pages.flatMap((m) => Object.values(m.items).filter((i) => i.type === "cosmetic").map((i) => i.cosmetic)));
+  const dirty = new Set<number>();
+  let added = 0;
+
+  for (const { hmcId, nexoItemId } of entries) {
+    if (listed.has(hmcId)) continue;
+
+    let index = pages.findIndex((m) => {
+      const used = new Set(Object.values(m.items).flatMap((i) => i.slots ?? []));
+      return COSMETIC_SLOTS.some((s) => !used.has(s));
+    });
+    if (index === -1) {
+      if (pages.length >= MAX_PAGES) throw new Error(`HMC menu ${base}: all ${MAX_PAGES} pages full`);
+      // New page: same title/size and category buttons as page 1, plus arrows.
+      const first = pages[0];
+      const items: Record<string, MenuItemConfig> = {};
+      for (const [key, item] of Object.entries(first.items)) {
+        if (item.type !== "cosmetic" && !key.startsWith("page_")) items[key] = item;
+      }
+      const prev = pages.length; // 1-based number of the current last page
+      items.page_prev = pageButton(pageName(base, prev), PREV_PAGE_SLOT, "<gold>← Попередня сторінка");
+      pages.push({ title: first.title, rows: first.rows ?? 6, items });
+      pages[prev - 1].items.page_next = pageButton(pageName(base, prev + 1), NEXT_PAGE_SLOT, "<gold>Наступна сторінка →");
+      dirty.add(prev - 1);
+      index = pages.length - 1;
+    }
+
+    const menu = pages[index];
+    const used = new Set(Object.values(menu.items).flatMap((i) => i.slots ?? []));
+    const slot = COSMETIC_SLOTS.find((s) => !used.has(s))!;
+    menu.items[hmcId] = {
+      slots: [slot],
+      item: {
+        material: `nexo:${nexoItemId}`,
+        lore: [
+          "",
+          `<gray>Одягнено: <#6D9DC5>%HMCCosmetics_equipped_${hmcId}%`,
+          `<gray>Доступно: <#6D9DC5>%HMCCosmetics_unlocked_${hmcId}%`,
+        ],
+      },
+      // Shown instead of `item` when the player lacks hmccosmetics.<id> —
+      // AIR leaves the slot empty, so the menu only shows what was bought
+      // (confirmed from HMC 2.9.1's TypeCosmetic.setItem bytecode).
+      "locked-item": { material: "AIR" },
+      type: "cosmetic",
+      cosmetic: hmcId,
+    };
+    listed.add(hmcId);
+    dirty.add(index);
+    added++;
+  }
+
+  for (const i of dirty) {
+    await writeServerFile(`${HMC_MENU_DIR}/${pageName(base, i + 1)}.yml`, stringify(pages[i]));
+  }
+  return added;
 }
 
 export async function publishCosmeticToServer(item: {
@@ -179,8 +262,10 @@ export async function publishCosmeticToServer(item: {
       dye: { enabled: item.colorCustomizable },
     };
     await writeServerFile(HMC_COSMETICS_FILE, stringify(hmcCosmetics));
-    if (item.type === "HAT" && !(await addToHatsMenu(hmcId, item.nexoItemId))) {
-      await logError("cosmetics/publish: hats menu full", hmcId);
+    try {
+      await addToCosmeticMenu(item.type, [{ hmcId, nexoItemId: item.nexoItemId }]);
+    } catch (err) {
+      await logError("cosmetics/publish: couldn't add to the /cosmetic menu", hmcId, err);
     }
   }
 
