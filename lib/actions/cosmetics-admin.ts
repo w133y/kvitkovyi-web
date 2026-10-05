@@ -58,30 +58,37 @@ export async function stageUploadedPack(packKey: string, sourcePackName: string)
     return { error: "У паку не знайдено жодної сумісної моделі (JSON + текстура)" };
   }
 
+  // In parallel batches — one at a time (a translation call + several R2
+  // uploads each) a 141-model pack outran the function's time limit.
+  const STAGE_CONCURRENCY = 8;
   let staged = 0;
-  for (const model of models) {
-    const suggestion = await suggestCosmeticNameAndType(model.displayName ?? model.suggestedId.replace(/_/g, " "));
-    const uid = crypto.randomBytes(4).toString("hex");
-    const modelKey = `cosmetics/${model.suggestedId}-${uid}/model.json`;
-    const textureKey = `cosmetics/${model.suggestedId}-${uid}/texture.png`;
-    await uploadR2Object(modelKey, JSON.stringify(model.modelJson), "application/json");
-    for (const [n, texture] of model.textures.entries()) {
-      await uploadR2Object(nthTexture(textureKey, n), texture.png, "image/png");
-      if (texture.mcmeta) await uploadR2Object(`${nthTexture(textureKey, n)}.mcmeta`, texture.mcmeta, "application/json");
-    }
+  for (let i = 0; i < models.length; i += STAGE_CONCURRENCY) {
+    await Promise.all(
+      models.slice(i, i + STAGE_CONCURRENCY).map(async (model) => {
+        const suggestion = await suggestCosmeticNameAndType(model.displayName ?? model.suggestedId.replace(/_/g, " "));
+        const uid = crypto.randomBytes(4).toString("hex");
+        const modelKey = `cosmetics/${model.suggestedId}-${uid}/model.json`;
+        const textureKey = `cosmetics/${model.suggestedId}-${uid}/texture.png`;
+        await uploadR2Object(modelKey, JSON.stringify(model.modelJson), "application/json");
+        for (const [n, texture] of model.textures.entries()) {
+          await uploadR2Object(nthTexture(textureKey, n), texture.png, "image/png");
+          if (texture.mcmeta) await uploadR2Object(`${nthTexture(textureKey, n)}.mcmeta`, texture.mcmeta, "application/json");
+        }
 
-    const nexoItemId = `${model.suggestedId}_${uid}`;
-    await createDraft({
-      nexoItemId,
-      name: suggestion.name,
-      // A pack config with furniture Mechanics settles the type outright.
-      type: model.mechanics ? "FURNITURE" : suggestion.type,
-      sourceMechanics: model.mechanics ? withSelfDrop(model.mechanics, nexoItemId) : undefined,
-      modelKey,
-      textureKey,
-      sourcePackName,
-    });
-    staged++;
+        const nexoItemId = `${model.suggestedId}_${uid}`;
+        await createDraft({
+          nexoItemId,
+          name: suggestion.name,
+          // A pack config with furniture Mechanics settles the type outright.
+          type: model.mechanics ? "FURNITURE" : suggestion.type,
+          sourceMechanics: model.mechanics ? withSelfDrop(model.mechanics, nexoItemId) : undefined,
+          modelKey,
+          textureKey,
+          sourcePackName,
+        });
+        staged++;
+      })
+    );
   }
 
   revalidatePath("/admin/cosmetics");

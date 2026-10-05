@@ -24,6 +24,10 @@ import { countMapMarkers } from "@/lib/actions/map-markers";
 import { getServerInfo } from "@/lib/page-access";
 import { listDisabledPages } from "@/lib/actions/site-pages";
 
+// Server Actions run with this page's limit — staging a large cosmetics
+// pack (lib/actions/cosmetics-admin.ts) needs well over the default.
+export const maxDuration = 300;
+
 export const metadata: Metadata = {
   title: "Панель — Квітковий",
 };
