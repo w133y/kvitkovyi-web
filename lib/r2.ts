@@ -30,6 +30,11 @@ function getClient(): S3Client {
     region: "auto",
     endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
     credentials: { accessKeyId, secretAccessKey },
+    // SDK ≥3.729 otherwise bakes a CRC32 of the EMPTY body into every
+    // presigned PUT URL (x-amz-checksum-crc32=AAAAAA==), so R2 rejects the
+    // browser's real upload as a checksum mismatch.
+    requestChecksumCalculation: "WHEN_REQUIRED",
+    responseChecksumValidation: "WHEN_REQUIRED",
   });
 }
 
