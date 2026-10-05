@@ -40,11 +40,7 @@ const MODEL_BASE = "/plugins/Nexo/pack/assets/kvitkovyi";
 const HMC_SLOT: Record<Exclude<CosmeticType, "FURNITURE">, string> = {
   HAT: "HELMET",
   BACKPACK: "BACKPACK",
-  // Not yet seen a real balloon example in either downloaded pack — offhand
-  // is the common pattern for a held/floating cosmetic in similar plugins,
-  // but this is the one slot mapping worth double-checking against a real
-  // balloon item the first time one is published.
-  BALLOON: "OFFHAND",
+  BALLOON: "BALLOON",
 };
 
 // Reads a YAML file this app exclusively owns, returning {} if it doesn't
@@ -60,12 +56,11 @@ async function readOwnedYaml(path: string): Promise<Record<string, unknown>> {
 
 const HMC_MENU_DIR = "/plugins/HMCCosmetics/menus";
 
-// Which /cosmetic menu each wearable type is listed in (matches HMC_SLOT:
-// BALLOON is an OFFHAND item here, hence the "hands" menu).
+// Which /cosmetic menu each wearable type is listed in.
 const HMC_MENU_FOR: Record<Exclude<CosmeticType, "FURNITURE">, string> = {
   HAT: "defaultmenu_hats",
   BACKPACK: "defaultmenu_backpacks",
-  BALLOON: "defaultmenu_hands",
+  BALLOON: "defaultmenu_balloons",
 };
 
 // Column 0 holds the menu's own category buttons (and the page arrows), so
@@ -216,6 +211,13 @@ export async function publishCosmeticToServer(item: {
   ]);
   const modelJson = JSON.parse(modelJsonText) as { textures?: Record<string, string> };
   const ourTextureRef = `${NAMESPACE}:${modelPath}`;
+  // HMC shows a balloon as the item on an invisible armor stand's HEAD, so
+  // that display context is the balloon's in-world size: 2x the source.
+  if (item.type === "BALLOON") {
+    const display = ((modelJson as { display?: Record<string, { scale?: number[] }> }).display ??= {});
+    const head = (display.head ??= {});
+    head.scale = (head.scale ?? [1, 1, 1]).map((v) => Math.min(4, v * 2));
+  }
   if (modelJson.textures) {
     for (const key of Object.keys(modelJson.textures)) {
       modelJson.textures[key] = ourTextureRef;
@@ -260,6 +262,8 @@ export async function publishCosmeticToServer(item: {
       permission: `hmccosmetics.${hmcId}`,
       item: { material: `nexo:${item.nexoItemId}`, name: item.name, amount: 1 },
       dye: { enabled: item.colorCustomizable },
+      // One block below config.yml's global balloon-offset (y: 3).
+      ...(item.type === "BALLOON" ? { "balloon-offset": { x: 0.5, y: 2, z: 0.5 } } : {}),
     };
     await writeServerFile(HMC_COSMETICS_FILE, stringify(hmcCosmetics));
     try {

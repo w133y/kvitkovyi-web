@@ -291,18 +291,20 @@ export default function CosmeticsCatalog({
                         <span className="cosmetics-cart-row-name">{item.name}</span>
                         {item.type === "FURNITURE" ? (
                           <div className="qty-controls">
-                            <button type="button" onClick={() => setQuantity(item.id, quantity - 1)}>
-                              −
+                            <button type="button" onClick={() => setQuantity(item.id, quantity - 1)} aria-label="Менше">
+                              <i className="fas fa-minus"></i>
                             </button>
                             <span>{quantity}</span>
-                            <button type="button" onClick={() => setQuantity(item.id, quantity + 1)}>
-                              +
+                            <button type="button" onClick={() => setQuantity(item.id, quantity + 1)} aria-label="Більше">
+                              <i className="fas fa-plus"></i>
                             </button>
                           </div>
                         ) : (
-                          <button type="button" onClick={() => setQuantity(item.id, 0)} aria-label="Видалити">
-                            <i className="fas fa-trash"></i>
-                          </button>
+                          <div className="qty-controls">
+                            <button type="button" onClick={() => setQuantity(item.id, 0)} aria-label="Видалити">
+                              <i className="fas fa-trash"></i>
+                            </button>
+                          </div>
                         )}
                         <span className="cosmetics-cart-row-price">{flowers(item.priceFlowers * quantity)}</span>
                       </div>

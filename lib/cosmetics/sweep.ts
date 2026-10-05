@@ -1,8 +1,9 @@
 // Retries any CosmeticGrant still PENDING — the player was offline at
 // checkout time, or a transient Kinetic/console error hit — same
 // opportunistic-sweep tradeoff as sweepExpiredDonatePrivileges in
-// lib/donate-privilege-grants.ts (no cron; runs wherever it's cheap to
-// check, e.g. the admin cosmetics list). квітки are already charged by the
+// lib/donate-privilege-grants.ts, but run from the frequent
+// /api/cron/welcome ping so offline buyers get their item soon after
+// joining. квітки are already charged by the
 // time a grant reaches PENDING (see lib/actions/cosmetics-checkout.ts), so
 // this never re-charges — it only retries the in-game side.
 

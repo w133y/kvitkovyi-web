@@ -1,0 +1,21 @@
+# Cosmetics shop delivery (kvitkovyi.pp.ua, lib/cosmetics/grant.ts).
+# The site runs `kvgive <player> <nexo item> <amount>`: given right away when
+# the player is online, otherwise queued and given on their next join.
+# The "[kvgive] ok" line is what the site reads back as confirmation.
+
+command /kvgive <text> <text> <integer>:
+	executable by: console
+	trigger:
+		set {_p} to arg-1 parsed as player
+		if {_p} is set:
+			execute console command "nexo give %arg-2% %arg-3% %arg-1%"
+		else:
+			add "%arg-2% %arg-3%" to {kvcosm::pending::%arg-1%::*}
+		send "[kvgive] ok %arg-2% %arg-1%" to console
+
+on join:
+	wait 3 seconds
+	player is online
+	loop {kvcosm::pending::%player's name%::*}:
+		execute console command "nexo give %loop-value% %player's name%"
+	delete {kvcosm::pending::%player's name%::*}

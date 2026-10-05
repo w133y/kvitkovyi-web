@@ -4959,6 +4959,10 @@ header nav .auth-widget {
     line-height: 1;
 }
 
+.cosmetics-cart-row .qty-controls button {
+    font-size: 13px;
+}
+
 .cart-row .line-total {
     min-width: 100px;
     text-align: right;

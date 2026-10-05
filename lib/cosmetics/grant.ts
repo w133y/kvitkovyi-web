@@ -6,15 +6,15 @@
 //   lib/donate-privilege-grants.ts uses for Флорист/Меценат. Works for
 //   offline players too (LuckPerms stores it). Any color choice happens
 //   afterwards in HMCCosmetics' own wardrobe menu.
-// - FURNITURE (Nexo): `/nexo give <item> <amount> <player>` — item FIRST,
-//   player LAST (the `/nexo` help text's "give target item amount" is
-//   misleading; confirmed live: "You gave 0 players 1 × <item>!").
-//   Unlike a permission, a give needs the player online, and for an offline
-//   player it still "succeeds" silently with 0 players — while
-//   sendServerCommand only ever sees Kinetic's HTTP 204. So delivery is
-//   confirmed from Nexo's own "You gave N players" console line; N = 0
-//   counts as not delivered, the grant stays PENDING, and
-//   lib/cosmetics/sweep.ts retries it later.
+// - FURNITURE (Nexo): `/kvgive <player> <item> <amount>`, a console command
+//   from the server's plugins/Skript/scripts/kvitkovyi-cosmetics.sk. A bare
+//   `/nexo give` only reaches online players (offline it "succeeds" with
+//   "You gave 0 players"), so the Skript gives right away when the player is
+//   online and otherwise queues the give for their next join. Delivery is
+//   confirmed from that script's own "[kvgive] ok <item> <player>" console
+//   line — sendServerCommand only ever sees Kinetic's HTTP 204. No line
+//   (script missing, Kinetic error) leaves the grant PENDING for
+//   lib/cosmetics/sweep.ts to retry.
 //
 // This is a one-way grant, unlike DonatePrivilege — cosmetics aren't
 // time-limited, so there's no revoke/expiry counterpart here.
@@ -32,23 +32,18 @@ export const COSMETIC_ITEM_ID_RE = /^[a-z0-9_]{1,64}$/;
 
 const GIVE_CONFIRM_TIMEOUT_MS = 5000;
 
-// ponytail: matches the newest "You gave N players … × <item>" line after
-// sending — two simultaneous gives of the same item to different players
-// could read each other's line. Fine at this server's order volume; a
-// per-command nonce would need Nexo support it doesn't have.
 async function logLineCount(): Promise<number> {
   return (await readServerFile("/logs/latest.log")).split("\n").length;
 }
 
-async function confirmNexoGive(item: string, before: number): Promise<boolean> {
-  const pattern = new RegExp(`You gave (\\d+) players? \\d+ × ${item}!`);
+async function confirmKvGive(item: string, nickname: string, before: number): Promise<boolean> {
+  const pattern = new RegExp(`\\[kvgive\\] ok ${item} ${nickname}$`);
   const deadline = Date.now() + GIVE_CONFIRM_TIMEOUT_MS;
   while (Date.now() < deadline) {
     await new Promise((r) => setTimeout(r, 700));
     const lines = (await readServerFile("/logs/latest.log")).split("\n").slice(before - 1);
     for (const line of lines.reverse()) {
-      const match = line.match(pattern);
-      if (match) return Number(match[1]) > 0;
+      if (pattern.test(line.trimEnd())) return true;
     }
   }
   return false;
@@ -80,8 +75,8 @@ export async function grantCosmeticInGame(params: {
     if (params.type === "FURNITURE") {
       const amount = Math.max(1, Math.floor(params.quantity ?? 1));
       const before = await logLineCount();
-      await sendServerCommand(`nexo give ${params.nexoItemId} ${amount} ${params.nickname}`);
-      return await confirmNexoGive(params.nexoItemId, before);
+      await sendServerCommand(`kvgive ${params.nickname} ${params.nexoItemId} ${amount}`);
+      return await confirmKvGive(params.nexoItemId, params.nickname, before);
     }
     const permissionId = params.hmcCosmeticId ?? params.nexoItemId;
     await sendServerCommand(`lp user ${params.nickname} permission set hmccosmetics.${permissionId} true`);
