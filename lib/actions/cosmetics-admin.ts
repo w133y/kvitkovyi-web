@@ -202,13 +202,15 @@ export async function listPublishedCosmetics() {
 // Just the ids the bulk-bake tool needs to walk through — not the full
 // listPublishedCosmetics() row (name, price, etc.), since with hundreds of
 // items that's a lot of otherwise-unused data for a tool that only ever
-// mounts one hidden viewer at a time.
-export async function listCosmeticIdsMissingThumbnail(): Promise<
+// mounts one hidden viewer at a time. Drafts included (a freshly staged pack
+// is all drafts); `all` re-bakes items that already have one, e.g. after
+// the viewer's default camera angle changed.
+export async function listCosmeticIdsMissingThumbnail(all = false): Promise<
   { id: string; modelUrl: string; textureUrl: string }[]
 > {
   await requireAdmin();
   const items = await prisma.cosmeticItem.findMany({
-    where: { status: "PUBLISHED", thumbnailUrl: null },
+    where: all ? {} : { thumbnailUrl: null },
     select: { id: true, modelKey: true, textureKey: true },
   });
   return items.map((item) => ({

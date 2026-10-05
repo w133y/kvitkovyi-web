@@ -275,8 +275,8 @@ export async function publishCosmeticToServer(item: {
       permission: `hmccosmetics.${hmcId}`,
       item: { material: `nexo:${item.nexoItemId}`, name: item.name, amount: 1 },
       dye: { enabled: item.colorCustomizable },
-      // One block below config.yml's global balloon-offset (y: 3).
-      ...(item.type === "BALLOON" ? { "balloon-offset": { x: 0.5, y: 2, z: 0.5 } } : {}),
+      // Two blocks below config.yml's global balloon-offset (y: 3).
+      ...(item.type === "BALLOON" ? { "balloon-offset": { x: 0.5, y: 1, z: 0.5 } } : {}),
     };
     await writeServerFile(HMC_COSMETICS_FILE, stringify(hmcCosmetics));
     try {

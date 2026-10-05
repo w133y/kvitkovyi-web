@@ -129,7 +129,9 @@ const MODE_BUTTONS: { mode: ViewMode; icon: string; label: string }[] = [
   { mode: "pan", icon: "fa-solid fa-up-down-left-right", label: "Переміщення" },
 ];
 
-const DEFAULT_YAW = Math.PI / 4;
+// Starts at the -X/-Z corner — the opposite of the original +X/+Z view,
+// which showed most models from behind. Also the baked thumbnail's angle.
+const DEFAULT_YAW = (5 * Math.PI) / 4;
 const DEFAULT_PITCH = -Math.PI / 8;
 const MIN_ZOOM = 0.25;
 const MAX_ZOOM = 3;
@@ -139,12 +141,15 @@ export default function ModelViewer3D({
   textureUrl,
   className,
   onReady,
+  onError,
   controls = false,
 }: {
   modelUrl: string;
   textureUrl: string;
   className?: string;
   onReady?: (canvas: HTMLCanvasElement) => void;
+  // Called instead of onReady when the model can't be shown at all.
+  onError?: (message: string) => void;
   // Shows the rotate / zoom / pan / reset toolbar — the shop preview uses
   // it; thumbnails and the admin list don't need it.
   controls?: boolean;
@@ -161,6 +166,8 @@ export default function ModelViewer3D({
   // render, and switching mode must not rebuild the WebGL context.
   const onReadyRef = useRef(onReady);
   onReadyRef.current = onReady;
+  const onErrorRef = useRef(onError);
+  onErrorRef.current = onError;
   const modeRef = useRef(mode);
   modeRef.current = mode;
   const resetRef = useRef<() => void>(() => {});
@@ -172,6 +179,7 @@ export default function ModelViewer3D({
     const gl = canvas.getContext("webgl", { preserveDrawingBuffer: true, alpha: true });
     if (!gl) {
       setError("WebGL недоступний у цьому браузері");
+      onErrorRef.current?.("WebGL недоступний у цьому браузері");
       return;
     }
 
@@ -249,7 +257,10 @@ export default function ModelViewer3D({
         setReadyUrl(modelUrl);
         onReadyRef.current?.(canvas!);
       } catch (err) {
-        if (!cancelled) setError(err instanceof Error ? err.message : "Не вдалося завантажити модель");
+        if (cancelled) return;
+        const message = err instanceof Error ? err.message : "Не вдалося завантажити модель";
+        setError(message);
+        onErrorRef.current?.(message);
       }
     }
 

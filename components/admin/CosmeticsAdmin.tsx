@@ -283,32 +283,29 @@ function PublishedCard({ item, onChanged }: { item: CosmeticItemRow; onChanged: 
   );
 }
 
-// Walks every PUBLISHED item missing a thumbnail one at a time — a hidden
-// off-screen viewer mounts, renders, captures, uploads, then unmounts
-// before the next one starts. Never more than one live WebGL context at
-// once, unlike rendering all cards' viewers simultaneously would.
+// Walks every item missing a thumbnail (or every item, to re-bake) one at
+// a time — a hidden off-screen viewer mounts, renders, captures, uploads,
+// then unmounts before the next one starts. Never more than one live WebGL
+// context at once, unlike rendering all cards' viewers simultaneously would.
+// A model that fails to load is skipped rather than stalling the queue.
 function ThumbnailBaker({ onDone }: { onDone: () => void }) {
   const [queue, setQueue] = useState<{ id: string; modelUrl: string; textureUrl: string }[] | null>(null);
   const [index, setIndex] = useState(0);
   const [running, setRunning] = useState(false);
+  const [failed, setFailed] = useState(0);
 
-  async function start() {
+  async function start(all: boolean) {
+    if (all && !confirm("Перезапекти прев'ю для ВСІХ предметів?")) return;
     setRunning(true);
-    const items = await listCosmeticIdsMissingThumbnail();
+    setFailed(0);
+    const items = await listCosmeticIdsMissingThumbnail(all);
     setQueue(items);
     setIndex(0);
     if (items.length === 0) setRunning(false);
   }
 
-  async function handleReady(canvas: HTMLCanvasElement) {
-    if (!queue) return;
-    const item = queue[index];
-    const blob = await canvasToBlob(canvas);
-    if (blob) {
-      const uploaded = await uploadToR2(blob, "image/png");
-      if (!("error" in uploaded)) await setCosmeticThumbnail(item.id, uploaded.publicUrl);
-    }
-    if (index + 1 < queue.length) {
+  function next() {
+    if (queue && index + 1 < queue.length) {
       setIndex(index + 1);
     } else {
       setRunning(false);
@@ -317,13 +314,35 @@ function ThumbnailBaker({ onDone }: { onDone: () => void }) {
     }
   }
 
+  async function handleReady(canvas: HTMLCanvasElement) {
+    if (!queue) return;
+    try {
+      const blob = await canvasToBlob(canvas);
+      const uploaded = blob ? await uploadToR2(blob, "image/png") : { error: "empty canvas" };
+      if ("error" in uploaded) setFailed((n) => n + 1);
+      else await setCosmeticThumbnail(queue[index].id, uploaded.publicUrl);
+    } catch {
+      setFailed((n) => n + 1);
+    }
+    next();
+  }
+
+  function handleError() {
+    setFailed((n) => n + 1);
+    next();
+  }
+
   const current = queue?.[index];
 
   return (
     <div className="admin-thumbnail-baker">
-      <button type="button" onClick={start} disabled={running}>
+      <button type="button" onClick={() => start(false)} disabled={running}>
         {running ? `Запікання... (${index + 1}/${queue?.length ?? "?"})` : "Запекти всі відсутні прев'ю"}
       </button>
+      <button type="button" onClick={() => start(true)} disabled={running}>
+        {"Перезапекти всі прев'ю"}
+      </button>
+      {failed > 0 && <span className="profile-bio-error">Не вдалося: {failed}</span>}
       {current && (
         <div className="admin-thumbnail-baker-hidden">
           <ModelViewer3D
@@ -331,6 +350,7 @@ function ThumbnailBaker({ onDone }: { onDone: () => void }) {
             modelUrl={current.modelUrl}
             textureUrl={current.textureUrl}
             onReady={handleReady}
+            onError={handleError}
           />
         </div>
       )}
