@@ -214,7 +214,7 @@ export default function CosmeticsCatalog({
                         <i className="fa-solid fa-cube" aria-hidden="true"></i>
                       </span>
                     )}
-                    {ownedIds.includes(item.id) && <span className="cosmetics-owned-badge">Куплено</span>}
+                    {item.type !== "FURNITURE" && ownedIds.includes(item.id) && <span className="cosmetics-owned-badge">Куплено</span>}
                   </button>
                   <div className="cosmetics-card-info">
                     <span className="cosmetics-card-name">{item.name}</span>
