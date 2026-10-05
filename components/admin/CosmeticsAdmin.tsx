@@ -429,6 +429,10 @@ export default function CosmeticsAdmin({
         return;
       }
       refresh();
+    } catch (err) {
+      // A failed R2 PUT (network/CORS) or a server action that died (timeout)
+      // rejects instead of returning { error } — show it, don't just stop.
+      setUploadError(`Не вдалося завантажити пак: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setUploading(false);
     }

@@ -9,6 +9,7 @@ import { parseNexoPack, withSelfDrop } from "@/lib/cosmetics/nexo-pack";
 import { suggestCosmeticNameAndType } from "@/lib/cosmetics/translate";
 import { publishCosmeticToServer } from "@/lib/cosmetics/publish";
 import { COSMETIC_ITEM_ID_RE } from "@/lib/cosmetics/grant";
+import { logError } from "@/lib/admin-log";
 import { revalidatePath } from "next/cache";
 import type { CosmeticType, Prisma } from "@prisma/client";
 
@@ -38,7 +39,15 @@ type StageResult = { staged: number } | { error: string };
 // anything to the live server on its own.
 export async function stageUploadedPack(packKey: string, sourcePackName: string): Promise<StageResult> {
   await requireAdmin();
+  try {
+    return await stagePack(packKey, sourcePackName);
+  } catch (err) {
+    await logError("cosmetics-admin: pack staging failed", sourcePackName, err);
+    return { error: `Не вдалося обробити пак: ${err instanceof Error ? err.message : String(err)}` };
+  }
+}
 
+async function stagePack(packKey: string, sourcePackName: string): Promise<StageResult> {
   let zipBuffer: Buffer;
   try {
     const res = await fetch(getPublicUrl(packKey));
