@@ -15,6 +15,7 @@
 import { useEffect, useRef, useState } from "react";
 import { mat4 } from "gl-matrix";
 import { BlockModel, TextureAtlas, Cull, Renderer, Identifier, type Mesh } from "deepslate";
+import { nthTexture, textureIndex } from "@/lib/cosmetics/asset-url";
 
 // Draw sequence mirrors deepslate's own ItemRenderer.drawItem() exactly:
 // setShader → setTexture → prepareDraw → drawMesh. The base Renderer
@@ -52,31 +53,39 @@ class SingleModelRenderer extends Renderer {
 // deepslate's TextureAtlas.fromBlobs only copies a 16x16 region of each
 // texture (built for vanilla 16px block textures) — cosmetic textures are
 // 32/64px+, so it sampled a mostly-transparent corner and the shader's
-// alpha discard blanked every pixel. Builds a single-texture atlas from the
-// FULL image instead: drawn at native size onto a power-of-two canvas
-// (TextureAtlas requires it), UV range covering just the image's area.
-// Model UVs are always 0-16 over the whole texture regardless of its
-// resolution, so this maps correctly for any texture size.
-async function buildAtlas(textureRefs: string[], blob: Blob): Promise<TextureAtlas> {
-  const img = await createImageBitmap(blob);
-  const size = 2 ** Math.ceil(Math.log2(Math.max(img.width, img.height, 16)));
-  const canvas = document.createElement("canvas");
-  canvas.width = size;
-  canvas.height = size;
-  const ctx = canvas.getContext("2d")!;
-  ctx.drawImage(img, 0, 0);
+// alpha discard blanked every pixel. Builds the atlas from the FULL images
+// instead: stacked vertically at native size on a power-of-two canvas
+// (TextureAtlas requires it), each ref's UV range covering just its own
+// image. Model UVs are always 0-16 over the whole texture regardless of
+// its resolution, so this maps correctly for any texture size.
+// `images[n]` is texture n of the item; refs pick theirs via textureIndex.
+async function buildAtlas(textureRefs: string[], blobs: Blob[]): Promise<TextureAtlas> {
+  const images = await Promise.all(blobs.map((b) => createImageBitmap(b)));
   // An animated texture (.png.mcmeta in the pack) is a vertical strip of
   // square frames — map only the first frame, like the game's first tick,
   // instead of squashing the whole strip onto the model.
   // ponytail: detected by shape (height an exact multiple of width); a
-  // genuinely tall non-animated texture would be cropped too — store an
-  // "animated" flag per item if one ever turns up.
-  const frameHeight = img.height > img.width && img.height % img.width === 0 ? img.width : img.height;
-  const uv: [number, number, number, number] = [0, 0, img.width / size, frameHeight / size];
+  // genuinely tall non-animated texture would be cropped too — check for
+  // the .mcmeta file instead if one ever turns up.
+  const frames = images.map((img) => (img.height > img.width && img.height % img.width === 0 ? img.width : img.height));
+  const totalHeight = frames.reduce((sum, h) => sum + h, 0);
+  const size = 2 ** Math.ceil(Math.log2(Math.max(...images.map((img) => img.width), totalHeight, 16)));
+  const canvas = document.createElement("canvas");
+  canvas.width = size;
+  canvas.height = size;
+  const ctx = canvas.getContext("2d")!;
+  const uvs: [number, number, number, number][] = [];
+  let y = 0;
+  images.forEach((img, i) => {
+    ctx.drawImage(img, 0, 0, img.width, frames[i], 0, y, img.width, frames[i]);
+    uvs.push([0, y / size, img.width / size, (y + frames[i]) / size]);
+    y += frames[i];
+  });
   // Keyed through Identifier so an un-namespaced ref ("block/x") matches
-  // the "minecraft:block/x" deepslate looks it up by. Every ref maps to the
-  // one texture this app stores per item.
-  const idMap = Object.fromEntries(textureRefs.map((ref) => [Identifier.parse(ref).toString(), uv]));
+  // the "minecraft:block/x" deepslate looks it up by.
+  const idMap = Object.fromEntries(
+    textureRefs.map((ref) => [Identifier.parse(ref).toString(), uvs[textureIndex(ref)] ?? uvs[0]])
+  );
   return new TextureAtlas(ctx.getImageData(0, 0, size, size), idMap);
 }
 
@@ -207,10 +216,9 @@ export default function ModelViewer3D({
 
     async function load() {
       try {
-        const [modelRes, textureRes] = await Promise.all([fetch(modelUrl), fetch(textureUrl)]);
+        const modelRes = await fetch(modelUrl);
         if (!modelRes.ok) throw new Error(`modelUrl ${modelRes.status}`);
-        if (!textureRes.ok) throw new Error(`textureUrl ${textureRes.status}`);
-        const [modelJson, textureBlob] = await Promise.all([modelRes.json(), textureRes.blob()]);
+        const modelJson = await modelRes.json();
         if (cancelled) return;
 
         const textureRefs = Object.values(modelJson.textures ?? {}).filter(
@@ -218,7 +226,17 @@ export default function ModelViewer3D({
         );
         if (textureRefs.length === 0) throw new Error("model JSON has no texture reference");
 
-        const atlas = await buildAtlas(textureRefs, textureBlob);
+        const count = Math.max(...textureRefs.map(textureIndex)) + 1;
+        const textureBlobs = await Promise.all(
+          Array.from({ length: count }, async (_, n) => {
+            const res = await fetch(nthTexture(textureUrl, n));
+            if (!res.ok) throw new Error(`textureUrl ${res.status}`);
+            return res.blob();
+          })
+        );
+        if (cancelled) return;
+
+        const atlas = await buildAtlas(textureRefs, textureBlobs);
         const model = BlockModel.fromJson(modelJson);
         if (cancelled || !gl) return;
 

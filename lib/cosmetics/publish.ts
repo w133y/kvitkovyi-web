@@ -29,6 +29,7 @@ import { parse, stringify } from "yaml";
 import { readServerFile, writeServerFile, sendServerCommand } from "@/lib/kinetic";
 import { getPublicUrl } from "@/lib/r2";
 import { COSMETIC_ITEM_ID_RE } from "@/lib/cosmetics/grant";
+import { nthTexture, textureIndex } from "@/lib/cosmetics/asset-url";
 import { logError } from "@/lib/admin-log";
 import type { CosmeticType } from "@prisma/client";
 
@@ -178,6 +179,7 @@ export async function publishCosmeticToServer(item: {
   colorCustomizable: boolean;
   modelKey: string;
   textureKey: string;
+  sourceMechanics?: unknown;
 }): Promise<void> {
   if (!COSMETIC_ITEM_ID_RE.test(item.nexoItemId)) {
     throw new Error("Некоректний id косметики");
@@ -202,15 +204,13 @@ export async function publishCosmeticToServer(item: {
   // leaving the model's texture reference pointed at the old namespace
   // left Nexo unable to find it ("texture-reference(s) do not exist",
   // confirmed against a real reload). Every texture value is rewritten to
-  // our own reference before the model JSON is written, since this schema
-  // only ever stores one texture per item (see ModelViewer3D.tsx /
-  // nexo-pack.ts, both already only look at the first texture value).
-  const [modelJsonText, textureBuffer] = await Promise.all([
-    fetch(getPublicUrl(item.modelKey)).then((r) => r.text()),
-    fetch(getPublicUrl(item.textureKey)).then((r) => r.arrayBuffer()),
-  ]);
-  const modelJson = JSON.parse(modelJsonText) as { textures?: Record<string, string> };
-  const ourTextureRef = `${NAMESPACE}:${modelPath}`;
+  // our own reference before the model JSON is written: texture n of the
+  // item (lib/cosmetics/asset-url.ts — "kvitkovyi:tex<n>" refs, or just
+  // texture 0 for older single-texture uploads) is written as
+  // <modelPath>.png / <modelPath>_<n>.png, plus its .mcmeta if animated.
+  const modelJson = JSON.parse(await fetch(getPublicUrl(item.modelKey)).then((r) => r.text())) as {
+    textures?: Record<string, string>;
+  };
   // HMC shows a balloon as the item on an invisible armor stand's HEAD, so
   // that display context is the balloon's in-world size: 2x the source.
   if (item.type === "BALLOON") {
@@ -218,19 +218,30 @@ export async function publishCosmeticToServer(item: {
     const head = (display.head ??= {});
     head.scale = (head.scale ?? [1, 1, 1]).map((v) => Math.min(4, v * 2));
   }
-  if (modelJson.textures) {
-    for (const key of Object.keys(modelJson.textures)) {
-      modelJson.textures[key] = ourTextureRef;
-    }
+  const used = new Set<number>([0]);
+  for (const [key, ref] of Object.entries(modelJson.textures ?? {})) {
+    if (ref.startsWith("#")) continue;
+    const n = textureIndex(ref);
+    used.add(n);
+    modelJson.textures![key] = `${NAMESPACE}:${nthTexture(`${modelPath}.png`, n).slice(0, -4)}`;
   }
 
+  for (const n of used) {
+    const key = nthTexture(item.textureKey, n);
+    const [png, mcmeta] = await Promise.all([fetch(getPublicUrl(key)), fetch(getPublicUrl(`${key}.mcmeta`))]);
+    if (!png.ok) throw new Error(`Не вдалося завантажити текстуру ${n}`);
+    const target = `${MODEL_BASE}/textures/${nthTexture(`${modelPath}.png`, n)}`;
+    await writeServerFile(target, Buffer.from(await png.arrayBuffer()));
+    if (mcmeta.ok) await writeServerFile(`${target}.mcmeta`, await mcmeta.text());
+  }
   await writeServerFile(`${MODEL_BASE}/models/${modelPath}.json`, JSON.stringify(modelJson));
-  await writeServerFile(`${MODEL_BASE}/textures/${modelPath}.png`, Buffer.from(textureBuffer));
 
   const nexoItems = await readOwnedYaml(NEXO_ITEMS_FILE);
   // A re-publish (admin edit) keeps whatever Mechanics the entry already
   // has — the source packs' barriers/seats/lights were converted into it
-  // once and must not be reset to the generic default below.
+  // once and must not be reset to the generic default below. A first
+  // publish uses the pack's own Mechanics when the upload had them
+  // (CosmeticItem.sourceMechanics).
   const existing = nexoItems[item.nexoItemId] as { Mechanics?: unknown } | undefined;
   nexoItems[item.nexoItemId] = {
     material: item.colorCustomizable ? "LEATHER_HORSE_ARMOR" : "PAPER",
@@ -239,6 +250,8 @@ export async function publishCosmeticToServer(item: {
     itemname: item.name,
     ...(existing && "Mechanics" in existing
       ? { Mechanics: existing.Mechanics }
+      : item.sourceMechanics
+      ? { Mechanics: item.sourceMechanics }
       : item.type === "FURNITURE"
       ? {
           Mechanics: {

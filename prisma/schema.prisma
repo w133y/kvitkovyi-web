@@ -477,6 +477,11 @@ model CosmeticItem {
 
   priceFlowers Int // NOT priceCents on Product — a flower count
 
+  // The source pack's own Nexo `Mechanics:` (seats, hitboxes, doors…), read
+  // at upload time by lib/cosmetics/nexo-pack.ts — used on first publish
+  // instead of the generic one-barrier furniture default.
+  sourceMechanics Json?
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

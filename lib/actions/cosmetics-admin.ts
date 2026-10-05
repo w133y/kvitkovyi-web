@@ -4,13 +4,13 @@ import crypto from "crypto";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { createCosmeticUploadTarget, uploadR2Object, getPublicUrl, type UploadTarget } from "@/lib/r2";
-import { cosmeticAssetUrl } from "@/lib/cosmetics/asset-url";
-import { parseNexoPack } from "@/lib/cosmetics/nexo-pack";
+import { cosmeticAssetUrl, nthTexture } from "@/lib/cosmetics/asset-url";
+import { parseNexoPack, withSelfDrop } from "@/lib/cosmetics/nexo-pack";
 import { suggestCosmeticNameAndType } from "@/lib/cosmetics/translate";
 import { publishCosmeticToServer } from "@/lib/cosmetics/publish";
 import { COSMETIC_ITEM_ID_RE } from "@/lib/cosmetics/grant";
 import { revalidatePath } from "next/cache";
-import type { CosmeticType } from "@prisma/client";
+import type { CosmeticType, Prisma } from "@prisma/client";
 
 const COSMETIC_TYPES: CosmeticType[] = ["HAT", "BACKPACK", "BALLOON", "FURNITURE"];
 
@@ -60,17 +60,23 @@ export async function stageUploadedPack(packKey: string, sourcePackName: string)
 
   let staged = 0;
   for (const model of models) {
-    const suggestion = await suggestCosmeticNameAndType(model.suggestedId.replace(/_/g, " "));
+    const suggestion = await suggestCosmeticNameAndType(model.displayName ?? model.suggestedId.replace(/_/g, " "));
     const uid = crypto.randomBytes(4).toString("hex");
     const modelKey = `cosmetics/${model.suggestedId}-${uid}/model.json`;
     const textureKey = `cosmetics/${model.suggestedId}-${uid}/texture.png`;
     await uploadR2Object(modelKey, JSON.stringify(model.modelJson), "application/json");
-    await uploadR2Object(textureKey, model.textureBuffer, "image/png");
+    for (const [n, texture] of model.textures.entries()) {
+      await uploadR2Object(nthTexture(textureKey, n), texture.png, "image/png");
+      if (texture.mcmeta) await uploadR2Object(`${nthTexture(textureKey, n)}.mcmeta`, texture.mcmeta, "application/json");
+    }
 
+    const nexoItemId = `${model.suggestedId}_${uid}`;
     await createDraft({
-      nexoItemId: `${model.suggestedId}_${uid}`,
+      nexoItemId,
       name: suggestion.name,
-      type: suggestion.type,
+      // A pack config with furniture Mechanics settles the type outright.
+      type: model.mechanics ? "FURNITURE" : suggestion.type,
+      sourceMechanics: model.mechanics ? withSelfDrop(model.mechanics, nexoItemId) : undefined,
       modelKey,
       textureKey,
       sourcePackName,
@@ -118,6 +124,7 @@ async function createDraft(params: {
   modelKey: string;
   textureKey: string;
   sourcePackName: string | null;
+  sourceMechanics?: { furniture: Record<string, unknown> };
 }) {
   const defaultPriceFlowers = params.type === "FURNITURE" ? 1 : 10;
   const slug = `cosmetic-${params.nexoItemId}`;
@@ -138,6 +145,7 @@ async function createDraft(params: {
           modelKey: params.modelKey,
           textureKey: params.textureKey,
           sourcePackName: params.sourcePackName,
+          sourceMechanics: params.sourceMechanics as Prisma.InputJsonValue | undefined,
           priceFlowers: defaultPriceFlowers,
         },
       },
@@ -261,6 +269,7 @@ export async function publishCosmeticItem(id: string): Promise<{ ok: true } | { 
       colorCustomizable: item.colorCustomizable,
       modelKey: item.modelKey,
       textureKey: item.textureKey,
+      sourceMechanics: item.sourceMechanics,
     });
   } catch (err) {
     return { error: err instanceof Error ? err.message : "Не вдалося опублікувати на сервері" };
