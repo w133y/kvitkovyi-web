@@ -4,6 +4,7 @@ import Discord from "next-auth/providers/discord";
 import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
 import { promotePendingAdmin } from "@/lib/site-admins";
+import { logError } from "@/lib/admin-log";
 
 // Data minimisation (see /privacy): the site only needs the Discord id, name
 // and avatar. So the login asks for the "identify" scope only (no e-mail),
@@ -28,6 +29,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter,
   providers: [
     Discord({
+      // Discord now sends `iss` on the OAuth callback (RFC 9207); without a
+      // matching issuer Auth.js compares it to its "https://authjs.dev"
+      // fallback and rejects every sign-in (CallbackRouteError).
+      issuer: "https://discord.com",
       authorization: { params: { scope: "identify" } },
       profile(profile) {
         const avatar = profile.avatar
@@ -39,6 +44,14 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ],
   pages: {
     error: "/auth/error",
+  },
+  // Every callback failure reaches the user as the same generic
+  // ?error=Configuration — the real reason is only in error.cause.err.
+  logger: {
+    error(error) {
+      const cause = (error.cause as { err?: unknown } | undefined)?.err;
+      void logError(`auth: ${error.name}`, cause ?? error, error.message);
+    },
   },
   callbacks: {
     async session({ session, user }) {
