@@ -46,15 +46,19 @@ export default async function RootLayout({ children }: { children: React.ReactNo
           it as a mismatch. See https://react.dev/link/hydration-mismatch */}
       <body suppressHydrationWarning>
         <CartProvider>
-          <SiteHeader
-            hiddenPages={hiddenPages}
-            userMenu={
-              <Suspense fallback={<UserMenuSkeleton />}>
-                <UserMenu session={session} />
-              </Suspense>
-            }
-          />
-          <main className="site-main">{children}</main>
+          {/* Header + content fill at least the first screen, so the footer
+              always starts below the fold (see .site-page). */}
+          <div className="site-page">
+            <SiteHeader
+              hiddenPages={hiddenPages}
+              userMenu={
+                <Suspense fallback={<UserMenuSkeleton />}>
+                  <UserMenu session={session} />
+                </Suspense>
+              }
+            />
+            <main className="site-main">{children}</main>
+          </div>
           <ScrollReveal />
           <SiteFooter />
           {session && <ResumeDonatePrompt />}

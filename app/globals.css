@@ -592,8 +592,16 @@ body {
     transition: background-color 0.2s ease, color 0.2s ease;
 }
 
-/* Pushes .site-footer to the bottom of the viewport on pages whose content
-   is shorter than the screen (profile, admin), instead of leaving a gap. */
+/* Header + main take at least a full screen, so on pages shorter than the
+   viewport (profile, admin, a short leaderboard) the footer starts no
+   higher than 100vh from the top instead of floating up into view. */
+.site-page {
+    flex: 1 0 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
 .site-main {
     flex: 1 0 auto;
     display: flex;
