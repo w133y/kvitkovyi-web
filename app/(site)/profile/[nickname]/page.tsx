@@ -22,6 +22,8 @@ export const revalidate = 60;
 // Discord roles shown as badges under the skin.
 const STAFF_ROLE_IDS = ["1299316163750400052", "1300053608519303209"];
 const STAFF_COLOR = "#5B9BFF";
+const CONTENT_MAKER_ROLE_ID = "1322945689780490311";
+const CONTENT_MAKER_COLOR = "#FF5555";
 // Only for a Меценат role with no site privilege to take the icon colour from.
 const MECENAT_FALLBACK_COLOR = "#FFAA00";
 
@@ -83,14 +85,19 @@ export default async function PublicProfilePage({
       ])
     : [null, [] as string[]];
 
-  const roleBadges = [
-    STAFF_ROLE_IDS.some((id) => roleIds.includes(id)) && { label: "Стаф", color: STAFF_COLOR },
-    roleIds.includes(process.env.DISCORD_ROLE_MECENAT ?? "-") && {
-      label: "Меценат",
-      color: (privilege?.tier === "MECENAT" && privilege.iconColorHex) || MECENAT_FALLBACK_COLOR,
-    },
-    roleIds.includes(process.env.DISCORD_ROLE_FLORIST ?? "-") && { label: "Флорист", color: FLORIST_COLOR_HEX },
-  ].filter((b): b is { label: string; color: string } => !!b);
+  // Staff / content maker is a person's only badge (staff wins if both);
+  // the privilege badges only show for everyone else.
+  const roleBadges: { label: string; color: string }[] = STAFF_ROLE_IDS.some((id) => roleIds.includes(id))
+    ? [{ label: "Стаф", color: STAFF_COLOR }]
+    : roleIds.includes(CONTENT_MAKER_ROLE_ID)
+      ? [{ label: "Контентмейкер", color: CONTENT_MAKER_COLOR }]
+      : [
+          roleIds.includes(process.env.DISCORD_ROLE_MECENAT ?? "-") && {
+            label: "Меценат",
+            color: (privilege?.tier === "MECENAT" && privilege.iconColorHex) || MECENAT_FALLBACK_COLOR,
+          },
+          roleIds.includes(process.env.DISCORD_ROLE_FLORIST ?? "-") && { label: "Флорист", color: FLORIST_COLOR_HEX },
+        ].filter((b): b is { label: string; color: string } => !!b);
 
   return (
     <div className="profile-layout">
