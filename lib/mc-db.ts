@@ -707,14 +707,29 @@ export async function getFlowerBalance(nickname: string): Promise<number | null>
 
 export type SkinsRestorerSkin = {
   value: string;
-  signature: string;
 };
 
-// sr_player_skins (SkinsRestorer plugin) holds whatever skin a player has
-// actively set in-game, in the same base64 texture-property format Mojang's
-// session server uses. This is the source of truth for offline/cracked
-// accounts (which have no real Mojang skin to fall back to), and can also
-// override a premium player's skin if they've set a custom one.
+// The skin SkinsRestorer actually shows in-game, as the base64 texture
+// property Mojang's session server also uses — the source of truth for
+// offline/cracked accounts, which have no real Mojang skin. Same order the
+// plugin resolves it in:
+//   1. the skin picked with /skin (sr_players → the PLAYER / URL / CUSTOM
+//      table its skin_type points at),
+//   2. the player's own premium skin (sr_player_skins is keyed by the skin
+//      OWNER's premium uuid, so this only matches premium players).
+// No same-nickname premium fallback (the plugin's usual default): offline
+// players can't join under a premium account's name here, so a namesake's
+// skin would always be someone else's.
+const SKINS_RESTORER_SQL = `SELECT COALESCE(
+    (SELECT CASE p.skin_type
+        WHEN 'PLAYER' THEN (SELECT s.value FROM sr_player_skins s WHERE s.uuid = p.skin_identifier)
+        WHEN 'URL' THEN (SELECT u.value FROM sr_url_skins u WHERE u.url = p.skin_identifier
+                         ORDER BY u.skin_variant <=> p.skin_variant DESC LIMIT 1)
+        WHEN 'CUSTOM' THEN (SELECT cs.value FROM sr_custom_skins cs WHERE cs.name = p.skin_identifier)
+      END FROM sr_players p WHERE p.uuid = ?),
+    (SELECT s.value FROM sr_player_skins s WHERE s.uuid = ?)
+  ) AS value`;
+
 const SKIN_CACHE_TTL_MS = 60_000;
 const skinCache = createTtlCache<SkinsRestorerSkin | null>(SKIN_CACHE_TTL_MS);
 
@@ -724,12 +739,9 @@ export async function getSkinsRestorerSkin(uuid: string): Promise<SkinsRestorerS
 
   try {
     const result = await withRetry(async () => {
-      const [rows] = await getPool().query<mysql.RowDataPacket[]>(
-        "SELECT value, signature FROM sr_player_skins WHERE uuid = ? LIMIT 1",
-        [uuid]
-      );
-      if (rows.length === 0) return null;
-      return { value: rows[0].value as string, signature: rows[0].signature as string };
+      const [rows] = await getPool().query<mysql.RowDataPacket[]>(SKINS_RESTORER_SQL, [uuid, uuid]);
+      const value = rows[0]?.value as string | null | undefined;
+      return value ? { value } : null;
     });
     skinCache.set(uuid, result);
     return result;
