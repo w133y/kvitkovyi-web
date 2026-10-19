@@ -1,5 +1,5 @@
-import { getLeaderboardPage, isLeaderboardSortKey } from "@/lib/mc-db";
-import { getSponsorDaysByNickname } from "@/lib/sponsorship";
+import { getLeaderboardPage, isLeaderboardSortKey, LEADERBOARD_PERIODS, type LeaderboardPeriod } from "@/lib/mc-db";
+import { getActiveSponsorNicknames, getSponsorDaysByNickname } from "@/lib/sponsorship";
 
 // Backs the /leaderboard page's search box, sort list, direction toggle,
 // and "Завантажити ще" button — each page (20 initially, then 10 at a
@@ -29,18 +29,27 @@ export async function GET(request: Request) {
   // is unnecessary in those cases.
   const withCount = searchParams.get("count") !== "0";
 
-  const [page, sponsorDays] = await Promise.all([
+  const periodParam = searchParams.get("period");
+  const period = LEADERBOARD_PERIODS.find((p): p is LeaderboardPeriod => p === periodParam);
+
+  const [page, sponsorDays, activeSponsors] = await Promise.all([
     bySponsorship
       ? getLeaderboardPage("totalMinutes", 0, 5000, { search, direction: "desc", withCount: true })
-      : getLeaderboardPage(sortKey, offset, limit, { search, direction, withCount }),
+      : getLeaderboardPage(sortKey, offset, limit, { search, direction, withCount, period }),
     getSponsorDaysByNickname(),
+    bySponsorship ? getActiveSponsorNicknames() : null,
   ]);
-  const { total, error } = page;
+  const { error } = page;
+  let { total } = page;
   let entries = page.entries.map((e) => ({ ...e, sponsorDays: sponsorDays.get(e.nickname.toLowerCase()) ?? 0 }));
-  if (bySponsorship) {
+  if (activeSponsors) {
     const sign = direction === "asc" ? 1 : -1;
-    // Ties (e.g. all the non-sponsors at 0) keep the playtime order.
-    entries = entries.sort((a, b) => sign * (a.sponsorDays - b.sponsorDays)).slice(offset, offset + limit);
+    // Only current sponsors; ties keep the playtime order.
+    entries = entries
+      .filter((e) => activeSponsors.has(e.nickname.toLowerCase()))
+      .sort((a, b) => sign * (a.sponsorDays - b.sponsorDays));
+    total = entries.length;
+    entries = entries.slice(offset, offset + limit);
   }
 
   // A non-200 here (vs. always 200 with an empty list) is what lets the

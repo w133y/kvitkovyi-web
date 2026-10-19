@@ -86,7 +86,9 @@ export type LeaderboardEntry = {
 // from the name), which never match play_time's real online UUIDs. Grouped
 // per name so a duplicate plugin row can't duplicate a leaderboard entry.
 const VOTES_JOIN =
-  "(SELECT PlayerName, MAX(AllTimeTotal) AS AllTimeTotal FROM voting_VotingPlugin_Users GROUP BY PlayerName)";
+  "(SELECT PlayerName, MAX(AllTimeTotal) AS AllTimeTotal, MAX(DailyTotal) AS DailyTotal," +
+  " MAX(WeeklyTotal) AS WeeklyTotal, MAX(MonthTotal) AS MonthTotal" +
+  " FROM voting_VotingPlugin_Users GROUP BY PlayerName)";
 
 // Ports leaderboard.php's query and tick->time conversion (playtime is
 // stored in game ticks, 20 ticks/second). Votes come from VotingPlugin's own
@@ -240,6 +242,28 @@ export function isLeaderboardSortKey(value: string): value is LeaderboardSortKey
 
 export type LeaderboardSortDirection = "asc" | "desc";
 
+// Day / week / month views of the playtime and votes columns.
+export const LEADERBOARD_PERIODS = ["day", "week", "month"] as const;
+export type LeaderboardPeriod = (typeof LEADERBOARD_PERIODS)[number];
+
+// VotingPlugin's own counters for the same calendar periods.
+const PERIOD_VOTES_COLUMN: Record<LeaderboardPeriod, string> = {
+  day: "vp.DailyTotal",
+  week: "vp.WeeklyTotal",
+  month: "vp.MonthTotal",
+};
+
+// Calendar periods in Kyiv time, like VotingPlugin's resets: today from
+// 00:00, the week from Monday, the month from the 1st.
+export function leaderboardPeriodStart(period: LeaderboardPeriod, now = new Date()): number {
+  const local = new Date(now.toLocaleString("en-US", { timeZone: "Europe/Kyiv" }));
+  const offset = Math.round((local.getTime() - now.getTime()) / 60_000) * 60_000;
+  local.setHours(0, 0, 0, 0);
+  if (period === "week") local.setDate(local.getDate() - ((local.getDay() + 6) % 7));
+  if (period === "month") local.setDate(1);
+  return local.getTime() - offset;
+}
+
 export type LeaderboardPageOptions = {
   // Substring match against nickname (case-insensitive) — the /leaderboard
   // search box. Runs in SQL so it can find a player regardless of which
@@ -252,6 +276,9 @@ export type LeaderboardPageOptions = {
   // API route only asks for a recount when the search term actually
   // changed, skipping a full COUNT(*) scan on every sort click.
   withCount?: boolean;
+  // Only affects the totalMinutes / votes sorts: those columns then hold the
+  // period's value and players with none in it are left out.
+  period?: LeaderboardPeriod;
 };
 
 type LeaderboardPageResult = { entries: FullLeaderboardEntry[]; total: number | null; error: boolean };
@@ -268,7 +295,7 @@ const pageCache = new Map<string, { data: LeaderboardPageResult; expiresAt: numb
 const PAGE_CACHE_TTL_MS = 10_000;
 
 function pageCacheKey(sortKey: LeaderboardSortKey, offset: number, limit: number, options: LeaderboardPageOptions) {
-  return `${sortKey}|${offset}|${limit}|${options.direction ?? "desc"}|${options.search ?? ""}|${options.withCount ?? true}`;
+  return `${sortKey}|${offset}|${limit}|${options.direction ?? "desc"}|${options.search ?? ""}|${options.withCount ?? true}|${options.period ?? ""}`;
 }
 
 // Paginated + DB-sorted version of the full per-player stats query — the
@@ -302,9 +329,33 @@ async function getLeaderboardPageUncached(
   options: LeaderboardPageOptions = {}
 ): Promise<LeaderboardPageResult> {
   try {
-    const column = LEADERBOARD_SORT_COLUMNS[sortKey];
-    const direction = options.direction === "asc" ? "ASC" : "DESC";
     const { search, withCount = true } = options;
+    const period = sortKey === "totalMinutes" || sortKey === "votes" ? options.period : undefined;
+    const direction = options.direction === "asc" ? "ASC" : "DESC";
+
+    // Playtime in a period comes from Plan's sessions (play_time only keeps
+    // a running total), clipped to the period. ponytail: a session still in
+    // progress isn't in plan_sessions yet, so it counts once the player
+    // leaves; reading Plan's live session cache would need its web API.
+    const fromParams: unknown[] = [];
+    let periodJoin = "";
+    if (period) {
+      const start = leaderboardPeriodStart(period);
+      periodJoin = `LEFT JOIN (
+          SELECT u.uuid, SUM(LEAST(s.session_end, ?) - GREATEST(s.session_start, ?)) AS ms
+          FROM plan_sessions s JOIN plan_users u ON u.id = s.user_id
+          WHERE s.session_end > ?
+          GROUP BY u.uuid
+        ) pp ON pp.uuid = pt.uuid COLLATE utf8mb4_general_ci`;
+      fromParams.push(Date.now(), start, start);
+    }
+    const periodVotes = period ? PERIOD_VOTES_COLUMN[period] : null;
+    const column =
+      period && sortKey === "totalMinutes"
+        ? "pp.ms"
+        : period && sortKey === "votes"
+          ? `CAST(${periodVotes} AS UNSIGNED)`
+          : LEADERBOARD_SORT_COLUMNS[sortKey];
 
     const whereClauses: string[] = [];
     const whereParams: unknown[] = [];
@@ -312,15 +363,20 @@ async function getLeaderboardPageUncached(
       whereClauses.push("pt.nickname LIKE ?");
       whereParams.push(`%${search.replace(/[%_]/g, "\\$&")}%`);
     }
+    if (period) whereClauses.push(`${column} > 0`);
     const whereSql = whereClauses.length > 0 ? `WHERE ${whereClauses.join(" AND ")}` : "";
+    const fromSql = `FROM play_time pt
+         LEFT JOIN defstats_player_stats ds ON ds.uuid = pt.uuid COLLATE utf8mb4_general_ci
+         LEFT JOIN ${VOTES_JOIN} vp ON vp.PlayerName COLLATE utf8mb4_unicode_ci = pt.nickname
+         ${periodJoin}`;
 
     let total: number | null = null;
     if (withCount) {
       const [countRows] = await withRetry(() =>
-        getPool().query<mysql.RowDataPacket[]>(
-          `SELECT COUNT(*) AS total FROM play_time pt ${whereSql}`,
-          whereParams
-        )
+        getPool().query<mysql.RowDataPacket[]>(`SELECT COUNT(*) AS total ${fromSql} ${whereSql}`, [
+          ...fromParams,
+          ...whereParams,
+        ])
       );
       total = Number(countRows[0]?.total ?? 0);
     }
@@ -331,21 +387,21 @@ async function getLeaderboardPageUncached(
            pt.nickname, pt.uuid, pt.playtime, pt.last_seen,
            ds.player_kills, ds.deaths,
            ds.walk_one_cm, ds.sprint_one_cm, ds.swim_one_cm, ds.aviate_one_cm,
-           vp.AllTimeTotal
-         FROM play_time pt
-         LEFT JOIN defstats_player_stats ds ON ds.uuid = pt.uuid COLLATE utf8mb4_general_ci
-         LEFT JOIN ${VOTES_JOIN} vp ON vp.PlayerName COLLATE utf8mb4_unicode_ci = pt.nickname
+           vp.AllTimeTotal${period ? `, pp.ms AS period_ms, ${periodVotes} AS period_votes` : ""}
+         ${fromSql}
          ${whereSql}
          ORDER BY ${column} ${direction}
          LIMIT ? OFFSET ?`,
-        [...whereParams, limit, offset]
+        [...fromParams, ...whereParams, limit, offset]
       )
     );
 
     const cmToKm = (cm: unknown) => Math.round((Number(cm ?? 0) / 100000) * 10) / 10;
 
     const entries = rows.map((row) => {
-      const totalMinutes = Math.round(row.playtime / 20 / 60);
+      const totalMinutes = period
+        ? Math.round(Number(row.period_ms ?? 0) / 60_000)
+        : Math.round(row.playtime / 20 / 60);
       return {
         nickname: row.nickname as string,
         uuid: row.uuid as string,
@@ -358,7 +414,7 @@ async function getLeaderboardPageUncached(
         sprintKm: cmToKm(row.sprint_one_cm),
         swimKm: cmToKm(row.swim_one_cm),
         aviateKm: cmToKm(row.aviate_one_cm),
-        votes: Number(row.AllTimeTotal) || 0,
+        votes: Number(period ? row.period_votes : row.AllTimeTotal) || 0,
         lastSeen: row.last_seen ?? null,
       };
     });

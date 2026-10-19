@@ -43,3 +43,13 @@ export async function getSponsorDaysByNickname(): Promise<Map<string, number>> {
   }
   return days;
 }
+
+// Who is a sponsor right now (an unexpired, unrevoked privilege) — the
+// "Спонсорство" sort lists only them; past sponsors keep their days above.
+export async function getActiveSponsorNicknames(): Promise<Set<string>> {
+  const rows = await prisma.donatePrivilege.findMany({
+    where: { expiresAt: { gt: new Date() }, revokedAt: null },
+    select: { nickname: true },
+  });
+  return new Set(rows.map((r) => r.nickname.toLowerCase()));
+}

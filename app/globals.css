@@ -2483,6 +2483,21 @@ r {
     border-color: var(--color-gold);
 }
 
+/* Day / week / month toggle under the filter — the sort buttons' pills,
+   sized to their text, two per row in the sidebar. */
+.lb2-period {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.lb2-period .lb2-icon-btn {
+    width: auto;
+    padding: 0 10px;
+    font: inherit;
+    font-size: 14px;
+}
+
 .lb2-sort-dropdown {
     position: relative;
 }
@@ -5090,6 +5105,35 @@ header nav .auth-widget {
     justify-self: center;
 }
 
+/* Holds the skin card and the Discord role badges in row 2 together. */
+.profile-skin-column {
+    grid-column: 1;
+    grid-row: 2;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    width: 100%;
+    min-width: 0;
+}
+
+.profile-roles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+/* Border and text take the role's colour (set inline). */
+.profile-role-badge {
+    flex: 1 1 0;
+    padding: 12px 16px;
+    background: var(--panel-bg);
+    border: 2px solid;
+    border-radius: var(--panel-radius);
+    text-align: center;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
 .profile-skin-card {
     grid-column: 1;
     grid-row: 2;
@@ -5845,6 +5889,13 @@ header nav .auth-widget {
     .profile-skin-card {
         grid-column: 1;
         grid-row: 2;
+    }
+
+    /* Same width as the bio card below it on phones. */
+    .profile-roles {
+        width: 100%;
+        max-width: 400px;
+        align-self: center;
     }
 
     .profile-bio {

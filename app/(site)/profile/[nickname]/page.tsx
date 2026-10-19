@@ -10,6 +10,7 @@ import { getActivePrivilege } from "@/lib/donate-privileges";
 import { formatLastSeen, isOnline, lastSeenVerb } from "@/lib/format-last-seen";
 import { FLORIST_SYMBOL, FLORIST_COLOR_HEX } from "@/lib/minecraft-symbols";
 import { prisma } from "@/lib/prisma";
+import { getGuildMemberRoleIds } from "@/lib/discord";
 import StatBox from "@/components/profile/StatBox";
 import SkinViewer from "@/components/profile/SkinViewer";
 import SwordsIcon from "@/components/profile/SwordsIcon";
@@ -17,6 +18,12 @@ import ProfileEditor from "@/components/profile/ProfileEditor";
 import AchievementCard from "@/components/profile/AchievementCard";
 
 export const revalidate = 60;
+
+// Discord roles shown as badges under the skin.
+const STAFF_ROLE_IDS = ["1299316163750400052", "1300053608519303209"];
+const STAFF_COLOR = "#5B9BFF";
+// Only for a Меценат role with no site privilege to take the icon colour from.
+const MECENAT_FALLBACK_COLOR = "#FFAA00";
 
 export async function generateMetadata({
   params,
@@ -66,12 +73,24 @@ export default async function PublicProfilePage({
       : privilege.iconColorHex || FLORIST_COLOR_HEX
     : null;
 
-  const discordUser = profileDiscordId
-    ? await prisma.user.findUnique({
-        where: { discordId: profileDiscordId },
-        select: { name: true, showDiscord: true, twitchUrl: true, youtubeUrl: true, pronoun: true },
-      })
-    : null;
+  const [discordUser, roleIds] = profileDiscordId
+    ? await Promise.all([
+        prisma.user.findUnique({
+          where: { discordId: profileDiscordId },
+          select: { name: true, showDiscord: true, twitchUrl: true, youtubeUrl: true, pronoun: true },
+        }),
+        getGuildMemberRoleIds(profileDiscordId),
+      ])
+    : [null, [] as string[]];
+
+  const roleBadges = [
+    STAFF_ROLE_IDS.some((id) => roleIds.includes(id)) && { label: "Стаф", color: STAFF_COLOR },
+    roleIds.includes(process.env.DISCORD_ROLE_MECENAT ?? "-") && {
+      label: "Меценат",
+      color: (privilege?.tier === "MECENAT" && privilege.iconColorHex) || MECENAT_FALLBACK_COLOR,
+    },
+    roleIds.includes(process.env.DISCORD_ROLE_FLORIST ?? "-") && { label: "Флорист", color: FLORIST_COLOR_HEX },
+  ].filter((b): b is { label: string; color: string } => !!b);
 
   return (
     <div className="profile-layout">
@@ -84,13 +103,26 @@ export default async function PublicProfilePage({
         )}
       </div>
 
-      <div className="profile-skin-card">
-        <SkinViewer
-          skinUrl={texture.skinUrl}
-          capeUrl={texture.capeUrl}
-          slim={texture.slim}
-          nickname={profile.nickname}
-        />
+      {/* Skin and role badges share grid row 2, so the badges don't shift
+          the left column's numbered rows (see .profile-layout). */}
+      <div className="profile-skin-column">
+        <div className="profile-skin-card">
+          <SkinViewer
+            skinUrl={texture.skinUrl}
+            capeUrl={texture.capeUrl}
+            slim={texture.slim}
+            nickname={profile.nickname}
+          />
+        </div>
+        {roleBadges.length > 0 && (
+          <div className="profile-roles">
+            {roleBadges.map((b) => (
+              <span key={b.label} className="profile-role-badge" style={{ borderColor: b.color, color: b.color }}>
+                {b.label}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
 
       <ProfileEditor

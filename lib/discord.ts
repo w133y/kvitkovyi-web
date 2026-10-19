@@ -364,3 +364,24 @@ export async function removeGuildMemberRole(userId: string, roleId: string): Pro
     await logError("discord: removeGuildMemberRole error", err);
   }
 }
+
+// The member's role ids on the server's guild — [] when they aren't in it
+// (404) or the lookup fails, so a profile just shows no role badges.
+export async function getGuildMemberRoleIds(userId: string): Promise<string[]> {
+  try {
+    const res = await fetch(`${DISCORD_API}/guilds/${getGuildId()}/members/${userId}`, {
+      headers: { Authorization: `Bot ${getBotToken()}` },
+      // Roles change rarely; one lookup per player per 5 minutes is plenty.
+      next: { revalidate: 300 },
+    });
+    if (res.status === 404) return [];
+    if (!res.ok) {
+      await logError("discord: getGuildMemberRoleIds failed", res.status, await res.text().catch(() => ""));
+      return [];
+    }
+    return ((await res.json()) as { roles?: string[] }).roles ?? [];
+  } catch (err) {
+    await logError("discord: getGuildMemberRoleIds error", err);
+    return [];
+  }
+}
