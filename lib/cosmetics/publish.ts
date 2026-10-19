@@ -171,6 +171,28 @@ export async function addToCosmeticMenu(
   return added;
 }
 
+// Server-wide furniture conventions on top of a pack's own config:
+// - Nexo places furniture facing one of 8 directions, but its default
+//   restricted_rotation (STRICT, as does VERY_STRICT) snaps the diagonals
+//   away — NONE keeps all 8 for anything that stands on the floor.
+// - Only doors stay solid: every other barrier cell becomes a walk-through
+//   interaction box of the same cell (still clickable, breakable, sittable).
+function serverFurniture(mechanics: unknown): unknown {
+  const furniture = (mechanics as { furniture?: Record<string, unknown> } | null)?.furniture;
+  if (!furniture) return mechanics;
+  const f = { ...furniture };
+  if ((f.limited_placing as { floor?: boolean } | undefined)?.floor !== false) f.restricted_rotation = "NONE";
+  const hitbox = f.hitbox as { barriers?: string[]; interactions?: string[] } | undefined;
+  if (!f.door && hitbox?.barriers?.length) {
+    const { barriers, ...rest } = hitbox;
+    f.hitbox = {
+      ...rest,
+      interactions: [...new Set([...(rest.interactions ?? []), ...barriers.map((b) => `${b.replace(/\s/g, "")} 1,1`)])],
+    };
+  }
+  return { ...(mechanics as object), furniture: f };
+}
+
 export async function publishCosmeticToServer(item: {
   nexoItemId: string;
   hmcCosmeticId: string | null;
@@ -212,11 +234,16 @@ export async function publishCosmeticToServer(item: {
     textures?: Record<string, string>;
   };
   // HMC shows a balloon as the item on an invisible armor stand's HEAD, so
-  // that display context is the balloon's in-world size: 2x the source.
+  // that display context is the balloon's in-world look: 2.67x the source,
+  // and one block below the balloon's anchor — the lead's attach point, see
+  // balloon-offset below. A head item renders at 0.625 scale, so a block is
+  // 16 / 0.625 display units.
   if (item.type === "BALLOON") {
-    const display = ((modelJson as { display?: Record<string, { scale?: number[] }> }).display ??= {});
+    const display = ((modelJson as { display?: Record<string, { scale?: number[]; translation?: number[] }> }).display ??= {});
     const head = (display.head ??= {});
-    head.scale = (head.scale ?? [1, 1, 1]).map((v) => Math.min(4, v * 2));
+    head.scale = (head.scale ?? [1, 1, 1]).map((v) => Math.min(4, Math.round(v * 2.67 * 100) / 100));
+    const [x, y, z] = head.translation ?? [0, 0, 0];
+    head.translation = [x, Math.max(-80, y - 16 / 0.625), z];
   }
   const used = new Set<number>([0]);
   for (const [key, ref] of Object.entries(modelJson.textures ?? {})) {
@@ -251,15 +278,17 @@ export async function publishCosmeticToServer(item: {
     ...(existing && "Mechanics" in existing
       ? { Mechanics: existing.Mechanics }
       : item.sourceMechanics
-      ? { Mechanics: item.sourceMechanics }
+      ? { Mechanics: serverFurniture(item.sourceMechanics) }
       : item.type === "FURNITURE"
       ? {
           Mechanics: {
             // Nexo 1.28 keys — a single upload has no source config to
-            // convert, so: one solid barrier block, floor-only.
+            // convert, so: one walk-through block (see serverFurniture),
+            // floor-only.
             furniture: {
-              hitbox: { barriers: ["0,0,0"] },
+              hitbox: { interactions: ["0,0,0 1,1"] },
               limited_placing: { roof: false, floor: true, wall: false },
+              restricted_rotation: "NONE",
             },
           },
         }
@@ -275,8 +304,9 @@ export async function publishCosmeticToServer(item: {
       permission: `hmccosmetics.${hmcId}`,
       item: { material: `nexo:${item.nexoItemId}`, name: item.name, amount: 1 },
       dye: { enabled: item.colorCustomizable },
-      // Two blocks below config.yml's global balloon-offset (y: 3).
-      ...(item.type === "BALLOON" ? { "balloon-offset": { x: 0.5, y: 1, z: 0.5 } } : {}),
+      // The anchor — where the lead attaches; the model renders a block
+      // lower (see the head translation above).
+      ...(item.type === "BALLOON" ? { "balloon-offset": { x: 0.5, y: 4, z: 0.5 } } : {}),
     };
     await writeServerFile(HMC_COSMETICS_FILE, stringify(hmcCosmetics));
     try {

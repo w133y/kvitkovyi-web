@@ -8,7 +8,9 @@
 import { prisma } from "@/lib/prisma";
 import { buildPlayerMarkerSets } from "@/lib/map-markers";
 
-const TARGET = "http://REDACTED:25585";
+// The Minecraft host's own address — kept in env (BLUEMAP_URL, e.g.
+// "http://<ip>:<port>"), not in this public repo.
+const TARGET = process.env.BLUEMAP_URL?.replace(/\/$/, "");
 
 // BlueMap's webapp polls this file for markers; approved player-suggested
 // markers (lib/actions/map-markers.ts) are merged in as their own set here
@@ -55,6 +57,10 @@ const HOP_BY_HOP = new Set([
 ]);
 
 export async function GET(request: Request, { params }: { params: Promise<{ path?: string[] }> }) {
+  if (!TARGET) {
+    console.error("live-map proxy: BLUEMAP_URL is not set");
+    return new Response("Мапа тимчасово недоступна.", { status: 503 });
+  }
   const { path } = await params;
   const subPath = path?.join("/") ?? "";
   const search = new URL(request.url).search;

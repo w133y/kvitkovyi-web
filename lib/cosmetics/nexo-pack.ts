@@ -81,11 +81,14 @@ const round2 = (n: number) => Math.round(n * 100) / 100;
 
 // Nexo's light block can't share a cell with a barrier (its own bundled
 // example lights "0,1,0" above a "0,0,0" barrier), so it goes in the first
-// free cell of the column above the origin.
-function lightsFor(level: number, hitbox: unknown): Furniture {
+// free cell of the origin's column — upward, or downward for a ceiling-only
+// piece, whose cell above is the ceiling block itself.
+function lightsFor(level: number, hitbox: unknown, placing: unknown): Furniture {
   const barriers = ((hitbox as { barriers?: string[] } | undefined)?.barriers ?? []).map((b) => b.replace(/\s/g, ""));
+  const p = (placing ?? {}) as { roof?: boolean; floor?: boolean };
+  const step = p.roof === true && p.floor === false ? -1 : 1;
   let y = 0;
-  while (barriers.includes(`0,${y},0`)) y++;
+  while (barriers.includes(`0,${y},0`)) y += step;
   return { lights: [`0,${y},0 ${Math.min(15, level)}`] };
 }
 
@@ -111,7 +114,7 @@ export function toNexoFurniture(furniture: Furniture): Furniture {
     else if (barrier === true) out.hitbox = { barriers: ["0,0,0"] };
     else out.hitbox = { interactions: [`0,0,0 ${hitbox.width ?? 1},${hitbox.height ?? hitbox.width ?? 1}`] };
   }
-  if (typeof light === "number" && !out.lights) out.lights = lightsFor(light, out.hitbox);
+  if (typeof light === "number" && !out.lights) out.lights = lightsFor(light, out.hitbox, out.limited_placing);
   const seatHeight = (seat as { height?: number } | undefined)?.height;
   if (typeof seatHeight === "number" && !out.seats) out.seats = [`0,${round2(seatHeight + ORAXEN_SEAT_OFFSET)},0`];
   if (display_entity_properties && !out.properties) out.properties = display_entity_properties;
@@ -163,7 +166,7 @@ function fromItemsAdder(b: IaBehaviours): Furniture {
     out.hitbox = { interactions: [`0,0,0 ${h.width ?? 1},${h.height ?? 1}`] };
   }
   if (f.fixed_rotation) out.restricted_rotation = "STRICT";
-  if (typeof f.light_level === "number") out.lights = lightsFor(f.light_level, out.hitbox);
+  if (typeof f.light_level === "number") out.lights = lightsFor(f.light_level, out.hitbox, out.limited_placing);
   if (f.sound?.place?.name || f.sound?.break?.name) {
     out.block_sounds = {
       ...(f.sound.place?.name ? { place_sound: f.sound.place.name } : {}),
