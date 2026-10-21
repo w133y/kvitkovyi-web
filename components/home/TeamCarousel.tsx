@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 
 const TEAM = [
@@ -101,13 +102,20 @@ export default function TeamCarousel() {
               >
                 <div className="unique-carousel-nick">{member.nick}</div>
                 <div className="unique-carousel-image">
-                  {/* No loading="lazy" — Safari's native lazy-load can fail
-                      to ever fire for an image whose container only gets
-                      its real size from JS after first render (the card
-                      width here is set in a useEffect, not CSS), which is
-                      what was making these never show up on iPhones. Only
-                      5 small images, so eager loading costs nothing. */}
-                  <img src={member.image} alt={member.nick} />
+                  {/* loading="eager", not next/image's default lazy — Safari's
+                      native lazy-load can fail to ever fire for an image whose
+                      container only gets its real size from JS after first
+                      render (the card width here is set in a useEffect, not
+                      CSS), which is what was making these never show up on
+                      iPhones. `sizes` still lets it fetch a card-sized copy
+                      instead of the full 1080x1920 render. */}
+                  <Image
+                    src={member.image}
+                    alt={member.nick}
+                    fill
+                    loading="eager"
+                    sizes="(max-width: 650px) 90vw, 320px"
+                  />
                 </div>
                 <div className="unique-carousel-position">{member.position}</div>
               </div>

@@ -1,3 +1,4 @@
+import { preload } from "react-dom";
 import type { Metadata } from "next";
 import Image from "next/image";
 import CopyIpButton from "@/components/join/CopyIpButton";
@@ -8,6 +9,9 @@ export const metadata: Metadata = {
 };
 
 export default async function JoinPage() {
+  // The hero's background (header.webp) is the LCP image but only set in CSS,
+  // so the browser would find it after the stylesheet — start it right away.
+  preload("/img/header.webp", { as: "image", fetchPriority: "high" });
   const { ip: serverIp, version: serverVersion } = await getServerInfo();
   return (
     <>

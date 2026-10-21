@@ -11,6 +11,7 @@ import { CartProvider } from "@/lib/cart/CartContext";
 import { getSession } from "@/lib/auth";
 import { getHiddenPagesForViewer } from "@/lib/page-access";
 import { ubuntuSans } from "@/lib/fonts";
+import "../fontawesome.css";
 import "../globals.css";
 
 export const metadata: Metadata = {
@@ -31,10 +32,6 @@ export default async function RootLayout({ children }: { children: React.ReactNo
 
   return (
     <html lang="uk" className={ubuntuSans.variable}>
-      <head>
-        <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossOrigin="anonymous" />
-        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
-      </head>
       {/* suppressHydrationWarning: some browser extensions / the VS Code
           Simple Browser inject a class (e.g. "vsc-initialized") onto body
           before React hydrates — harmless, but React would otherwise flag
