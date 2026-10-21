@@ -5,12 +5,30 @@
 
 import { cache } from "react";
 import { notFound } from "next/navigation";
+import { unstable_cache } from "next/cache";
 import { getSession } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { DEFAULT_SERVER_IP, DEFAULT_SERVER_VERSION, type SitePageKey } from "@/lib/site-pages";
 
-// Deduped per request (layout + page + header all ask).
-const getSiteSettings = cache(() => prisma.siteSettings.findUnique({ where: { id: "default" } }));
+export const SITE_SETTINGS_TAG = "site-settings";
+
+// Read on every page (hidden sections, the server address) but only changed
+// from the admin panel, which clears the tag (lib/actions/site-pages.ts) —
+// so requests skip the DB instead of a round trip each. The hour is only a
+// backstop for edits made straight in the DB. Also deduped per request.
+// ponytail: unstable_cache is the pre-`use cache` API; switch once the app
+// opts into cacheComponents.
+const getSiteSettings = cache(
+  unstable_cache(
+    () =>
+      prisma.siteSettings.findUnique({
+        where: { id: "default" },
+        select: { disabledPages: true, serverIp: true, serverVersion: true },
+      }),
+    ["site-settings"],
+    { tags: [SITE_SETTINGS_TAG], revalidate: 3600 }
+  )
+);
 
 export const getDisabledPages = cache(async (): Promise<SitePageKey[]> => {
   return ((await getSiteSettings())?.disabledPages ?? []) as SitePageKey[];

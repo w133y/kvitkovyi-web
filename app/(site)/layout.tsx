@@ -10,6 +10,7 @@ import ResumeDonatePrompt from "@/components/shop/ResumeDonatePrompt";
 import { CartProvider } from "@/lib/cart/CartContext";
 import { getSession } from "@/lib/auth";
 import { getHiddenPagesForViewer } from "@/lib/page-access";
+import { ubuntuSans } from "@/lib/fonts";
 import "../globals.css";
 
 export const metadata: Metadata = {
@@ -29,15 +30,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const [session, hiddenPages] = await Promise.all([getSession(), getHiddenPagesForViewer()]);
 
   return (
-    <html lang="uk">
+    <html lang="uk" className={ubuntuSans.variable}>
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Ubuntu+Sans:wght@400..800&display=swap"
-          rel="stylesheet"
-        />
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
       </head>
       {/* suppressHydrationWarning: some browser extensions / the VS Code

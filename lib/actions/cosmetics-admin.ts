@@ -10,7 +10,8 @@ import { suggestCosmeticNameAndType } from "@/lib/cosmetics/translate";
 import { publishCosmeticToServer } from "@/lib/cosmetics/publish";
 import { COSMETIC_ITEM_ID_RE } from "@/lib/cosmetics/grant";
 import { logError } from "@/lib/admin-log";
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
+import { COSMETICS_CATALOG_TAG } from "@/lib/cosmetics/catalog";
 import type { CosmeticType, Prisma } from "@prisma/client";
 
 const COSMETIC_TYPES: CosmeticType[] = ["HAT", "BACKPACK", "BALLOON", "FURNITURE"];
@@ -225,6 +226,7 @@ export async function setCosmeticThumbnail(id: string, thumbnailUrl: string): Pr
   await prisma.cosmeticItem.update({ where: { id }, data: { thumbnailUrl } });
   revalidatePath("/admin");
   revalidatePath("/shop/cosmetics");
+  updateTag(COSMETICS_CATALOG_TAG);
 }
 
 export type UpdateCosmeticFields = {
@@ -300,6 +302,7 @@ export async function publishCosmeticItem(id: string): Promise<{ ok: true } | { 
 
   revalidatePath("/admin/cosmetics");
   revalidatePath("/shop/cosmetics");
+  updateTag(COSMETICS_CATALOG_TAG);
   return { ok: true };
 }
 
@@ -353,5 +356,6 @@ export async function updatePublishedCosmeticItem(
 
   revalidatePath("/admin/cosmetics");
   revalidatePath("/shop/cosmetics");
+  updateTag(COSMETICS_CATALOG_TAG);
   return { ok: true };
 }

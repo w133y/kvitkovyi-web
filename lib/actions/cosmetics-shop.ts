@@ -6,35 +6,12 @@
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { getDiscordLink, getFlowerBalance } from "@/lib/mc-db";
-import { cosmeticAssetUrl } from "@/lib/cosmetics/asset-url";
+import { getPublishedCatalog, type CatalogCosmetic } from "@/lib/cosmetics/catalog";
 
-export type CatalogCosmetic = {
-  id: string;
-  type: "HAT" | "BACKPACK" | "BALLOON" | "FURNITURE";
-  name: string;
-  priceFlowers: number;
-  colorCustomizable: boolean;
-  thumbnailUrl: string | null;
-  modelUrl: string;
-  textureUrl: string;
-};
+export type { CatalogCosmetic } from "@/lib/cosmetics/catalog";
 
 export async function listPublishedCosmeticsForShop(): Promise<CatalogCosmetic[]> {
-  const items = await prisma.cosmeticItem.findMany({
-    where: { status: "PUBLISHED", product: { active: true } },
-    include: { product: true },
-    orderBy: { product: { sortOrder: "asc" } },
-  });
-  return items.map((item) => ({
-    id: item.id,
-    type: item.type,
-    name: item.product.name,
-    priceFlowers: item.priceFlowers,
-    colorCustomizable: item.colorCustomizable,
-    thumbnailUrl: item.thumbnailUrl,
-    modelUrl: cosmeticAssetUrl(item.modelKey),
-    textureUrl: cosmeticAssetUrl(item.textureKey),
-  }));
+  return getPublishedCatalog();
 }
 
 // null when signed out, not linked, or the DB lookup failed — the catalog

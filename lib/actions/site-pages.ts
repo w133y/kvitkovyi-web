@@ -1,9 +1,9 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, updateTag } from "next/cache";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getDisabledPages } from "@/lib/page-access";
+import { getDisabledPages, SITE_SETTINGS_TAG } from "@/lib/page-access";
 import { SERVER_ADDRESS_RE, SERVER_VERSION_RE, isSitePageKey, type SitePageKey } from "@/lib/site-pages";
 
 async function requireAdmin() {
@@ -23,13 +23,17 @@ export async function setSitePageEnabled(key: string, enabled: boolean): Promise
   await requireAdmin();
   if (!isSitePageKey(key)) throw new Error("Невідома вкладка");
 
-  const current = await getDisabledPages();
+  // Straight from the DB, not getDisabledPages()'s cache: a read-modify-write
+  // must never build on a stale copy.
+  const row = await prisma.siteSettings.findUnique({ where: { id: "default" }, select: { disabledPages: true } });
+  const current = (row?.disabledPages ?? []) as SitePageKey[];
   const next = enabled ? current.filter((k) => k !== key) : [...new Set([...current, key])];
   await prisma.siteSettings.upsert({
     where: { id: "default" },
     update: { disabledPages: next },
     create: { id: "default", disabledPages: next },
   });
+  updateTag(SITE_SETTINGS_TAG);
   // Nav links and the /shop cards change on every page.
   revalidatePath("/", "layout");
   return next;
@@ -53,6 +57,7 @@ export async function setServerInfo(
     update: { serverIp, serverVersion },
     create: { id: "default", serverIp, serverVersion },
   });
+  updateTag(SITE_SETTINGS_TAG);
   revalidatePath("/join");
   revalidatePath("/admin");
   return { ok: true, serverIp, serverVersion };

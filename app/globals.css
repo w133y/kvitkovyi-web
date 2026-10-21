@@ -75,7 +75,9 @@ a {
 
 @font-face {
     font-family: 'Minecraft';
-    src: url('/fonts/Minecraft.ttf') format('truetype');
+    /* woff2 is ~5x smaller than the ttf (12 KB vs 70 KB); the ttf stays as a fallback. */
+    src: url('/fonts/Minecraft.woff2') format('woff2'), url('/fonts/Minecraft.ttf') format('truetype');
+    font-display: swap;
 }
 
 header {
@@ -579,7 +581,7 @@ body, html {
 }
 
 body {
-	font-family: "Ubuntu Sans", sans-serif;
+	font-family: var(--font-ubuntu-sans), sans-serif;
     position: relative;
     margin: auto;
     background: var(--bg-page);
@@ -626,7 +628,7 @@ body {
 
 
 body d {
-	font-family: "Ubuntu Sans", sans-serif;
+	font-family: var(--font-ubuntu-sans), sans-serif;
 	font-weight: 800;
 	background: #FF9306;
     background: linear-gradient(to top left, #FF9306 0%, #CF6800 100%);
@@ -635,7 +637,7 @@ body d {
 
 }
 body b {
-	font-family: "Ubuntu Sans", sans-serif;
+	font-family: var(--font-ubuntu-sans), sans-serif;
     background: #F7FF18;
     background: var(--brand-gradient);
 	-webkit-background-clip: text;
@@ -646,12 +648,12 @@ body b {
 body h2 {
 	color: var(--text-primary);
 	font-size: 35px;
-    font-family: "Ubuntu Sans", sans-serif;
+    font-family: var(--font-ubuntu-sans), sans-serif;
 }
 
 body h3 {
 	font-size: 40px;
-    font-family: "Ubuntu Sans", sans-serif;
+    font-family: var(--font-ubuntu-sans), sans-serif;
 }
 
 body p {
@@ -993,7 +995,7 @@ body .box2.box2-bare {
     margin-top: 20px;
     color: var(--text-primary);
     font-size: 35px;
-    font-family: "Ubuntu Sans", sans-serif;
+    font-family: var(--font-ubuntu-sans), sans-serif;
     text-align: center;
 }
 
@@ -1532,7 +1534,7 @@ body .box2.box2-bare {
 .join-content h2 {
     color: var(--text-primary);
     font-size: 45px;
-    font-family: "Ubuntu Sans", sans-serif;
+    font-family: var(--font-ubuntu-sans), sans-serif;
     margin-bottom: 30px;
     text-shadow: 0 0 10px rgba(255, 209, 57, 0.3);
 }
@@ -1563,7 +1565,7 @@ body .box2.box2-bare {
     padding: 20px 50px;
     font-size: 22px;
     font-weight: bold;
-    font-family: "Ubuntu Sans", sans-serif;
+    font-family: var(--font-ubuntu-sans), sans-serif;
     cursor: pointer;
     transition: all 0.3s ease-in-out;
     text-transform: uppercase;
@@ -1638,7 +1640,7 @@ body .box2.box2-bare {
 .server-name {
     font-size: 24px;
     font-weight: bold;
-    font-family: "Ubuntu Sans", sans-serif;
+    font-family: var(--font-ubuntu-sans), sans-serif;
 }
 
 .footer-nav {
@@ -2358,7 +2360,7 @@ r {
     text-align: center;
     color: var(--text-primary);
     font-size: 35px;
-    font-family: "Ubuntu Sans", sans-serif;
+    font-family: var(--font-ubuntu-sans), sans-serif;
     margin: 0;
 }
 
@@ -2917,7 +2919,7 @@ header nav .auth-widget {
     border-radius: 18px;
     background: linear-gradient(180deg, #6d78f6 0%, #5865f2 100%);
     color: var(--text-primary);
-    font-family: "Ubuntu Sans", sans-serif;
+    font-family: var(--font-ubuntu-sans), sans-serif;
     font-weight: 800;
     letter-spacing: 0;
     font-size: 19px;
@@ -4076,7 +4078,7 @@ header nav .auth-widget {
     margin: 0;
     color: var(--text-primary);
     font-size: 35px;
-    font-family: "Ubuntu Sans", sans-serif;
+    font-family: var(--font-ubuntu-sans), sans-serif;
     text-align: center;
 }
 
@@ -6021,7 +6023,7 @@ header nav .auth-widget {
 .gallery-page-header h2 {
     color: var(--text-primary);
     font-size: 35px;
-    font-family: "Ubuntu Sans", sans-serif;
+    font-family: var(--font-ubuntu-sans), sans-serif;
     margin: 0;
 }
 
@@ -7167,7 +7169,7 @@ header nav .auth-widget {
 .wiki-article h2 {
     position: relative;
     color: var(--text-primary);
-    font-family: "Ubuntu Sans", sans-serif;
+    font-family: var(--font-ubuntu-sans), sans-serif;
     font-size: 32px;
     width: 100%;
     margin: 0 0 28px;
