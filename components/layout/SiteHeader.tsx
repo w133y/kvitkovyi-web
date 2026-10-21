@@ -25,6 +25,9 @@ const MORE_LINKS = [
   { href: "/archive", label: "Архів", icon: "fa-solid fa-newspaper" },
 ];
 
+// A real mouse — same guard as the hover-to-open CSS for "Інше" in globals.css.
+const HOVER_POINTER = "(hover: hover) and (pointer: fine)";
+
 export default function SiteHeader({
   userMenu,
   heroImage,
@@ -206,7 +209,16 @@ export default function SiteHeader({
 
     return (
       <li className="nav-more" ref={rootRef}>
-        <button type="button" className={active ? "active" : ""} onClick={() => setOpen((o) => !o)}>
+        <button
+          type="button"
+          className={active ? "active" : ""}
+          onClick={() => {
+            // With a mouse the list opens on hover only (CSS); a click
+            // does nothing. Touch screens have no hover, so a tap toggles it.
+            if (window.matchMedia(HOVER_POINTER).matches) return;
+            setOpen((o) => !o);
+          }}
+        >
           Інше
           <span className={`nav-more-arrow${open ? " open" : ""}`} aria-hidden="true">
             <span className="nav-more-arrow-flip">&gt;</span>

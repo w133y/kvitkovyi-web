@@ -305,6 +305,11 @@ header.header-map {
    browser's tap-to-hover emulation) one that never reliably opens at all.
    The click-toggle in SiteHeader.tsx already covers touch on its own. */
 @media (hover: hover) and (pointer: fine) {
+    /* Hover-only with a mouse — clicking "Інше" does nothing (SiteHeader.tsx). */
+    .nav-more > button {
+        cursor: default;
+    }
+
     .nav-more:hover .nav-more-dropdown {
         opacity: 1;
         visibility: visible;
