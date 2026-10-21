@@ -209,8 +209,12 @@ header.header-map {
     transition: transform 0.2s ease;
 }
 
-.nav-more-arrow.open {
-    transform: rotate(-90deg);
+/* Touch only: with a mouse the hover flip below already shows "open", and
+   stacking this click rotation on top of it made the arrow jump on click. */
+@media not ((hover: hover) and (pointer: fine)) {
+    .nav-more-arrow.open {
+        transform: rotate(-90deg);
+    }
 }
 
 /* The flip lives on its OWN nested span (nav-more-arrow-flip), not combined
