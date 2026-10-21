@@ -5887,6 +5887,12 @@ header nav .auth-widget {
         grid-row: 2;
     }
 
+    /* The skin card is capped at 280px — centred, like the rest of the
+       single-column layout. */
+    .profile-skin-column {
+        align-items: center;
+    }
+
     /* Same width as the bio card below it on phones. */
     .profile-roles {
         width: 100%;
@@ -5954,6 +5960,7 @@ header nav .auth-widget {
     }
 
     .achievements-grid {
+        grid-template-columns: repeat(2, 1fr);
         gap: 10px;
     }
 
