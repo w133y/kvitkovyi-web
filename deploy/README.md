@@ -11,6 +11,9 @@ RustFS for uploads), checked out at `/root/kvitkovyi/kvitkovyi-web`.
   `kvitkovyi-deploy.timer` — pulls `origin/main`, rebuilds, restarts.
   Force a rebuild: `deploy/deploy.sh force`. Log:
   `journalctl -u kvitkovyi-deploy -n 50`.
+- **Welcome bot**: the `bot` service (`bot/index.mjs`) — DMs new Discord
+  members on join, uses `DISCORD_BOT_TOKEN`/`DISCORD_GUILD_ID` from `.env`.
+  Log: `docker compose logs -f bot`.
 - **Cron**: `deploy/kvitkovyi.cron` → `/etc/cron.d/kvitkovyi`.
 - **Public access**: the stack's own Cloudflare tunnel — the `tunnel`
   service. Never the machine's other cloudflared (`/etc/cloudflared`, another

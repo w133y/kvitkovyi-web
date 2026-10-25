@@ -16,7 +16,7 @@ fi
 git reset -q --hard origin/main
 echo "$(date -Is) deploying $(git rev-parse --short HEAD)"
 # Build first, while the old container keeps serving; swap only on success.
-docker compose build web
+docker compose build
 docker compose up -d
 docker image prune -f >/dev/null
 echo "$(date -Is) deployed $(git rev-parse --short HEAD)"

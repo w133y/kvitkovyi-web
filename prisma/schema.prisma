@@ -642,7 +642,7 @@ model MapMarker {
   @@index([submittedByUserId, createdAt])
 }
 
-// Discord members already sent the welcome DM (lib/welcome-dm.ts) — one row
+// Discord members already sent the welcome DM (bot/index.mjs) — one row
 // per member, written even when the DM fails (closed DMs), so nobody is
 // messaged twice.
 model WelcomeDm {
