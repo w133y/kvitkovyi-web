@@ -3,7 +3,7 @@
 import crypto from "crypto";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { createCosmeticUploadTarget, uploadR2Object, getPublicUrl, type UploadTarget } from "@/lib/r2";
+import { createCosmeticUploadTarget, uploadR2Object, getInternalUrl, type UploadTarget } from "@/lib/r2";
 import { cosmeticAssetUrl, nthTexture } from "@/lib/cosmetics/asset-url";
 import { parseNexoPack, withSelfDrop } from "@/lib/cosmetics/nexo-pack";
 import { suggestCosmeticNameAndType } from "@/lib/cosmetics/translate";
@@ -51,7 +51,7 @@ export async function stageUploadedPack(packKey: string, sourcePackName: string)
 async function stagePack(packKey: string, sourcePackName: string): Promise<StageResult> {
   let zipBuffer: Buffer;
   try {
-    const res = await fetch(getPublicUrl(packKey));
+    const res = await fetch(getInternalUrl(packKey));
     if (!res.ok) return { error: "Не вдалося завантажити пак" };
     zipBuffer = Buffer.from(await res.arrayBuffer());
   } catch {

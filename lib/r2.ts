@@ -10,6 +10,11 @@ import { S3Client, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import { logError } from "@/lib/admin-log";
 
+// Also runs against a self-hosted S3 (MinIO, see docker-compose.yml) instead
+// of R2: R2_ENDPOINT is then the store's PUBLIC address — what presigned
+// browser uploads are signed for — and R2_INTERNAL_ENDPOINT the address the
+// server itself reaches it on (inside Docker), so server-side reads/writes
+// don't loop out through the internet.
 function getConfig() {
   const accountId = process.env.R2_ACCOUNT_ID;
   const accessKeyId = process.env.R2_ACCESS_KEY_ID;
@@ -18,17 +23,31 @@ function getConfig() {
   // The bucket's public base URL — either its r2.dev "Public Development
   // URL" or a custom domain connected to it. No trailing slash.
   const publicUrl = process.env.R2_PUBLIC_URL;
-  if (!accountId || !accessKeyId || !secretAccessKey || !bucket || !publicUrl) {
+  const endpoint = process.env.R2_ENDPOINT ?? (accountId ? `https://${accountId}.r2.cloudflarestorage.com` : undefined);
+  if (!endpoint || !accessKeyId || !secretAccessKey || !bucket || !publicUrl) {
     throw new Error("Cloudflare R2 не налаштовано (перевірте .env)");
   }
-  return { accountId, accessKeyId, secretAccessKey, bucket, publicUrl };
+  return {
+    endpoint,
+    internalEndpoint: process.env.R2_INTERNAL_ENDPOINT ?? endpoint,
+    // MinIO only answers path-style URLs (endpoint/bucket/key), not R2's bucket subdomains.
+    forcePathStyle: !!process.env.R2_ENDPOINT,
+    region: process.env.R2_REGION ?? "auto",
+    accessKeyId,
+    secretAccessKey,
+    bucket,
+    publicUrl,
+  };
 }
 
-function getClient(): S3Client {
-  const { accountId, accessKeyId, secretAccessKey } = getConfig();
+// `internal`: the server's own reads/writes; otherwise the public endpoint,
+// for URLs handed to the browser.
+function getClient(internal = false): S3Client {
+  const { endpoint, internalEndpoint, forcePathStyle, region, accessKeyId, secretAccessKey } = getConfig();
   return new S3Client({
-    region: "auto",
-    endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
+    region,
+    endpoint: internal ? internalEndpoint : endpoint,
+    forcePathStyle,
     credentials: { accessKeyId, secretAccessKey },
     // SDK ≥3.729 otherwise bakes a CRC32 of the EMPTY body into every
     // presigned PUT URL (x-amz-checksum-crc32=AAAAAA==), so R2 rejects the
@@ -45,6 +64,13 @@ function getClient(): S3Client {
 // changes per-object.
 export function getPublicUrl(key: string): string {
   return `${getConfig().publicUrl}/${key}`;
+}
+
+// Same object, for the server's own fetch() — straight to the store inside
+// Docker when R2_INTERNAL_ENDPOINT is set, the public URL otherwise.
+export function getInternalUrl(key: string): string {
+  const { internalEndpoint, bucket, publicUrl } = getConfig();
+  return process.env.R2_INTERNAL_ENDPOINT ? `${internalEndpoint}/${bucket}/${key}` : `${publicUrl}/${key}`;
 }
 
 export type UploadTarget = {
@@ -97,7 +123,7 @@ export async function uploadR2Object(
   contentType: string
 ): Promise<string> {
   const { bucket, publicUrl } = getConfig();
-  await getClient().send(
+  await getClient(true).send(
     new PutObjectCommand({ Bucket: bucket, Key: key, Body: body, ContentType: contentType })
   );
   return `${publicUrl}/${key}`;
@@ -108,7 +134,7 @@ export async function uploadR2Object(
 export async function deleteGalleryPhoto(key: string): Promise<void> {
   try {
     const { bucket } = getConfig();
-    await getClient().send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
+    await getClient(true).send(new DeleteObjectCommand({ Bucket: bucket, Key: key }));
   } catch (err) {
     await logError("r2: delete error", err);
   }

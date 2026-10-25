@@ -1,0 +1,8 @@
+[Unit]
+Description=Deploy kvitkovyi-web if origin/main changed
+After=docker.service network-online.target
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/root/kvitkovyi/kvitkovyi-web/deploy/deploy.sh

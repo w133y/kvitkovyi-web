@@ -27,7 +27,7 @@
 
 import { parse, stringify } from "yaml";
 import { readServerFile, writeServerFile, sendServerCommand } from "@/lib/kinetic";
-import { getPublicUrl } from "@/lib/r2";
+import { getInternalUrl } from "@/lib/r2";
 import { COSMETIC_ITEM_ID_RE } from "@/lib/cosmetics/grant";
 import { nthTexture, textureIndex } from "@/lib/cosmetics/asset-url";
 import { logError } from "@/lib/admin-log";
@@ -230,7 +230,7 @@ export async function publishCosmeticToServer(item: {
   // item (lib/cosmetics/asset-url.ts — "kvitkovyi:tex<n>" refs, or just
   // texture 0 for older single-texture uploads) is written as
   // <modelPath>.png / <modelPath>_<n>.png, plus its .mcmeta if animated.
-  const modelJson = JSON.parse(await fetch(getPublicUrl(item.modelKey)).then((r) => r.text())) as {
+  const modelJson = JSON.parse(await fetch(getInternalUrl(item.modelKey)).then((r) => r.text())) as {
     textures?: Record<string, string>;
   };
   // HMC shows a balloon as the item on an invisible armor stand's HEAD, so
@@ -255,7 +255,7 @@ export async function publishCosmeticToServer(item: {
 
   for (const n of used) {
     const key = nthTexture(item.textureKey, n);
-    const [png, mcmeta] = await Promise.all([fetch(getPublicUrl(key)), fetch(getPublicUrl(`${key}.mcmeta`))]);
+    const [png, mcmeta] = await Promise.all([fetch(getInternalUrl(key)), fetch(getInternalUrl(`${key}.mcmeta`))]);
     if (!png.ok) throw new Error(`Не вдалося завантажити текстуру ${n}`);
     const target = `${MODEL_BASE}/textures/${nthTexture(`${modelPath}.png`, n)}`;
     await writeServerFile(target, Buffer.from(await png.arrayBuffer()));

@@ -1,0 +1,3 @@
+# /etc/cron.d/kvitkovyi — what vercel.json's "crons" did on Vercel: the daily
+# donate-privilege reminders (12:00 UTC), with the same CRON_SECRET bearer.
+0 12 * * * root curl -fsS -m 120 -o /dev/null -H "Authorization: Bearer $(grep -E '^CRON_SECRET=' /root/kvitkovyi/kvitkovyi-web/.env | cut -d= -f2- | tr -d '"')" http://127.0.0.1:3000/api/cron/donate-reminders

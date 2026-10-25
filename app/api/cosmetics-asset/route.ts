@@ -8,7 +8,7 @@
 // needed at all rather than depending on an external dashboard setting.
 
 import { NextRequest, NextResponse } from "next/server";
-import { getPublicUrl } from "@/lib/r2";
+import { getInternalUrl } from "@/lib/r2";
 
 // Only ever serves cosmetics/ assets — this is a public asset proxy (no
 // auth needed, same as the R2 URLs it replaces are already public), but
@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Invalid key" }, { status: 400 });
   }
 
-  const res = await fetch(getPublicUrl(key));
+  const res = await fetch(getInternalUrl(key));
   if (!res.ok || !res.body) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
