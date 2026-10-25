@@ -5,4 +5,4 @@ Requires=docker.service
 
 [Service]
 Type=oneshot
-ExecStart=/root/kvitkovyi/kvitkovyi-web/deploy/deploy.sh
+ExecStart=/bin/sh /root/kvitkovyi/kvitkovyi-web/deploy/deploy.sh
