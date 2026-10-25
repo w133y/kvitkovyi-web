@@ -14,15 +14,15 @@ services:
     environment:
       DATABASE_URL: postgresql://kvitkovyi:${POSTGRES_PASSWORD}@db:5432/kvitkovyi
       DIRECT_URL: postgresql://kvitkovyi:${POSTGRES_PASSWORD}@db:5432/kvitkovyi
-      SITE_URL: https://kvitkovyi.pp.ua
-      AUTH_URL: https://kvitkovyi.pp.ua
+      SITE_URL: https://kvitkovyi.com
+      AUTH_URL: https://kvitkovyi.com
       # Behind cloudflared: trust the forwarded host/proto for auth callbacks.
       AUTH_TRUST_HOST: "true"
       # Uploads (lib/r2.ts): browser-facing URLs on the public hostname, the
       # server's own reads/writes straight to the container.
-      R2_ENDPOINT: https://storage.kvitkovyi.pp.ua
+      R2_ENDPOINT: https://storage.kvitkovyi.com
       R2_INTERNAL_ENDPOINT: http://storage:9000
-      R2_PUBLIC_URL: https://storage.kvitkovyi.pp.ua/kvitkovyi
+      R2_PUBLIC_URL: https://storage.kvitkovyi.com/kvitkovyi
       R2_BUCKET_NAME: kvitkovyi
       R2_REGION: us-east-1
       R2_ACCESS_KEY_ID: ${STORAGE_ACCESS_KEY}
@@ -63,8 +63,8 @@ services:
       - "127.0.0.1:9000:9000"
 
   # Token-based tunnel created in the Cloudflare dashboard (Zero Trust →
-  # Networks → Tunnels), with public hostnames kvitkovyi.pp.ua → http://web:3000
-  # and storage.kvitkovyi.pp.ua → http://storage:9000. Only starts once .env
+  # Networks → Tunnels), with public hostnames kvitkovyi.com → http://web:3000
+  # and storage.kvitkovyi.com → http://storage:9000. Only starts once .env
   # has CLOUDFLARE_TUNNEL_TOKEN and COMPOSE_PROFILES=tunnel.
   tunnel:
     image: cloudflare/cloudflared:latest

@@ -15,8 +15,8 @@ RustFS for uploads), checked out at `/root/kvitkovyi/kvitkovyi-web`.
 - **Public access**: the stack's own Cloudflare tunnel — the `tunnel`
   service. Never the machine's other cloudflared (`/etc/cloudflared`, another
   site's): create a tunnel in the Cloudflare dashboard (Zero Trust → Networks
-  → Tunnels → Cloudflared), add public hostnames `kvitkovyi.pp.ua` →
-  `http://web:3000` and `storage.kvitkovyi.pp.ua` → `http://storage:9000`, then
+  → Tunnels → Cloudflared), add public hostnames `kvitkovyi.com` →
+  `http://web:3000` and `storage.kvitkovyi.com` → `http://storage:9000`, then
   put its token in `.env` as `CLOUDFLARE_TUNNEL_TOKEN=…` plus
   `COMPOSE_PROFILES=tunnel`, and `docker compose up -d`. The bucket
   `kvitkovyi` is public-read.
