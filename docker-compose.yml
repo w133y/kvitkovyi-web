@@ -2,8 +2,9 @@
 # store for uploads (RustFS — MinIO's API, since MinIO stopped publishing
 # images). Secrets come from .env next to this file (not in git): the app's
 # own vars, plus POSTGRES_PASSWORD and STORAGE_ACCESS_KEY/STORAGE_SECRET_KEY.
-# Only localhost ports are published — cloudflared exposes the site and the
-# store's public hostname (deploy/README.md).
+# Only localhost ports are published; the public hostnames go through this
+# stack's OWN Cloudflare tunnel (the `tunnel` service) — separate from any
+# other site's tunnel on the same machine (deploy/README.md).
 
 services:
   web:
@@ -60,6 +61,21 @@ services:
       - storage:/data
     ports:
       - "127.0.0.1:9000:9000"
+
+  # Token-based tunnel created in the Cloudflare dashboard (Zero Trust →
+  # Networks → Tunnels), with public hostnames kvitkovyi.pp.ua → http://web:3000
+  # and storage.kvitkovyi.pp.ua → http://storage:9000. Only starts once .env
+  # has CLOUDFLARE_TUNNEL_TOKEN and COMPOSE_PROFILES=tunnel.
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    profiles: ["tunnel"]
+    restart: unless-stopped
+    command: tunnel --no-autoupdate run
+    environment:
+      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN:-}
+    depends_on:
+      - web
+      - storage
 
 volumes:
   pgdata:

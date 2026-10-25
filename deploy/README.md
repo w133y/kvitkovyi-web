@@ -12,9 +12,14 @@ RustFS for uploads), checked out at `/root/kvitkovyi/kvitkovyi-web`.
   Force a rebuild: `deploy/deploy.sh force`. Log:
   `journalctl -u kvitkovyi-deploy -n 50`.
 - **Cron**: `deploy/kvitkovyi.cron` → `/etc/cron.d/kvitkovyi`.
-- **Public access**: the existing cloudflared tunnel (`/etc/cloudflared/config.yml`)
-  maps `kvitkovyi.pp.ua` → `127.0.0.1:3000` and `storage.kvitkovyi.pp.ua` →
-  `127.0.0.1:9000` (the bucket `kvitkovyi` is public-read).
+- **Public access**: the stack's own Cloudflare tunnel — the `tunnel`
+  service. Never the machine's other cloudflared (`/etc/cloudflared`, another
+  site's): create a tunnel in the Cloudflare dashboard (Zero Trust → Networks
+  → Tunnels → Cloudflared), add public hostnames `kvitkovyi.pp.ua` →
+  `http://web:3000` and `storage.kvitkovyi.pp.ua` → `http://storage:9000`, then
+  put its token in `.env` as `CLOUDFLARE_TUNNEL_TOKEN=…` plus
+  `COMPOSE_PROFILES=tunnel`, and `docker compose up -d`. The bucket
+  `kvitkovyi` is public-read.
 
 Install on a fresh checkout:
 
