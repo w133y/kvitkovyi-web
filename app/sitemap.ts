@@ -18,6 +18,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       });
   return [
     ...pages.map((path) => ({ url: base + (path === "/" ? "" : path) })),
-    ...articles.map((a) => ({ url: `${base}/wiki/${a.category.slug}/${a.slug}`, lastModified: a.updatedAt })),
+    // Slugs are Cyrillic; sitemaps want percent-encoded URLs.
+    ...articles.map((a) => ({
+      url: `${base}/wiki/${encodeURIComponent(a.category.slug)}/${encodeURIComponent(a.slug)}`,
+      lastModified: a.updatedAt,
+    })),
   ];
 }
