@@ -86,9 +86,19 @@ async function forwardInteraction(interaction) {
   if (!cb.ok) console.error("interaction callback", cb.status, (await cb.text()).slice(0, 200));
 }
 
+// Only the site's own interactions: the Minecraft server plugin shares this
+// bot application and answers its own commands (/verify, /playerlist, …)
+// over its own gateway connection — replying to those would beat it to it.
+const SITE_COMMANDS = ["gallery", "Додати в галерею"];
+const SITE_COMPONENT = /^(gallery|season|marker|siteadmin):/;
+const isSiteInteraction = (i) =>
+  i.type === 2 ? SITE_COMMANDS.includes(i.data?.name) : SITE_COMPONENT.test(i.data?.custom_id ?? "");
+
 // Raw gateway payload: the exact shape the site's HTTP handler expects.
 client.on(Events.Raw, (packet) => {
-  if (packet.t === "INTERACTION_CREATE") forwardInteraction(packet.d).catch((err) => console.error("interaction error", err));
+  if (packet.t === "INTERACTION_CREATE" && isSiteInteraction(packet.d)) {
+    forwardInteraction(packet.d).catch((err) => console.error("interaction error", err));
+  }
 });
 
 client.once(Events.ClientReady, async (c) => {

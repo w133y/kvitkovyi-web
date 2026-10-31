@@ -1,4 +1,5 @@
-// Discord interactions handler — the /gallery slash command and every
+// Discord interactions handler — /gallery, the "Додати в галерею" message
+// command, and every
 // button/modal click posted by lib/gallery-discord.ts (the moderation
 // queue), lib/actions/gallery.ts (the season-change confirmation),
 // lib/map-markers-discord.ts (map marker review) and lib/site-admins.ts.
@@ -121,7 +122,20 @@ export async function POST(request: Request) {
 
 const GALLERY_MAX_BYTES = 10 * 1024 * 1024;
 
+// Message context-menu command ("Apps" on a message) — sends a photo someone
+// already posted, instead of attaching it again (scripts/register-gallery-command.mts).
+const GALLERY_MESSAGE_COMMAND = "Додати в галерею";
+
 async function handleGalleryCommand(interaction: any) {
+  if (interaction.data?.name === GALLERY_MESSAGE_COMMAND) {
+    const message = interaction.data.resolved?.messages?.[interaction.data.target_id];
+    const attachment = message?.attachments?.find((a: any) => String(a.content_type ?? "").startsWith("image/"));
+    if (!attachment) return ephemeral("У цьому повідомленні немає зображення.");
+    const text = String(message.content ?? "").trim().slice(0, 300);
+    const author = String(message.author?.global_name || message.author?.username || "").slice(0, 40);
+    return submitGalleryPhoto(interaction, attachment, text || undefined, undefined, author || null);
+  }
+
   if (interaction.data?.name !== "gallery") {
     return ephemeral("Невідома команда.");
   }
@@ -135,6 +149,16 @@ async function handleGalleryCommand(interaction: any) {
   if (!attachment) {
     return ephemeral("Не знайдено фото — спробуйте ще раз.");
   }
+  return submitGalleryPhoto(interaction, attachment, description, seasonOption, null);
+}
+
+async function submitGalleryPhoto(
+  interaction: any,
+  attachment: any,
+  description: string | undefined,
+  seasonOption: number | undefined,
+  author: string | null
+) {
   const contentType = String(attachment.content_type ?? "");
   if (!contentType.startsWith("image/")) {
     return ephemeral("Файл має бути зображенням.");
@@ -166,6 +190,7 @@ async function handleGalleryCommand(interaction: any) {
           url,
           storageKey: key,
           description: description?.trim() || null,
+          author,
           season,
           source: "DISCORD",
           submittedByDiscordId: discordUserId ?? null,

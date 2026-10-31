@@ -1,4 +1,4 @@
-// Registers the /gallery slash command (handled by
+// Registers the /gallery slash command and the "Додати в галерею" message command (handled by
 // app/api/discord/interactions/route.ts). Run: npx tsx --env-file=.env scripts/register-gallery-command.mts
 //
 // Registered as a GUILD command on purpose: the Minecraft plugin sharing this
@@ -14,22 +14,29 @@ if (!token || !guildId) throw new Error("DISCORD_BOT_TOKEN / DISCORD_GUILD_ID н
 const headers = { Authorization: `Bot ${token}`, "Content-Type": "application/json" };
 const app = (await (await fetch(`${API}/applications/@me`, { headers })).json()) as { id: string };
 
-const command = {
-  name: "gallery",
-  description: "Надіслати фото в галерею сайту",
-  type: 1,
-  options: [
-    { type: 11, name: "photo", description: "Фото (скріншот із сервера)", required: true },
-    { type: 3, name: "description", description: "Опис фото", required: false, max_length: 300 },
-    { type: 4, name: "season", description: "Сезон (за замовчуванням — поточний)", required: false, min_value: 1 },
-  ],
-};
+const commands = [
+  {
+    name: "gallery",
+    description: "Надіслати фото в галерею сайту",
+    type: 1,
+    options: [
+      { type: 11, name: "photo", description: "Фото (скріншот із сервера)", required: true },
+      { type: 3, name: "description", description: "Опис фото", required: false, max_length: 300 },
+      { type: 4, name: "season", description: "Сезон (за замовчуванням — поточний)", required: false, min_value: 1 },
+    ],
+  },
+  // Message context menu (Apps → on any message with a picture): sends an
+  // already-posted photo without attaching it again.
+  { name: "Додати в галерею", type: 3 },
+];
 
-const res = await fetch(`${API}/applications/${app.id}/guilds/${guildId}/commands`, {
-  method: "POST",
-  headers,
-  body: JSON.stringify(command),
-});
-const body = (await res.json()) as { id?: string; name?: string; message?: string };
-if (!res.ok) throw new Error(`Discord ${res.status}: ${JSON.stringify(body)}`);
-console.log(`/gallery registered in guild ${guildId} (command ${body.id})`);
+for (const command of commands) {
+  const res = await fetch(`${API}/applications/${app.id}/guilds/${guildId}/commands`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify(command),
+  });
+  const body = (await res.json()) as { id?: string; name?: string; message?: string };
+  if (!res.ok) throw new Error(`Discord ${res.status}: ${JSON.stringify(body)}`);
+  console.log(`"${command.name}" registered in guild ${guildId} (command ${body.id})`);
+}
