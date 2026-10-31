@@ -1,9 +1,10 @@
-// Discord Interactions HTTP endpoint — handles the /gallery slash command
-// and every button/modal click posted by lib/gallery-discord.ts (the
-// moderation queue), lib/actions/gallery.ts (the season-change
-// confirmation) and lib/map-markers-discord.ts (map marker review). Registered as this app's "Interactions Endpoint URL" in
-// the Discord Developer Portal; Discord POSTs every interaction here
-// instead of us needing a persistent gateway bot connection.
+// Discord interactions handler — the /gallery slash command and every
+// button/modal click posted by lib/gallery-discord.ts (the moderation
+// queue), lib/actions/gallery.ts (the season-change confirmation),
+// lib/map-markers-discord.ts (map marker review) and lib/site-admins.ts.
+// The gateway bot (bot/index.mjs) receives them and POSTs them here; signed
+// requests straight from Discord (an "Interactions Endpoint URL" set in the
+// Developer Portal) still work too.
 
 import nacl from "tweetnacl";
 import { after } from "next/server";
@@ -56,6 +57,13 @@ function verifySignature(body: string, signature: string | null, timestamp: stri
   }
 }
 
+// The bot has no Discord signature to pass on — it proves itself with the
+// shared CRON_SECRET instead (never accepted when that's unset).
+function isFromBot(request: Request): boolean {
+  const secret = process.env.CRON_SECRET;
+  return !!secret && request.headers.get("authorization") === `Bearer ${secret}`;
+}
+
 // ADMINISTRATOR | MANAGE_GUILD | MANAGE_MESSAGES — no dedicated "gallery
 // staff" role is configured, so anyone with general moderation-ish
 // permissions on the server can run the moderation buttons.
@@ -77,7 +85,7 @@ export async function POST(request: Request) {
   const signature = request.headers.get("X-Signature-Ed25519");
   const timestamp = request.headers.get("X-Signature-Timestamp");
 
-  if (!verifySignature(body, signature, timestamp)) {
+  if (!isFromBot(request) && !verifySignature(body, signature, timestamp)) {
     return new Response("invalid request signature", { status: 401 });
   }
 

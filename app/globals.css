@@ -2908,6 +2908,10 @@ header nav .auth-widget {
 .discord-login-btn {
     display: flex;
     align-items: center;
+    /* The form is as wide as the consent note under it (mobile menu, sign-in
+       prompts) — keep the button its own width, centred over the note. */
+    width: fit-content;
+    margin-inline: auto;
     gap: 12px;
     padding: 12px 26px;
     border: none;

@@ -1,9 +1,3 @@
 {
-  "regions": ["fra1"],
-  "crons": [
-    {
-      "path": "/api/cron/donate-reminders",
-      "schedule": "0 12 * * *"
-    }
-  ]
+  "regions": ["fra1"]
 }

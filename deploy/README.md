@@ -11,8 +11,11 @@ RustFS for uploads), checked out at `/root/kvitkovyi/kvitkovyi-web`.
   `kvitkovyi-deploy.timer` — pulls `origin/main`, rebuilds, restarts.
   Force a rebuild: `deploy/deploy.sh force`. Log:
   `journalctl -u kvitkovyi-deploy -n 50`.
-- **Welcome bot**: the `bot` service (`bot/index.mjs`) — DMs new Discord
-  members on join, uses `DISCORD_BOT_TOKEN`/`DISCORD_GUILD_ID` from `.env`.
+- **Discord bot**: the `bot` service (`bot/index.mjs`) — DMs new Discord
+  members on join and receives every button/modal/slash command, handing
+  them to `web` (`/api/discord/interactions`, authed with `CRON_SECRET`).
+  The app's "Interactions Endpoint URL" in the Discord Developer Portal must
+  stay empty, or Discord sends them there instead.
   Log: `docker compose logs -f bot`.
 - **Cron**: `deploy/kvitkovyi.cron` → `/etc/cron.d/kvitkovyi`.
 - **Public access**: the stack's own Cloudflare tunnel — the `tunnel`

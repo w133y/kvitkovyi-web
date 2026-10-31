@@ -1,16 +1,22 @@
-// Welcome DM bot: keeps a gateway connection to Discord and DMs every new
-// member as soon as they join. Separate from the site because the site only
-// talks to Discord over HTTP and has no "member joined" event.
+// The Discord bot: keeps the gateway connection to Discord.
+// - DMs every new member as soon as they join (the site, talking to Discord
+//   only over HTTP, has no "member joined" event).
+// - Receives every interaction (buttons, modals, /gallery) and hands it to
+//   the site's handler over the compose network, so they never depend on
+//   which public URL the site is on. Needs the app's "Interactions Endpoint
+//   URL" in the Developer Portal left empty — otherwise Discord POSTs there
+//   instead of sending them down the gateway.
 // Shares the site's Postgres: WelcomeDm (nobody is DMed twice, even after a
 // rejoin) and SiteSettings (server IP/version, edited on /admin).
 
 import { Client, Events, GatewayIntentBits } from "discord.js";
 import pg from "pg";
 
-const { DISCORD_BOT_TOKEN, DISCORD_GUILD_ID, DATABASE_URL } = process.env;
+const { DISCORD_BOT_TOKEN, DISCORD_GUILD_ID, DATABASE_URL, CRON_SECRET } = process.env;
 const SITE_URL = process.env.SITE_URL ?? "https://kvitkovyi.com";
-if (!DISCORD_BOT_TOKEN || !DISCORD_GUILD_ID || !DATABASE_URL) {
-  throw new Error("DISCORD_BOT_TOKEN / DISCORD_GUILD_ID / DATABASE_URL не налаштовано");
+const SITE_INTERNAL_URL = process.env.SITE_INTERNAL_URL ?? "http://web:3000";
+if (!DISCORD_BOT_TOKEN || !DISCORD_GUILD_ID || !DATABASE_URL || !CRON_SECRET) {
+  throw new Error("DISCORD_BOT_TOKEN / DISCORD_GUILD_ID / DATABASE_URL / CRON_SECRET не налаштовано");
 }
 
 // Members who joined while the bot was down are caught up on start, but only
@@ -55,6 +61,35 @@ async function welcome(member) {
 const client = new Client({ intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers] });
 
 client.on(Events.GuildMemberAdd, (member) => welcome(member).catch((err) => console.error("welcome error", err)));
+
+// The site's handler answers with the same JSON it would give Discord over
+// HTTP; that answer goes back through the interaction callback endpoint.
+async function forwardInteraction(interaction) {
+  let reply;
+  try {
+    const res = await fetch(`${SITE_INTERNAL_URL}/api/discord/interactions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${CRON_SECRET}` },
+      body: JSON.stringify(interaction),
+    });
+    if (!res.ok) throw new Error(`site answered ${res.status}: ${(await res.text()).slice(0, 200)}`);
+    reply = await res.json();
+  } catch (err) {
+    console.error("interaction failed", interaction.data?.custom_id ?? interaction.data?.name, err.message);
+    reply = { type: 4, data: { content: "⚠️ Сайт не відповів — спробуйте ще раз.", flags: 64 } };
+  }
+  const cb = await fetch(`https://discord.com/api/v10/interactions/${interaction.id}/${interaction.token}/callback`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(reply),
+  });
+  if (!cb.ok) console.error("interaction callback", cb.status, (await cb.text()).slice(0, 200));
+}
+
+// Raw gateway payload: the exact shape the site's HTTP handler expects.
+client.on(Events.Raw, (packet) => {
+  if (packet.t === "INTERACTION_CREATE") forwardInteraction(packet.d).catch((err) => console.error("interaction error", err));
+});
 
 client.once(Events.ClientReady, async (c) => {
   console.log("ready as", c.user.tag);
