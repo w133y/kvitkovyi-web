@@ -19,4 +19,6 @@ echo "$(date -Is) deploying $(git rev-parse --short HEAD)"
 docker compose build
 docker compose up -d
 docker image prune -f >/dev/null
+# Every build adds to the cache; left alone it fills the disk the database is on.
+docker builder prune -f --filter until=168h >/dev/null
 echo "$(date -Is) deployed $(git rev-parse --short HEAD)"

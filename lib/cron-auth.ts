@@ -3,6 +3,6 @@
 // and run up Discord API calls.
 export function isAuthorizedCron(request: Request): boolean {
   const secret = process.env.CRON_SECRET;
-  if (!secret) return true;
-  return request.headers.get("authorization") === `Bearer ${secret}`;
+  // No secret configured must not mean open to everyone.
+  return !!secret && request.headers.get("authorization") === `Bearer ${secret}`;
 }
