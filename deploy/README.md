@@ -18,6 +18,11 @@ RustFS for uploads), checked out at `/root/kvitkovyi/kvitkovyi-web`.
   stay empty, or Discord sends them there instead.
   Log: `docker compose logs -f bot`.
 - **Cron**: `deploy/kvitkovyi.cron` → `/etc/cron.d/kvitkovyi`.
+- **Database backups**: `deploy/backup.sh`, run every 2 days by
+  `kvitkovyi-backup.timer` into `/root/backups/kvitkovyi-<date>.dump`
+  (restore with `pg_restore`). Older than a week are removed, only after a new
+  backup succeeded. They live on this same machine, so they don't survive
+  losing it. Log: `journalctl -u kvitkovyi-backup -n 20`.
 - **Public access**: the stack's own Cloudflare tunnel — the `tunnel`
   service. Never the machine's other cloudflared (`/etc/cloudflared`, another
   site's): create a tunnel in the Cloudflare dashboard (Zero Trust → Networks
@@ -33,5 +38,7 @@ Install on a fresh checkout:
 ln -sf /root/kvitkovyi/kvitkovyi-web/deploy/kvitkovyi-deploy.service /etc/systemd/system/
 ln -sf /root/kvitkovyi/kvitkovyi-web/deploy/kvitkovyi-deploy.timer /etc/systemd/system/
 cp deploy/kvitkovyi.cron /etc/cron.d/kvitkovyi
-systemctl daemon-reload && systemctl enable --now kvitkovyi-deploy.timer
+ln -sf /root/kvitkovyi/kvitkovyi-web/deploy/kvitkovyi-backup.service /etc/systemd/system/
+ln -sf /root/kvitkovyi/kvitkovyi-web/deploy/kvitkovyi-backup.timer /etc/systemd/system/
+systemctl daemon-reload && systemctl enable --now kvitkovyi-deploy.timer kvitkovyi-backup.timer
 ```

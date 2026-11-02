@@ -20,5 +20,5 @@ WORKDIR /app
 ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 PORT=3000
 COPY --from=build /app ./
 EXPOSE 3000
-# Pending migrations first, like the old `npm run build` on Vercel did.
+# Pending migrations first.
 CMD ["sh", "-c", "npx prisma migrate deploy && npx next start -p 3000"]

@@ -1,0 +1,8 @@
+[Unit]
+Description=Back up the kvitkovyi-web database
+After=docker.service network-online.target
+Requires=docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/bin/sh /root/kvitkovyi/kvitkovyi-web/deploy/backup.sh

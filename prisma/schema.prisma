@@ -4,18 +4,12 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  // DATABASE_URL is Neon's pooled (PgBouncer, "-pooler" host) connection —
-  // right for the app's own runtime queries (serverless, many short-lived
-  // connections), but `prisma migrate deploy` needs a direct connection for
-  // its advisory locking. Without directUrl, migrate deploy used the pooled
-  // one too and failed with P1002 (timeout) during the Vercel build.
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
+  url      = env("DATABASE_URL")
 }
 
-// A rolling log of server-side errors (failed Discord/Kinetic/Cloudinary/
+// A rolling log of server-side errors (failed Discord/Kinetic/upload store/
 // Donatello/mc-db calls, mostly) shown on /admin — see lib/admin-log.ts.
-// Vercel's own function logs already have all of this, but they're not
+// The container logs already have all of this, but they're not
 // something the admin can casually check from the site itself. Pruned back
 // to the newest ADMIN_LOG_MAX_ENTRIES rows opportunistically whenever the
 // admin panel loads (see listAdminLogs), not on every write.
@@ -286,8 +280,8 @@ enum GalleryPhotoSource {
 model GalleryPhoto {
   id String @id @default(cuid())
 
-  url        String // public R2 URL (or a Discord CDN attachment URL for DISCORD-sourced photos)
-  storageKey String? // R2 object key, for deletion — null for LEGACY/DISCORD (never uploaded to R2)
+  url        String // public URL in the upload store (older photos may still be on Imgur/Cloudinary)
+  storageKey String? // object key in the upload store, for deletion — null for photos not in it
 
   description     String?
   // Moderators can hide a description without deleting it (a "toggle
@@ -546,8 +540,8 @@ model CosmeticGrant {
 }
 
 // Admin-authored, database-backed wiki — not literal Nextra (its file-based
-// .mdx model can't support in-app editing on Vercel's read-only production
-// filesystem), just matching its sidebar-of-categories look. See
+// .mdx model can't support in-app editing), just matching its
+// sidebar-of-categories look. See
 // docs/superpowers/specs/2026-09-17-wiki-design.md.
 model WikiCategory {
   id       String        @id @default(cuid())

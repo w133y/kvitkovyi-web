@@ -1,11 +1,9 @@
-// Proxies a cosmetic's model/texture from R2 same-origin. ModelViewer3D
-// fetches these for WebGL texture upload, which — unlike a plain <img src>
-// (how every other R2-hosted asset in this app is used, e.g. gallery
-// photos) — requires the response to carry CORS headers. R2's .r2.dev
-// public URL doesn't send any, and the app's R2 API token isn't scoped to
-// change the bucket's CORS policy (confirmed: PutBucketCors → AccessDenied)
-// — so this proxies through our own origin instead, where no CORS is
-// needed at all rather than depending on an external dashboard setting.
+// Proxies a cosmetic's model/texture from the upload store same-origin.
+// ModelViewer3D fetches these for WebGL texture upload, which — unlike a plain
+// <img src> (how every other stored asset in this app is used, e.g. gallery
+// photos) — requires the response to carry CORS headers. Through our own
+// origin no CORS is needed at all, so this doesn't depend on the bucket's
+// settings.
 
 import { NextRequest, NextResponse } from "next/server";
 import { getInternalUrl } from "@/lib/r2";

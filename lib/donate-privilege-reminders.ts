@@ -4,8 +4,8 @@
 // sweep-on-page-view tradeoff used everywhere else (lib/donate-privilege-grants.ts,
 // lib/actions/donate-order.ts): nobody visiting the site is what triggers a
 // reminder someone needs to see *before* their privilege lapses. Driven by
-// app/api/cron/donate-reminders/route.ts on a daily Vercel Cron schedule
-// (see vercel.json).
+// app/api/cron/donate-reminders/route.ts on a daily schedule
+// (see deploy/kvitkovyi.cron).
 
 import { prisma } from "@/lib/prisma";
 import { sweepExpiredDonatePrivileges } from "@/lib/donate-privilege-grants";

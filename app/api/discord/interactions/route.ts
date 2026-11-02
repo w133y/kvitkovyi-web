@@ -65,13 +65,15 @@ function isFromBot(request: Request): boolean {
   return !!secret && request.headers.get("authorization") === `Bearer ${secret}`;
 }
 
-// ADMINISTRATOR | MANAGE_GUILD | MANAGE_MESSAGES — no dedicated "gallery
-// staff" role is configured, so anyone with general moderation-ish
-// permissions on the server can run the moderation buttons.
+// Anyone with general moderation-ish permissions on the server
+// (ADMINISTRATOR | MANAGE_GUILD | MANAGE_MESSAGES) or the Садівник role can
+// run the moderation buttons. The site-admin panel has its own, stricter check.
+const GARDENER_ROLE_ID = "1566876937274663002";
 const MODERATOR_PERMISSION_MASK =
   (BigInt(1) << BigInt(3)) | (BigInt(1) << BigInt(5)) | (BigInt(1) << BigInt(13));
 
-function isModerator(interaction: { member?: { permissions?: string } }): boolean {
+function isModerator(interaction: { member?: { permissions?: string; roles?: string[] } }): boolean {
+  if (interaction.member?.roles?.includes(GARDENER_ROLE_ID)) return true;
   const raw = interaction.member?.permissions;
   if (!raw) return false;
   try {

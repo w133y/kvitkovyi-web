@@ -1,8 +1,8 @@
 // Server-side error log shown on /admin (see components/admin/AdminLog.tsx)
 // — every lib/*.ts file that talks to an external service (Discord,
-// Kinetic, Cloudflare R2, Donatello, the Minecraft MySQL DB) logs failures
+// Kinetic, the upload store, Donatello, the Minecraft MySQL DB) logs failures
 // through here instead of a bare console.error, so an admin can actually
-// see what's been failing without digging through Vercel's function logs.
+// see what's been failing without digging through the container logs.
 
 import { prisma } from "@/lib/prisma";
 

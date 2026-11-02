@@ -33,14 +33,10 @@ export async function getGallerySettings() {
 export type UploadTargetResult = ({ ok: true } & GalleryUploadTarget) | { error: string };
 
 // Step 1 of 2 for the site submission form (see finalizeGalleryPhotoSubmission
-// below for step 2). The photo itself is never sent through a server action
-// — Vercel's serverless functions hard-cap request bodies at 4.5MB at the
-// platform level (next.config.ts's own bodySizeLimit only governs Next's
-// own check on top of that, it can't raise Vercel's own ceiling), so a real
-// phone photo routinely failed with a 413 before any of our code even ran.
-// The browser instead PUTs the file straight to R2 using the presigned URL
-// this hands back, then calls finalizeGalleryPhotoSubmission with just the
-// resulting URL — a few bytes of JSON, nowhere near the limit.
+// below for step 2). The photo itself is never sent through a server action:
+// the browser PUTs the file straight to the upload store using the presigned
+// URL this hands back, then calls finalizeGalleryPhotoSubmission with just
+// the resulting URL — a few bytes of JSON.
 export async function getGalleryUploadTarget(contentType: string): Promise<UploadTargetResult> {
   const session = await auth();
   if (!session?.user) return { error: "Потрібно увійти через Discord" };

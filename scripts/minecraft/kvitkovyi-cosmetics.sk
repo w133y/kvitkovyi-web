@@ -1,4 +1,4 @@
-# Cosmetics shop delivery (kvitkovyi.pp.ua, lib/cosmetics/grant.ts).
+# Cosmetics shop delivery (kvitkovyi.com, lib/cosmetics/grant.ts).
 # The site runs `kvgive <player> <nexo item> <amount>`: given right away when
 # the player is online, otherwise queued and given on their next join.
 # The "[kvgive] ok" line is what the site reads back as confirmation.

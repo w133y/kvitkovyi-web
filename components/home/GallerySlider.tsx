@@ -123,10 +123,8 @@ function SubmitForm({
         return;
       }
 
-      // Step 1: a presigned URL to PUT straight to R2 from the browser —
-      // the file itself never goes through our own server, which is what
-      // used to hit Vercel's 4.5MB serverless request-body ceiling (a
-      // platform limit, not something our own config could raise).
+      // Step 1: a presigned URL to PUT straight to the upload store from the
+      // browser — the file itself never goes through our own server.
       const target = await getGalleryUploadTarget(file.type);
       if ("error" in target) {
         setError(target.error);
