@@ -6,10 +6,11 @@
 //   which public URL the site is on. Needs the app's "Interactions Endpoint
 //   URL" in the Developer Portal left empty — otherwise Discord POSTs there
 //   instead of sending them down the gateway.
+// - Keeps the site's guild commands registered (ensureCommands).
 // Shares the site's Postgres: WelcomeDm (nobody is DMed twice, even after a
 // rejoin) and SiteSettings (server IP/version, edited on /admin).
 
-import { Client, Events, GatewayIntentBits } from "discord.js";
+import { Client, Events, GatewayIntentBits, Routes } from "discord.js";
 import pg from "pg";
 
 const { DISCORD_BOT_TOKEN, DISCORD_GUILD_ID, DATABASE_URL, CRON_SECRET } = process.env;
@@ -22,6 +23,7 @@ if (!DISCORD_BOT_TOKEN || !DISCORD_GUILD_ID || !DATABASE_URL || !CRON_SECRET) {
 // Members who joined while the bot was down are caught up on start, but only
 // this recent, so a long outage never DMs half the server.
 const CATCH_UP_MS = 48 * 60 * 60 * 1000;
+const COMMANDS_CHECK_MS = 60 * 1000;
 
 const db = new pg.Pool({ connectionString: DATABASE_URL, max: 2 });
 
@@ -86,13 +88,41 @@ async function forwardInteraction(interaction) {
   if (!cb.ok) console.error("interaction callback", cb.status, (await cb.text()).slice(0, 200));
 }
 
-// Only the site's own interactions: the Minecraft server plugin shares this
-// bot application and answers its own commands (/verify, /playerlist, …)
-// over its own gateway connection — replying to those would beat it to it.
-const SITE_COMMANDS = ["gallery", "Додати в галерею"];
+const SITE_COMMANDS = [
+  {
+    name: "gallery",
+    description: "Надіслати фото в галерею сайту",
+    type: 1,
+    options: [
+      { type: 11, name: "photo", description: "Фото (скріншот із сервера)", required: true },
+      { type: 3, name: "description", description: "Опис фото", required: false, max_length: 300 },
+      { type: 4, name: "season", description: "Сезон (за замовчуванням — поточний)", required: false, min_value: 1 },
+    ],
+  },
+  // Message context menu (Apps → on any message with a picture): sends an
+  // already-posted photo without attaching it again.
+  { name: "Додати в галерею", type: 3 },
+];
+
+// DiscordSRV shares this bot application and clears the guild's command list
+// every time the Minecraft server starts (daily), so this puts ours back.
+// shortcut: only adds missing commands, delete the old one in Discord once after editing a definition above.
+async function ensureCommands(applicationId) {
+  const route = Routes.applicationGuildCommands(applicationId, DISCORD_GUILD_ID);
+  const existing = await client.rest.get(route);
+  for (const command of SITE_COMMANDS) {
+    if (existing.some((c) => c.name === command.name && c.type === command.type)) continue;
+    await client.rest.post(route, { body: command });
+    console.log("registered command", command.name);
+  }
+}
+
+// Only the site's own interactions: the Minecraft server plugins share this
+// bot application and answer their own commands (/verify, /playerlist, …)
+// over their own gateway connection — replying to those would beat them to it.
 const SITE_COMPONENT = /^(gallery|season|marker|siteadmin):/;
 const isSiteInteraction = (i) =>
-  i.type === 2 ? SITE_COMMANDS.includes(i.data?.name) : SITE_COMPONENT.test(i.data?.custom_id ?? "");
+  i.type === 2 ? SITE_COMMANDS.some((c) => c.name === i.data?.name) : SITE_COMPONENT.test(i.data?.custom_id ?? "");
 
 // Raw gateway payload: the exact shape the site's HTTP handler expects.
 client.on(Events.Raw, (packet) => {
@@ -103,6 +133,9 @@ client.on(Events.Raw, (packet) => {
 
 client.once(Events.ClientReady, async (c) => {
   console.log("ready as", c.user.tag);
+  const checkCommands = () => ensureCommands(c.application.id).catch((err) => console.error("commands check failed", err.message));
+  checkCommands();
+  setInterval(checkCommands, COMMANDS_CHECK_MS);
   const members = await (await c.guilds.fetch(DISCORD_GUILD_ID)).members.fetch();
   for (const m of members.values()) {
     if (Date.now() - (m.joinedTimestamp ?? 0) < CATCH_UP_MS) await welcome(m).catch((err) => console.error("welcome error", err));

@@ -123,7 +123,7 @@ export async function POST(request: Request) {
 const GALLERY_MAX_BYTES = 10 * 1024 * 1024;
 
 // Message context-menu command ("Apps" on a message) — sends a photo someone
-// already posted, instead of attaching it again (scripts/register-gallery-command.mts).
+// already posted, instead of attaching it again (registered by bot/index.mjs).
 const GALLERY_MESSAGE_COMMAND = "Додати в галерею";
 
 async function handleGalleryCommand(interaction: any) {
