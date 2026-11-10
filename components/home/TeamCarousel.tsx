@@ -5,9 +5,10 @@ import { useEffect, useRef, useState } from "react";
 
 const TEAM = [
   { nick: "_Ameo_", image: "/img/ameio.webp", position: "Засновник" },
-  { nick: "Memushka", image: "/img/mim.webp", position: "Ком'юніті та івенти" },
   { nick: "natashy", image: "/img/artek.webp", position: "Співзасновник" },
+  { nick: "mrailak", image: "/img/marsik.webp", position: "Ком'юніті та медіа" },
   { nick: "DarklyFoxs", image: "/img/darkly.webp", position: "Тех. адмін" },
+  { nick: "Memushka", image: "/img/mim.webp", position: "мім" },
   { nick: "w1z4r_d", image: "/img/w1z.webp", position: "Візя" },
   { nick: "Crazy_LeV", image: "/img/lev.webp", position: "Лев" },
 ];
