@@ -63,7 +63,10 @@ function windows(startedAt: Date): [number, number] {
 export async function checkActivePlayer(discordId: string): Promise<ActiveCheck> {
   const link = await getDiscordLink(discordId);
   if (!link) {
-    return { ok: false, reason: "твій Discord не привʼязаний до акаунта Minecraft. Напиши в грі /discord link." };
+    return {
+      ok: false,
+      reason: "твій Discord не привʼязаний до акаунта Minecraft — зайди на сервер і надішли боту в особисті код, який зʼявиться на екрані.",
+    };
   }
   const season = await getCurrentSeason();
   const month = seasonMonth(season.startedAt);

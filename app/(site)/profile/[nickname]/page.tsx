@@ -16,7 +16,7 @@ import SkinViewer from "@/components/profile/SkinViewer";
 import SwordsIcon from "@/components/profile/SwordsIcon";
 import ProfileEditor from "@/components/profile/ProfileEditor";
 import AchievementCard from "@/components/profile/AchievementCard";
-import { getPlayerSeasonStats } from "@/lib/seasons";
+import { getPlayerSeasonStats, getProfileFromLastSeason } from "@/lib/seasons";
 
 export const revalidate = 60;
 
@@ -48,7 +48,10 @@ export default async function PublicProfilePage({
   const { season: seasonParam } = await searchParams;
   // profile and the viewer's own session are independent lookups (neither
   // needs the other), so they run together instead of back to back.
-  const [profile, session] = await Promise.all([getPlayerProfileByNickname(nickname), getSession()]);
+  const [liveProfile, session] = await Promise.all([getPlayerProfileByNickname(nickname), getSession()]);
+  // Not on the server since the season reset wiped them: the profile still
+  // shows, from their last saved season, with this season at zero.
+  const profile = liveProfile ?? (await getProfileFromLastSeason(nickname));
 
   if (!profile) {
     notFound();

@@ -12,6 +12,7 @@ import {
   getAllPlayerStatsWithRaw,
   getDiscordIdForPlayer,
   type FullLeaderboardEntry,
+  type PublicPlayerProfile,
   type LeaderboardSortDirection,
   type LeaderboardSortKey,
 } from "@/lib/mc-db";
@@ -78,6 +79,32 @@ export async function getSeasonLeaderboardPage(
 export async function getPlayerSeasonStats(uuid: string): Promise<(FullLeaderboardEntry & { season: number })[]> {
   const rows = await prisma.seasonPlayerStats.findMany({ where: { uuid }, orderBy: { season: "desc" } });
   return rows.map((r) => ({ ...toEntry(r), season: r.season }));
+}
+
+// A player missing from the live stats (the server's reset removed them) as of
+// their last saved season: who they are, with this season's numbers at zero.
+export async function getProfileFromLastSeason(nickname: string): Promise<PublicPlayerProfile | null> {
+  const row = await prisma.seasonPlayerStats.findFirst({
+    where: { nickname: { equals: nickname, mode: "insensitive" } },
+    orderBy: { season: "desc" },
+  });
+  if (!row) return null;
+  return {
+    nickname: row.nickname,
+    uuid: row.uuid,
+    hours: 0,
+    minutes: 0,
+    firstJoin: null,
+    lastSeen: row.lastSeen === null ? null : Number(row.lastSeen),
+    playerKills: 0,
+    deaths: 0,
+    timesKicked: 0,
+    sessions: 0,
+    walkKm: 0,
+    sprintKm: 0,
+    swimKm: 0,
+    aviateKm: 0,
+  };
 }
 
 // Ends the current season and starts the next: snapshot first, and only once
