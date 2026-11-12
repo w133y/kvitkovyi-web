@@ -2,7 +2,7 @@
 
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { createGalleryUploadTarget, type GalleryUploadTarget } from "@/lib/r2";
+import { createGalleryUploadTarget, deleteGalleryPhoto, getInternalUrl, uploadGalleryImage, type GalleryUploadTarget } from "@/lib/r2";
 import { postGalleryModeration, postSeasonChangeConfirm, updateGalleryModeration } from "@/lib/gallery-discord";
 import { logError } from "@/lib/admin-log";
 import { revalidatePath } from "next/cache";
@@ -99,10 +99,24 @@ export async function finalizeGalleryPhotoSubmission(input: FinalizeGalleryPhoto
   const description = input.description?.trim() || null;
   const author = input.author?.trim() || null;
 
+  // The browser uploaded the original; it's swapped for a WebP copy. If that
+  // fails the original stays — the submission is never lost over it.
+  let url = input.url;
+  let storageKey = input.key;
+  try {
+    const res = await fetch(getInternalUrl(input.key));
+    if (!res.ok) throw new Error(`read ${res.status}`);
+    const stored = await uploadGalleryImage(input.key, Buffer.from(await res.arrayBuffer()), res.headers.get("content-type") ?? "image/png");
+    await deleteGalleryPhoto(input.key);
+    ({ url, key: storageKey } = stored);
+  } catch (err) {
+    await logError("gallery: storing the WebP copy failed, keeping the upload", err);
+  }
+
   const photo = await prisma.galleryPhoto.create({
     data: {
-      url: input.url,
-      storageKey: input.key,
+      url,
+      storageKey,
       description,
       author,
       season,

@@ -10,7 +10,7 @@
 import nacl from "tweetnacl";
 import { after } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { deleteGalleryPhoto, uploadR2Object } from "@/lib/r2";
+import { deleteGalleryPhoto, uploadGalleryImage } from "@/lib/r2";
 import { editInteractionResponse, sendDiscordMessage } from "@/lib/discord";
 import { logError } from "@/lib/admin-log";
 import { updateMarkerModeration } from "@/lib/map-markers-discord";
@@ -177,9 +177,7 @@ async function submitGalleryPhoto(
       const res = await fetch(attachment.url);
       if (!res.ok) throw new Error(`attachment download ${res.status}`);
       const body = Buffer.from(await res.arrayBuffer());
-      const ext = contentType.split("/")[1]?.replace(/[^a-z0-9]/gi, "") || "png";
-      const key = `gallery/discord-${interaction.id}.${ext}`;
-      const url = await uploadR2Object(key, body, contentType);
+      const { url, key } = await uploadGalleryImage(`gallery/discord-${interaction.id}`, body, contentType);
 
       const settings = await getGallerySettings();
       const season =

@@ -20,7 +20,7 @@ import AchievementCard from "@/components/profile/AchievementCard";
 export const revalidate = 60;
 
 // Discord roles shown as badges under the skin.
-const STAFF_ROLE_IDS = ["1299316163750400052", "1300053608519303209"];
+const STAFF_ROLE_IDS = ["1299316163750400052", "1300053608519303209", "1566876937274663002"];
 const STAFF_COLOR = "#5B9BFF";
 const CONTENT_MAKER_ROLE_ID = "1322945689780490311";
 const CONTENT_MAKER_COLOR = "#FF5555";

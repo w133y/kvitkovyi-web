@@ -7,6 +7,7 @@
 import crypto from "crypto";
 import { S3Client, PutObjectCommand, DeleteObjectCommand } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import sharp from "sharp";
 import { logError } from "@/lib/admin-log";
 
 // R2_ENDPOINT is the store's PUBLIC address — what presigned browser uploads
@@ -122,6 +123,28 @@ export async function uploadR2Object(
     new PutObjectCommand({ Bucket: bucket, Key: key, Body: body, ContentType: contentType })
   );
   return `${publicUrl}/${key}`;
+}
+
+// Gallery photos are stored as WebP — a fraction of a PNG screenshot's size,
+// no visible loss. Formats sharp can't read (HEIC, say) keep their original
+// bytes rather than losing the submission. `keyBase` gets the extension.
+export async function uploadGalleryImage(
+  keyBase: string,
+  body: Buffer,
+  contentType: string
+): Promise<{ url: string; key: string }> {
+  let data = body;
+  let type = contentType;
+  let ext = contentType.split("/")[1]?.replace(/[^a-z0-9]/gi, "") || "png";
+  try {
+    data = await sharp(body, { animated: true }).rotate().webp({ quality: 90 }).toBuffer();
+    type = "image/webp";
+    ext = "webp";
+  } catch (err) {
+    await logError("r2: webp conversion failed, keeping the original", keyBase, err);
+  }
+  const key = `${keyBase}.${ext}`;
+  return { url: await uploadR2Object(key, data, type), key };
 }
 
 // Best-effort — called when an admin rejects/deletes a submission via the
