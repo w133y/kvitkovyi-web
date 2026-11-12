@@ -339,6 +339,70 @@ model GallerySettings {
   pendingSeasonAdminName String?
 }
 
+// --- Seasons (lib/seasons.ts) ---
+
+// The season number itself is GallerySettings.currentSeason; this adds when
+// each one ran. Month N of a season (lib/active-players.ts) counts from
+// startedAt, editable in /admin.
+model Season {
+  number    Int       @id
+  startedAt DateTime
+  endedAt   DateTime?
+}
+
+// Every player's stats frozen when a season ends — the Minecraft server's
+// own counters are reset for the next one, so this is the only record of a
+// past season. The columns mirror FullLeaderboardEntry for the leaderboard;
+// raw keeps the source rows (play_time, defstats, VotingPlugin) whole.
+model SeasonPlayerStats {
+  season       Int
+  uuid         String
+  nickname     String
+  totalMinutes Int
+  playerKills  Int
+  deaths       Int
+  walkKm       Float
+  sprintKm     Float
+  swimKm       Float
+  aviateKm     Float
+  votes        Int
+  lastSeen     BigInt?
+  raw          Json
+
+  @@id([season, uuid])
+  @@index([season, nickname])
+}
+
+// Achievement cards handed out when a season ends: everyone over minHours
+// gets the "player" card, the top podiumCount / topCount by playtime theirs
+// instead (with their place). Edited in /admin. Single row (id "default").
+model SeasonRewards {
+  id          String @id @default("default")
+  minHours    Int    @default(10)
+  playerLabel String @default("Гравець")
+  playerIcon  String @default("🌸")
+  playerColor String @default("#3ecf6e")
+  topCount    Int    @default(10)
+  topLabel    String @default("Топ-10")
+  topIcon     String @default("🏅")
+  topColor    String @default("#5B9BFF")
+  podiumCount Int    @default(3)
+  podiumLabel String @default("Топ-3")
+  podiumIcon  String @default("🏆")
+  podiumColor String @default("#FFAA00")
+}
+
+// One vote per Discord member per suggestion (the bot's message in each
+// new post of the suggestions forum, see lib/suggestions.ts).
+model SuggestionVote {
+  messageId     String
+  discordUserId String
+  up            Boolean
+  createdAt     DateTime @default(now())
+
+  @@id([messageId, discordUserId])
+}
+
 // --- Shop ---
 
 enum ProductCategory {

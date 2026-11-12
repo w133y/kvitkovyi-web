@@ -23,6 +23,9 @@ import { listPlayerBios } from "@/lib/actions/profile";
 import { countMapMarkers } from "@/lib/actions/map-markers";
 import { getServerInfo } from "@/lib/page-access";
 import { listDisabledPages } from "@/lib/actions/site-pages";
+import { getSeasonAdminData } from "@/lib/actions/seasons";
+import SeasonAdmin from "@/components/admin/SeasonAdmin";
+import AdminTabs from "@/components/admin/AdminTabs";
 
 // Server Actions run with this page's limit — staging a large cosmetics
 // pack (lib/actions/cosmetics-admin.ts) needs well over the default.
@@ -42,19 +45,44 @@ export default async function AdminPage() {
     notFound();
   }
 
-  const achievements = await listAchievements();
-  const privileges = await listPrivileges();
-  const gallerySettings = await getGallerySettings();
-  const galleryPhotos = await listGalleryPhotosForAdmin();
-  const wikiCategories = await listWikiCategoriesForAdmin();
-  const logs = await getAdminLogs();
-  const errorLoggingEnabled = await getErrorLoggingEnabled();
-  const cosmeticDrafts = await listCosmeticDrafts();
-  const publishedCosmetics = await listPublishedCosmetics();
-  const disabledPages = await listDisabledPages();
-  const serverInfo = await getServerInfo();
-  const markerCounts = await countMapMarkers();
-  const playerBios = await listPlayerBios();
+  const [
+    achievements,
+    privileges,
+    gallerySettings,
+    galleryPhotos,
+    wikiCategories,
+    logs,
+    errorLoggingEnabled,
+    cosmeticDrafts,
+    publishedCosmetics,
+    disabledPages,
+    serverInfo,
+    markerCounts,
+    playerBios,
+    season,
+  ] = await Promise.all([
+    listAchievements(),
+    listPrivileges(),
+    getGallerySettings(),
+    listGalleryPhotosForAdmin(),
+    listWikiCategoriesForAdmin(),
+    getAdminLogs(),
+    getErrorLoggingEnabled(),
+    listCosmeticDrafts(),
+    listPublishedCosmetics(),
+    listDisabledPages(),
+    getServerInfo(),
+    countMapMarkers(),
+    listPlayerBios(),
+    getSeasonAdminData(),
+  ]);
+
+  const section = (title: string, content: React.ReactNode) => (
+    <div className="admin-section">
+      <h3>{title}</h3>
+      {content}
+    </div>
+  );
 
   return (
     <div className="admin-page">
@@ -65,66 +93,57 @@ export default async function AdminPage() {
         <p>Вітаємо, {session.user.name}.</p>
       </div>
 
-      <div className="admin-section">
-        <h3>Вкладки сайту</h3>
-        <SitePagesAdmin initialDisabled={disabledPages} />
-      </div>
-
-      <div className="admin-section">
-        <h3>Сервер</h3>
-        <ServerIpAdmin initialIp={serverInfo.ip} initialVersion={serverInfo.version} />
-      </div>
-
-      <div className="admin-section">
-        <h3>Мітки на мапі</h3>
-        <MapMarkersAdmin initialCounts={markerCounts} />
-      </div>
-
-      <div className="admin-section">
-        <h3>Описи гравців</h3>
-        <PlayerBiosAdmin initialBios={playerBios} />
-      </div>
-
-      <div className="admin-section">
-        <h3>Видалення даних</h3>
-        <AccountDeletionAdmin />
-      </div>
-
-      <div className="admin-section">
-        <h3>Досягнення гравців</h3>
-        <AchievementsAdmin initialAchievements={achievements} />
-      </div>
-
-      <div className="admin-section">
-        <h3>Привілеї (Флорист / Меценат)</h3>
-        <DonatePrivilegesAdmin initialPrivileges={privileges} />
-      </div>
-
-      <div className="admin-section">
-        <h3>Галерея</h3>
-        <GallerySettingsAdmin
-          currentSeason={gallerySettings.currentSeason}
-          pendingSeason={gallerySettings.pendingSeason}
-          seasonLocked={gallerySettings.seasonLocked}
-        />
-        <h4 className="admin-gallery-photos-title">Фото</h4>
-        <AdminGalleryPhotos initialPhotos={galleryPhotos} />
-      </div>
-
-      <div className="admin-section">
-        <h3>Косметика</h3>
-        <CosmeticsAdmin initialDrafts={cosmeticDrafts} initialPublished={publishedCosmetics} />
-      </div>
-
-      <div className="admin-section">
-        <h3>Вікі</h3>
-        <AdminWiki initialCategories={wikiCategories} />
-      </div>
-
-      <div className="admin-section">
-        <h3>Журнал помилок</h3>
-        <AdminLog initialLogs={logs} initialEnabled={errorLoggingEnabled} />
-      </div>
+      <AdminTabs
+        tabs={[
+          {
+            id: "season",
+            label: "Сезон і сервер",
+            content: (
+              <>
+                {section("Сезон", <SeasonAdmin data={season} />)}
+                {section("Сервер", <ServerIpAdmin initialIp={serverInfo.ip} initialVersion={serverInfo.version} />)}
+                {section("Вкладки сайту", <SitePagesAdmin initialDisabled={disabledPages} />)}
+              </>
+            ),
+          },
+          {
+            id: "players",
+            label: "Гравці",
+            content: (
+              <>
+                {section("Привілеї (Флорист / Меценат)", <DonatePrivilegesAdmin initialPrivileges={privileges} />)}
+                {section("Досягнення гравців", <AchievementsAdmin initialAchievements={achievements} />)}
+                {section("Описи гравців", <PlayerBiosAdmin initialBios={playerBios} />)}
+                {section("Видалення даних", <AccountDeletionAdmin />)}
+              </>
+            ),
+          },
+          {
+            id: "content",
+            label: "Контент",
+            content: (
+              <>
+                {section(
+                  "Галерея",
+                  <>
+                    <GallerySettingsAdmin seasonLocked={gallerySettings.seasonLocked} />
+                    <h4 className="admin-gallery-photos-title">Фото</h4>
+                    <AdminGalleryPhotos initialPhotos={galleryPhotos} />
+                  </>
+                )}
+                {section("Мітки на мапі", <MapMarkersAdmin initialCounts={markerCounts} />)}
+                {section("Вікі", <AdminWiki initialCategories={wikiCategories} />)}
+                {section("Косметика", <CosmeticsAdmin initialDrafts={cosmeticDrafts} initialPublished={publishedCosmetics} />)}
+              </>
+            ),
+          },
+          {
+            id: "log",
+            label: "Журнал помилок",
+            content: section("Журнал помилок", <AdminLog initialLogs={logs} initialEnabled={errorLoggingEnabled} />),
+          },
+        ]}
+      />
     </div>
   );
 }

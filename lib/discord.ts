@@ -337,9 +337,53 @@ function getGuildId(): string {
   return guildId;
 }
 
+// Role changes for many members at once (season roles, the active-player
+// sync) run into Discord's per-route limit — wait out a 429 and retry.
+async function fetchRespectingRateLimit(url: string, init: RequestInit, attempts = 4): Promise<Response> {
+  for (let i = 1; ; i++) {
+    const res = await fetch(url, init);
+    if (res.status !== 429 || i >= attempts) return res;
+    const { retry_after } = (await res.json().catch(() => ({}))) as { retry_after?: number };
+    await new Promise((r) => setTimeout(r, Math.ceil((retry_after ?? 1) * 1000) + 100));
+  }
+}
+
+// The id of the guild role with this exact name, created when missing — so
+// season and active-player roles need no ids configured anywhere.
+export async function ensureGuildRole(name: string, color: number): Promise<string> {
+  const headers = { Authorization: `Bot ${getBotToken()}`, "Content-Type": "application/json" };
+  const res = await fetch(`${DISCORD_API}/guilds/${getGuildId()}/roles`, { headers });
+  if (!res.ok) throw new Error(`list roles ${res.status}: ${await res.text().catch(() => "")}`);
+  const existing = ((await res.json()) as { id: string; name: string }[]).find((r) => r.name === name);
+  if (existing) return existing.id;
+  const created = await fetch(`${DISCORD_API}/guilds/${getGuildId()}/roles`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ name, color, mentionable: false }),
+  });
+  if (!created.ok) throw new Error(`create role ${created.status}: ${await created.text().catch(() => "")}`);
+  return ((await created.json()) as { id: string }).id;
+}
+
+// Every member's role ids (needs the Server Members intent).
+export async function listGuildMemberRoles(): Promise<Map<string, string[]>> {
+  const members = new Map<string, string[]>();
+  let after = "0";
+  for (;;) {
+    const res = await fetchRespectingRateLimit(`${DISCORD_API}/guilds/${getGuildId()}/members?limit=1000&after=${after}`, {
+      headers: { Authorization: `Bot ${getBotToken()}` },
+    });
+    if (!res.ok) throw new Error(`list members ${res.status}: ${await res.text().catch(() => "")}`);
+    const page = (await res.json()) as { user: { id: string; bot?: boolean }; roles: string[] }[];
+    for (const m of page) if (!m.user.bot) members.set(m.user.id, m.roles);
+    if (page.length < 1000) return members;
+    after = page[page.length - 1].user.id;
+  }
+}
+
 export async function addGuildMemberRole(userId: string, roleId: string): Promise<void> {
   try {
-    const res = await fetch(
+    const res = await fetchRespectingRateLimit(
       `${DISCORD_API}/guilds/${getGuildId()}/members/${userId}/roles/${roleId}`,
       { method: "PUT", headers: { Authorization: `Bot ${getBotToken()}` } }
     );
@@ -353,7 +397,7 @@ export async function addGuildMemberRole(userId: string, roleId: string): Promis
 
 export async function removeGuildMemberRole(userId: string, roleId: string): Promise<void> {
   try {
-    const res = await fetch(
+    const res = await fetchRespectingRateLimit(
       `${DISCORD_API}/guilds/${getGuildId()}/members/${userId}/roles/${roleId}`,
       { method: "DELETE", headers: { Authorization: `Bot ${getBotToken()}` } }
     );

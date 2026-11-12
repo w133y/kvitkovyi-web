@@ -7,6 +7,8 @@
 //   URL" in the Developer Portal left empty — otherwise Discord POSTs there
 //   instead of sending them down the gateway.
 // - Keeps the site's guild commands registered (ensureCommands).
+// - Puts За / Проти buttons under every new post of the suggestions forum
+//   (votes are counted by the site, lib/suggestions.ts).
 // Shares the site's Postgres: WelcomeDm (nobody is DMed twice, even after a
 // rejoin) and SiteSettings (server IP/version, edited on /admin).
 
@@ -120,14 +122,45 @@ async function ensureCommands(applicationId) {
 // Only the site's own interactions: the Minecraft server plugins share this
 // bot application and answer their own commands (/verify, /playerlist, …)
 // over their own gateway connection — replying to those would beat them to it.
-const SITE_COMPONENT = /^(gallery|season|marker|siteadmin):/;
+const SITE_COMPONENT = /^(gallery|season|marker|siteadmin|suggest):/;
 const isSiteInteraction = (i) =>
   i.type === 2 ? SITE_COMMANDS.some((c) => c.name === i.data?.name) : SITE_COMPONENT.test(i.data?.custom_id ?? "");
+
+const SUGGESTIONS_CHANNEL_ID = "1300876184988553246";
+
+// Same buttons as lib/suggestions.ts suggestionVoteButtons(0, 0).
+async function postVoteButtons(threadId) {
+  const body = {
+    content: "Голосування — за чи проти? Голосують активні гравці.",
+    components: [
+      {
+        type: 1,
+        components: [
+          { type: 2, style: 3, label: "За · 0", custom_id: "suggest:up", emoji: { name: "👍" } },
+          { type: 2, style: 4, label: "Проти · 0", custom_id: "suggest:down", emoji: { name: "👎" } },
+        ],
+      },
+    ],
+  };
+  // A brand-new forum post may not accept messages until its starter message exists.
+  for (let attempt = 1; ; attempt++) {
+    try {
+      await client.rest.post(Routes.channelMessages(threadId), { body });
+      return;
+    } catch (err) {
+      if (attempt >= 5) throw err;
+      await new Promise((r) => setTimeout(r, 1500 * attempt));
+    }
+  }
+}
 
 // Raw gateway payload: the exact shape the site's HTTP handler expects.
 client.on(Events.Raw, (packet) => {
   if (packet.t === "INTERACTION_CREATE" && isSiteInteraction(packet.d)) {
     forwardInteraction(packet.d).catch((err) => console.error("interaction error", err));
+  }
+  if (packet.t === "THREAD_CREATE" && packet.d.newly_created && packet.d.parent_id === SUGGESTIONS_CHANNEL_ID) {
+    postVoteButtons(packet.d.id).catch((err) => console.error("vote buttons failed", packet.d.id, err.message));
   }
 });
 

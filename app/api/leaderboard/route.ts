@@ -1,5 +1,6 @@
 import { getLeaderboardPage, isLeaderboardSortKey, LEADERBOARD_PERIODS, type LeaderboardPeriod } from "@/lib/mc-db";
 import { getActiveSponsorNicknames, getSponsorDaysByNickname } from "@/lib/sponsorship";
+import { getSeasonLeaderboardPage } from "@/lib/seasons";
 
 // Backs the /leaderboard page's search box, sort list, direction toggle,
 // and "Завантажити ще" button — each page (20 initially, then 10 at a
@@ -28,6 +29,14 @@ export async function GET(request: Request) {
   // LeaderboardPageOptions.withCount in lib/mc-db.ts for why that recount
   // is unnecessary in those cases.
   const withCount = searchParams.get("count") !== "0";
+
+  // A past season comes from its saved stats (lib/seasons.ts) — no periods or
+  // sponsorship there, which describe the present.
+  const season = Number(searchParams.get("season"));
+  if (Number.isInteger(season) && season > 0) {
+    const page = await getSeasonLeaderboardPage(season, sortKey, offset, limit, { search, direction });
+    return Response.json(page, { headers: { "Cache-Control": "public, max-age=60, stale-while-revalidate=300" } });
+  }
 
   const periodParam = searchParams.get("period");
   const period = LEADERBOARD_PERIODS.find((p): p is LeaderboardPeriod => p === periodParam);

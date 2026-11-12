@@ -115,7 +115,8 @@ async function fetchPage(
   offset: number,
   limit: number,
   withCount: boolean,
-  period: Period = "all"
+  period: Period = "all",
+  season: number | null = null
 ) {
   const params = new URLSearchParams({
     sort: sortKey,
@@ -126,6 +127,7 @@ async function fetchPage(
   if (search) params.set("search", search);
   if (!withCount) params.set("count", "0");
   if (period !== "all") params.set("period", period);
+  if (season !== null) params.set("season", String(season));
 
   const res = await fetch(`/api/leaderboard?${params.toString()}`);
   const data = (await res.json()) as { entries: FullLeaderboardEntry[]; total: number | null };
@@ -134,13 +136,20 @@ async function fetchPage(
 
 export default function LeaderboardClient({
   initialPrivilegeIcons,
+  pastSeasons,
+  currentSeason,
 }: {
   initialPrivilegeIcons: LeaderboardPrivilegeIcon[];
+  // Seasons with saved stats (lib/seasons.ts), newest first.
+  pastSeasons: number[];
+  currentSeason: number;
 }) {
   const [sortMode, setSortMode] = useState<SortMode>("stat");
   const [statKey, setStatKey] = useState<StatKey>(DEFAULT_STAT);
   const [direction, setDirection] = useState<Direction>(DEFAULT_DIRECTION);
   const [period, setPeriod] = useState<Period>("all");
+  // null: the season running now (live stats); a number: a past season's saved stats.
+  const [season, setSeason] = useState<number | null>(null);
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [entries, setEntries] = useState<FullLeaderboardEntry[]>([]);
@@ -203,11 +212,11 @@ export default function LeaderboardClient({
   }, []);
 
   const effectiveSortKey = sortMode === "alpha" ? "nickname" : statKey;
-  const periodApplies = sortMode === "stat" && PERIOD_STATS.includes(statKey);
+  const periodApplies = season === null && sortMode === "stat" && PERIOD_STATS.includes(statKey);
   const effectivePeriod: Period = periodApplies ? period : "all";
   // What the total depends on: the search, the period, and the sponsorship
   // sort (which lists only current sponsors) — a recount when any changes.
-  const countKey = `${debouncedSearch}|${effectivePeriod}|${effectiveSortKey === "sponsorDays"}`;
+  const countKey = `${debouncedSearch}|${effectivePeriod}|${effectiveSortKey === "sponsorDays"}|${season ?? ""}`;
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search.trim()), 350);
@@ -223,14 +232,14 @@ export default function LeaderboardClient({
   // fetch for data identical to what SSR already sent, which is exactly the
   // duplicate /api/leaderboard requests seen in the dev server log. A value
   // comparison is idempotent no matter how many times it's invoked.
-  const fetchedKeyRef = useRef(`${DEFAULT_STAT}|${DEFAULT_DIRECTION}||all`);
-  const currentKey = `${effectiveSortKey}|${direction}|${debouncedSearch}|${effectivePeriod}`;
+  const fetchedKeyRef = useRef(`${DEFAULT_STAT}|${DEFAULT_DIRECTION}||all|`);
+  const currentKey = `${effectiveSortKey}|${direction}|${debouncedSearch}|${effectivePeriod}|${season ?? ""}`;
 
   // The total only needs recounting when the search term changes (see
   // LeaderboardPageOptions.withCount in lib/mc-db.ts) — switching sort key,
   // direction, or loading more of the same search reuses this. Starts at ""
   // to match the default view (no search).
-  const lastCountedSearchRef = useRef("|all|false");
+  const lastCountedSearchRef = useRef("|all|false|");
 
   // Populates the default view on mount — from localStorage when a fresh-
   // enough cache exists (the whole point: a repeat visit within 15 minutes
@@ -258,7 +267,7 @@ export default function LeaderboardClient({
       const total = data.total ?? 0;
       setEntries(data.entries);
       setTotal(total);
-      lastCountedSearchRef.current = "|all|false";
+      lastCountedSearchRef.current = "|all|false|";
       writeCache(data.entries, total);
       setInitialLoading(false);
     });
@@ -277,7 +286,7 @@ export default function LeaderboardClient({
     let cancelled = false;
     setLoading(true);
     setLoadError(false);
-    fetchPage(effectiveSortKey, direction, debouncedSearch, 0, INITIAL_PAGE_SIZE, withCount, effectivePeriod).then((data) => {
+    fetchPage(effectiveSortKey, direction, debouncedSearch, 0, INITIAL_PAGE_SIZE, withCount, effectivePeriod, season).then((data) => {
       if (cancelled) return;
       if (!data.ok) {
         // Leave the key as "not fetched" so a later change back to it (or
@@ -300,7 +309,7 @@ export default function LeaderboardClient({
     return () => {
       cancelled = true;
     };
-  }, [currentKey, effectiveSortKey, direction, debouncedSearch, effectivePeriod, countKey]);
+  }, [currentKey, effectiveSortKey, direction, debouncedSearch, effectivePeriod, countKey, season]);
 
   async function handleLoadMore() {
     if (loading || entries.length >= total) return;
@@ -316,7 +325,8 @@ export default function LeaderboardClient({
         entries.length,
         LOAD_MORE_STEP,
         false,
-        effectivePeriod
+        effectivePeriod,
+        season
       );
       if (!data.ok) {
         setLoadError(true);
@@ -333,12 +343,13 @@ export default function LeaderboardClient({
     setStatKey(DEFAULT_STAT);
     setDirection(DEFAULT_DIRECTION);
     setPeriod("all");
+    setSeason(null);
   }
 
   async function handleRetry() {
     setLoading(true);
     setLoadError(false);
-    const data = await fetchPage(effectiveSortKey, direction, debouncedSearch, 0, INITIAL_PAGE_SIZE, true, effectivePeriod);
+    const data = await fetchPage(effectiveSortKey, direction, debouncedSearch, 0, INITIAL_PAGE_SIZE, true, effectivePeriod, season);
     if (!data.ok) {
       setLoadError(true);
       setLoading(false);
@@ -355,7 +366,11 @@ export default function LeaderboardClient({
 
   const hasMore = entries.length < total;
   const isStandard =
-    sortMode === "stat" && statKey === DEFAULT_STAT && direction === DEFAULT_DIRECTION && effectivePeriod === "all";
+    sortMode === "stat" &&
+    statKey === DEFAULT_STAT &&
+    direction === DEFAULT_DIRECTION &&
+    effectivePeriod === "all" &&
+    season === null;
 
   return (
     <div className="lb2-layout">
@@ -443,6 +458,25 @@ export default function LeaderboardClient({
             </div>
           </div>
         </div>
+
+        {pastSeasons.length > 0 && (
+          <div>
+            <span className="lb2-group-label">СЕЗОН</span>
+            <div className="lb2-period">
+              {[null, ...pastSeasons].map((s) => (
+                <button
+                  key={s ?? "current"}
+                  type="button"
+                  className={season === s ? "lb2-icon-btn active" : "lb2-icon-btn"}
+                  onClick={() => setSeason(s)}
+                  aria-pressed={season === s}
+                >
+                  {s === null ? `Поточний (${currentSeason})` : `${s}-й`}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {periodApplies && (
           <div>

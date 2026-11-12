@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { getLeaderboardPrivilegeIcons } from "@/lib/leaderboard-badges";
 import LeaderboardClient from "@/components/leaderboard/LeaderboardClient";
+import { getCurrentSeason, listArchivedSeasons } from "@/lib/seasons";
 
 export const metadata: Metadata = {
   title: "Топ гравців - Квітковий",
@@ -16,7 +17,11 @@ export const metadata: Metadata = {
 // (in-memory cached, see lib/leaderboard-badges.ts) and needed immediately
 // regardless of whether the entries cache hits.
 export default async function LeaderboardPage() {
-  const privilegeIcons = await getLeaderboardPrivilegeIcons();
+  const [privilegeIcons, pastSeasons, currentSeason] = await Promise.all([
+    getLeaderboardPrivilegeIcons(),
+    listArchivedSeasons(),
+    getCurrentSeason(),
+  ]);
 
   return (
     <>
@@ -29,7 +34,11 @@ export default async function LeaderboardPage() {
           <b>Таблиця лідерів</b>
         </h2>
       </div>
-      <LeaderboardClient initialPrivilegeIcons={privilegeIcons} />
+      <LeaderboardClient
+        initialPrivilegeIcons={privilegeIcons}
+        pastSeasons={pastSeasons}
+        currentSeason={currentSeason.number}
+      />
     </>
   );
 }

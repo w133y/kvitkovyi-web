@@ -252,30 +252,25 @@ async function requireAdmin() {
 
 export type ProposeSeasonChangeResult = { ok: true } | { error: string };
 
-// Doesn't change GallerySettings.currentSeason itself — only records the
-// proposal and posts a Yes/No confirmation to Discord. The interactions
-// route applies it (or cancels it) when that message's button is clicked.
-export async function proposeSeasonChange(newSeason: number): Promise<ProposeSeasonChangeResult> {
+// Doesn't change the season itself — records the proposal and posts a Yes/No
+// confirmation to Discord; confirming it runs lib/seasons.ts startNextSeason
+// (stats snapshot, rewards). Always the next season: a season change is what
+// freezes the ending season's stats, so numbers are never skipped or reused.
+export async function proposeSeasonChange(): Promise<ProposeSeasonChangeResult> {
   const session = await requireAdmin();
-  if (!Number.isFinite(newSeason) || newSeason <= 0) {
-    return { error: "Невірний номер сезону" };
-  }
-
   const settings = await getGallerySettings();
   if (settings.pendingSeason !== null) {
     return { error: "Уже є запит на зміну сезону, що очікує підтвердження в Discord" };
   }
 
+  const newSeason = settings.currentSeason + 1;
   const adminName = session?.user?.name ?? "адмін";
-  const messageId = await postSeasonChangeConfirm({ newSeason: Math.floor(newSeason), adminName });
+  const messageId = await postSeasonChangeConfirm({ newSeason, adminName });
+  if (!messageId) return { error: "Не вдалося надіслати запит у Discord" };
 
   await prisma.gallerySettings.update({
     where: { id: "default" },
-    data: {
-      pendingSeason: Math.floor(newSeason),
-      pendingSeasonMessageId: messageId,
-      pendingSeasonAdminName: adminName,
-    },
+    data: { pendingSeason: newSeason, pendingSeasonMessageId: messageId, pendingSeasonAdminName: adminName },
   });
 
   revalidatePath("/admin");

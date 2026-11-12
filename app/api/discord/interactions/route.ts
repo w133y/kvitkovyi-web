@@ -11,7 +11,10 @@ import nacl from "tweetnacl";
 import { after } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { deleteGalleryPhoto, uploadGalleryImage } from "@/lib/r2";
-import { editInteractionResponse, sendDiscordMessage } from "@/lib/discord";
+import { editDiscordMessage, editInteractionResponse, sendDiscordMessage } from "@/lib/discord";
+import { startNextSeason } from "@/lib/seasons";
+import { checkActivePlayer } from "@/lib/active-players";
+import { castSuggestionVote, countSuggestionVotes, suggestionVoteButtons } from "@/lib/suggestions";
 import { logError } from "@/lib/admin-log";
 import { updateMarkerModeration } from "@/lib/map-markers-discord";
 import { SITE_ADMINS_CHANNEL_ID, addSiteAdmin, buildAdminPanel, isDiscordAdministrator, removeSiteAdmin } from "@/lib/site-admins";
@@ -232,6 +235,10 @@ async function handleComponent(interaction: any) {
     return handleSiteAdminComponent(interaction, customId);
   }
 
+  if (customId.startsWith("suggest:")) {
+    return handleSuggestionVote(interaction, customId);
+  }
+
   return ephemeral("Невідома дія.");
 }
 
@@ -240,33 +247,67 @@ async function handleSeasonConfirm(interaction: any, customId: string) {
     return ephemeral("🚫 У вас немає прав для цієї дії.");
   }
 
-  const settings = await getGallerySettings();
-  if (settings.pendingSeason === null || settings.pendingSeasonMessageId !== interaction.message?.id) {
+  // Claiming the request clears it, so a double click can't start two season changes.
+  const claimed = await prisma.gallerySettings.updateMany({
+    where: { id: "default", pendingSeasonMessageId: interaction.message?.id, pendingSeason: { not: null } },
+    data: { pendingSeason: null, pendingSeasonMessageId: null, pendingSeasonAdminName: null },
+  });
+  if (claimed.count === 0) {
     return ephemeral("Цей запит вже неактуальний.");
   }
 
-  const approved = customId === "season:confirm:yes";
-  if (approved) {
-    await prisma.gallerySettings.update({
-      where: { id: "default" },
-      data: { currentSeason: settings.pendingSeason, pendingSeason: null, pendingSeasonMessageId: null, pendingSeasonAdminName: null },
-    });
-  } else {
-    await prisma.gallerySettings.update({
-      where: { id: "default" },
-      data: { pendingSeason: null, pendingSeasonMessageId: null, pendingSeasonAdminName: null },
-    });
+  if (customId !== "season:confirm:yes") {
+    const settings = await getGallerySettings();
+    await editSeasonChangeResult(interaction.message.id, `❌ Скасовано — сезон лишився **${settings.currentSeason}**.`, false);
+    return Response.json({ type: DEFERRED_UPDATE_MESSAGE });
   }
 
-  await editSeasonChangeResult(
-    interaction.message.id,
-    approved
-      ? `✅ Підтверджено — поточний сезон тепер **${settings.pendingSeason}**.`
-      : `❌ Скасовано — сезон лишився **${settings.currentSeason}**.`,
-    approved
-  );
-
+  // The snapshot reads every player from the Minecraft DB — well past
+  // Discord's 3s reply window, so it finishes in after().
+  await editSeasonChangeResult(interaction.message.id, "⏳ Зберігаю статистику й починаю новий сезон…", true);
+  after(async () => {
+    let text: string;
+    try {
+      text = await startNextSeason();
+    } catch (err) {
+      await logError("seasons: season change failed", err);
+      text = `❌ Сезон не змінено: ${err instanceof Error ? err.message : String(err)}. Можна запропонувати ще раз.`;
+    }
+    await editSeasonChangeResult(interaction.message.id, text, !text.startsWith("❌"));
+  });
   return Response.json({ type: DEFERRED_UPDATE_MESSAGE });
+}
+
+// --- Suggestion votes (lib/suggestions.ts) ---
+
+// The eligibility check reads the Minecraft DB, so the reply is deferred and
+// finished in after(), like /gallery.
+async function handleSuggestionVote(interaction: any, customId: string) {
+  const userId: string | undefined = interaction.member?.user?.id;
+  const messageId: string | undefined = interaction.message?.id;
+  if (!userId || !messageId) return ephemeral("Невідома дія.");
+  const up = customId === "suggest:up";
+
+  after(async () => {
+    let reply: string;
+    try {
+      const check = await checkActivePlayer(userId);
+      if (!check.ok) {
+        reply = `🚫 Голосувати можуть лише активні гравці: ${check.reason}`;
+      } else {
+        const result = await castSuggestionVote(messageId, userId, up);
+        const counts = await countSuggestionVotes(messageId);
+        await editDiscordMessage(interaction.channel_id, messageId, { components: suggestionVoteButtons(counts.up, counts.down) });
+        reply = result === "removed" ? "Голос знято." : up ? "👍 Голос «За» зараховано." : "👎 Голос «Проти» зараховано.";
+      }
+    } catch (err) {
+      await logError("suggestions: vote failed", err);
+      reply = "Не вдалося зарахувати голос — спробуй ще раз.";
+    }
+    await editInteractionResponse(interaction.application_id, interaction.token, reply);
+  });
+
+  return Response.json({ type: DEFERRED_CHANNEL_MESSAGE_WITH_SOURCE, data: { flags: EPHEMERAL } });
 }
 
 async function handleGalleryButton(interaction: any, customId: string) {

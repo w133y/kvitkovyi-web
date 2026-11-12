@@ -156,8 +156,8 @@ export async function postSeasonChangeConfirm(params: {
   return sendDiscordMessage(channelId, {
     embeds: [
       {
-        title: "Змінити сезон галереї?",
-        description: `**${params.adminName}** пропонує встановити сезон **${params.newSeason}** як поточний за замовчуванням для нових фото.`,
+        title: `Почати ${params.newSeason}-й сезон?`,
+        description: `**${params.adminName}** пропонує завершити ${params.newSeason - 1}-й сезон і почати **${params.newSeason}-й**. Сайт збереже статистику сезону, що закінчується, і видасть картки та ролі «Гравець ${params.newSeason - 1} сезону». Підтверджуйте **до** обнулення статистики на сервері.`,
         color: 0xffd139,
       },
     ],
@@ -179,7 +179,7 @@ export async function editSeasonChangeResult(messageId: string, resultText: stri
   await editDiscordMessage(channelId, messageId, {
     embeds: [
       {
-        title: "Змінити сезон галереї?",
+        title: "Зміна сезону",
         description: resultText,
         color: approved ? 0x4caf50 : 0xff5555,
       },

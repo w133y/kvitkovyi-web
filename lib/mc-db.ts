@@ -806,3 +806,78 @@ export async function getSkinsRestorerSkin(uuid: string): Promise<SkinsRestorerS
     return null;
   }
 }
+
+// --- Seasons and active players (lib/seasons.ts, lib/active-players.ts) ---
+
+export type PlayerStatsWithRaw = FullLeaderboardEntry & { raw: Record<string, unknown> };
+
+// Every player's stats for the end-of-season snapshot: the leaderboard's own
+// columns, plus the source rows whole (play_time, defstats, VotingPlugin),
+// since the server resets them for the next season. Throws rather than
+// returning a partial list — a snapshot must be all or nothing.
+export async function getAllPlayerStatsWithRaw(): Promise<PlayerStatsWithRaw[]> {
+  const page = await getLeaderboardPageUncached("totalMinutes", 0, 100_000, { withCount: false });
+  if (page.error) throw new Error("mc-db: reading player stats failed");
+  const all = (sql: string) => withRetry(() => getPool().query<mysql.RowDataPacket[]>(sql)).then(([rows]) => rows);
+  const [playTime, defstats, votes] = await Promise.all([
+    all("SELECT * FROM play_time"),
+    all("SELECT * FROM defstats_player_stats"),
+    all("SELECT * FROM voting_VotingPlugin_Users"),
+  ]);
+  const by = (rows: mysql.RowDataPacket[], key: string) => new Map(rows.map((r) => [String(r[key]).toLowerCase(), r]));
+  const pt = by(playTime, "uuid");
+  const ds = by(defstats, "uuid");
+  const vp = by(votes, "PlayerName");
+  return page.entries.map((e) => ({
+    ...e,
+    // Through JSON so dates and buffers end up as plain JSON values.
+    raw: JSON.parse(
+      JSON.stringify({
+        play_time: pt.get(e.uuid.toLowerCase()) ?? null,
+        defstats: ds.get(e.uuid.toLowerCase()) ?? null,
+        votes: vp.get(e.nickname.toLowerCase()) ?? null,
+      })
+    ),
+  }));
+}
+
+// Plan's session time since `sinceMs` (clipped to it), keyed by lower-case
+// uuid — every player, or just `uuid`. Throws on a DB error.
+export async function getPlayMsSince(sinceMs: number, uuid?: string): Promise<Map<string, number>> {
+  const [rows] = await withRetry(() =>
+    getPool().query<mysql.RowDataPacket[]>(
+      `SELECT u.uuid, SUM(LEAST(s.session_end, ?) - GREATEST(s.session_start, ?)) AS ms
+       FROM plan_sessions s JOIN plan_users u ON u.id = s.user_id
+       WHERE s.session_end > ?${uuid ? " AND u.uuid = ?" : ""}
+       GROUP BY u.uuid`,
+      [Date.now(), sinceMs, sinceMs, ...(uuid ? [uuid] : [])]
+    )
+  );
+  return new Map(rows.map((r) => [String(r.uuid).toLowerCase(), Number(r.ms) || 0]));
+}
+
+// Every Discord account linked to a Minecraft player, keyed by Discord id —
+// getDiscordLink for everyone at once, with the same offline-mode fallback.
+// Throws on a DB error.
+export async function listDiscordLinks(): Promise<Map<string, DiscordLink>> {
+  const all = (sql: string) => withRetry(() => getPool().query<mysql.RowDataPacket[]>(sql)).then(([rows]) => rows);
+  const [links, planUsers, players] = await Promise.all([
+    all("SELECT discord, uuid FROM discordsrv_accounts"),
+    all("SELECT uuid, name FROM plan_users"),
+    all("SELECT nickname, uuid FROM play_time"),
+  ]);
+  const plan = new Map(planUsers.map((r) => [String(r.uuid).toLowerCase(), r]));
+  const offline = new Map(players.map((r) => [offlineUuid(String(r.nickname)), r]));
+  const result = new Map<string, DiscordLink>();
+  for (const link of links) {
+    const uuid = String(link.uuid).toLowerCase();
+    const p = plan.get(uuid);
+    if (p) {
+      result.set(String(link.discord), { minecraftUuid: String(p.uuid), nickname: String(p.name) });
+      continue;
+    }
+    const o = offline.get(uuid);
+    if (o) result.set(String(link.discord), { minecraftUuid: String(o.uuid), nickname: String(o.nickname) });
+  }
+  return result;
+}

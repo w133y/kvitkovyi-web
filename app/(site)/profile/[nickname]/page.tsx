@@ -16,6 +16,7 @@ import SkinViewer from "@/components/profile/SkinViewer";
 import SwordsIcon from "@/components/profile/SwordsIcon";
 import ProfileEditor from "@/components/profile/ProfileEditor";
 import AchievementCard from "@/components/profile/AchievementCard";
+import { getPlayerSeasonStats } from "@/lib/seasons";
 
 export const revalidate = 60;
 
@@ -38,10 +39,13 @@ export async function generateMetadata({
 
 export default async function PublicProfilePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ nickname: string }>;
+  searchParams: Promise<{ season?: string }>;
 }) {
   const { nickname } = await params;
+  const { season: seasonParam } = await searchParams;
   // profile and the viewer's own session are independent lookups (neither
   // needs the other), so they run together instead of back to back.
   const [profile, session] = await Promise.all([getPlayerProfileByNickname(nickname), getSession()]);
@@ -53,7 +57,7 @@ export default async function PublicProfilePage({
   // Everything below only depends on `profile` (and the now-resolved
   // `session`), not on each other, so they run as one batch of round trips
   // instead of five sequential ones.
-  const [texture, bio, profileDiscordId, achievements, viewerLink, playtimeRank, privilege] = await Promise.all([
+  const [texture, bio, profileDiscordId, achievements, viewerLink, playtimeRank, privilege, pastSeasons] = await Promise.all([
     getSkinTexture(profile.uuid).then((t) => t ?? STEVE_SKIN),
     getBio(profile.nickname),
     getDiscordIdForPlayer(profile.uuid, profile.nickname),
@@ -61,7 +65,11 @@ export default async function PublicProfilePage({
     session?.user?.discordId ? getDiscordLink(session.user.discordId) : Promise.resolve(null),
     getPlaytimeRank(profile.nickname),
     getActivePrivilege(profile.nickname),
+    getPlayerSeasonStats(profile.uuid),
   ]);
+  // ?season=N shows that past season's saved stats instead of the live ones.
+  const pastSeason = pastSeasons.find((p) => String(p.season) === seasonParam) ?? null;
+  const stats = pastSeason ?? profile;
   const isOwner = viewerLink?.nickname === profile.nickname;
 
   const privilegeIcon = privilege
@@ -164,21 +172,47 @@ export default async function PublicProfilePage({
           column's row heights (expanding the skin viewer used to push the
           cards down). display: contents on phones — see globals.css. */}
       <div className="profile-right">
-      <div className="profile-stats-card">
+      <div className={pastSeasons.length > 0 ? "profile-stats-card has-seasons" : "profile-stats-card"}>
+        {pastSeasons.length > 0 && (
+          <div className="profile-seasons">
+            <Link
+              href={`/profile/${encodeURIComponent(profile.nickname)}`}
+              className={pastSeason ? "profile-season-pill" : "profile-season-pill active"}
+              scroll={false}
+            >
+              Поточний сезон
+            </Link>
+            {pastSeasons.map((p) => (
+              <Link
+                key={p.season}
+                href={`/profile/${encodeURIComponent(profile.nickname)}?season=${p.season}`}
+                className={pastSeason?.season === p.season ? "profile-season-pill active" : "profile-season-pill"}
+                scroll={false}
+              >
+                {p.season}-й
+              </Link>
+            ))}
+            {pastSeason && (
+              <span className="profile-season-playtime">
+                Награно: {pastSeason.hours} год {pastSeason.minutes} хв
+              </span>
+            )}
+          </div>
+        )}
         <div className="profile-stats-grid">
-          <StatBox icon={<SwordsIcon />} label="Вбивств гравців" value={profile.playerKills} />
-          <StatBox icon="fa-solid fa-heart-crack" label="Смертей" value={profile.deaths} />
-          <StatBox icon="fa-solid fa-shoe-prints" label="Пішки" value={`${profile.walkKm} км`} />
+          <StatBox icon={<SwordsIcon />} label="Вбивств гравців" value={stats.playerKills} />
+          <StatBox icon="fa-solid fa-heart-crack" label="Смертей" value={stats.deaths} />
+          <StatBox icon="fa-solid fa-shoe-prints" label="Пішки" value={`${stats.walkKm} км`} />
           <StatBox
             icon="fa-solid fa-paper-plane"
             label="На елітрах"
-            value={`${profile.aviateKm} км`}
+            value={`${stats.aviateKm} км`}
           />
-          <StatBox icon="fa-solid fa-water" label="Вплав" value={`${profile.swimKm} км`} />
+          <StatBox icon="fa-solid fa-water" label="Вплав" value={`${stats.swimKm} км`} />
           <StatBox
             icon="fa-solid fa-person-running"
             label="Бігом"
-            value={`${profile.sprintKm} км`}
+            value={`${stats.sprintKm} км`}
           />
         </div>
       </div>

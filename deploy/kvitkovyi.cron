@@ -1,4 +1,6 @@
 # /etc/cron.d/kvitkovyi — the daily donate-privilege reminders (12:00 UTC) and
-# the retry of undelivered cosmetics (every 5 minutes), with the CRON_SECRET bearer.
+# the retry of undelivered cosmetics (every 5 minutes) and the "Активний гравець"
+# role sync (hourly), with the CRON_SECRET bearer.
 0 12 * * * root curl -fsS -m 120 -o /dev/null -H "Authorization: Bearer $(grep -E '^CRON_SECRET=' /root/kvitkovyi/kvitkovyi-web/.env | cut -d= -f2- | tr -d '"')" http://127.0.0.1:3000/api/cron/donate-reminders
 */5 * * * * root curl -fsS -m 240 -o /dev/null -H "Authorization: Bearer $(grep -E '^CRON_SECRET=' /root/kvitkovyi/kvitkovyi-web/.env | cut -d= -f2- | tr -d '"')" http://127.0.0.1:3000/api/cron/welcome
+17 * * * * root curl -fsS -m 600 -o /dev/null -H "Authorization: Bearer $(grep -E '^CRON_SECRET=' /root/kvitkovyi/kvitkovyi-web/.env | cut -d= -f2- | tr -d '"')" http://127.0.0.1:3000/api/cron/active-players
