@@ -125,25 +125,37 @@ export async function startNextSeason(): Promise<string> {
     }),
   ]);
 
-  let rewards: string;
-  try {
-    const { cards, roles } = await grantSeasonRewards(current.number);
-    rewards = `видано карток: ${cards}, роль «Гравець ${current.number} сезону»: ${roles}`;
-  } catch (err) {
-    await logError("seasons: rewards failed", current.number, err);
-    rewards = "картки й ролі не видано — помилка в журналі на /admin";
-  }
-  return `✅ Почався **${next}-й сезон**. Статистику ${current.number}-го збережено (${saved} гравців); ${rewards}.`;
+  const cards = await grantSeasonCards(current.number).then(
+    (n) => `карток видано: ${n}`,
+    async (err) => {
+      await logError("seasons: cards failed", current.number, err);
+      return "картки не видано — помилка в журналі на /admin";
+    }
+  );
+  const roles = await grantSeasonRoles(current.number).then(
+    (n) => `роль «Гравець ${current.number} сезону»: ${n}`,
+    async (err) => {
+      await logError("seasons: roles failed", current.number, err);
+      return "ролі не видано — помилка в журналі на /admin";
+    }
+  );
+  return `✅ Почався **${next}-й сезон**. Статистику ${current.number}-го збережено (${saved} гравців); ${cards}; ${roles}.`;
 }
 
-// Cards and roles for everyone who played more than minHours in `season`.
-// Safe to re-run: a player who already has the card isn't given another.
-export async function grantSeasonRewards(season: number): Promise<{ cards: number; roles: number }> {
+// Everyone who played more than minHours in `season`, most playtime first.
+async function seasonRewardees(season: number) {
   const cfg = await getSeasonRewards();
   const rows = await prisma.seasonPlayerStats.findMany({
     where: { season, totalMinutes: { gt: cfg.minHours * 60 } },
     orderBy: { totalMinutes: "desc" },
   });
+  return { cfg, rows };
+}
+
+// Achievement cards for the season's players. Safe to re-run: a player who
+// already has the card isn't given another.
+export async function grantSeasonCards(season: number): Promise<number> {
+  const { cfg, rows } = await seasonRewardees(season);
   const title = `Сезон ${season}`;
 
   let cards = 0;
@@ -168,7 +180,12 @@ export async function grantSeasonRewards(season: number): Promise<{ cards: numbe
     });
     cards++;
   }
+  return cards;
+}
 
+// The "Гравець N сезону" Discord role for the season's players.
+export async function grantSeasonRoles(season: number): Promise<number> {
+  const { rows } = await seasonRewardees(season);
   const roleId = await ensureGuildRole(`Гравець ${season} сезону`, 0x3ecf6e);
   let roles = 0;
   for (const r of rows) {
@@ -177,5 +194,5 @@ export async function grantSeasonRewards(season: number): Promise<{ cards: numbe
     await addGuildMemberRole(discordId, roleId);
     roles++;
   }
-  return { cards, roles };
+  return roles;
 }
