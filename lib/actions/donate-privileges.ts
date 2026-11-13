@@ -2,6 +2,7 @@
 
 import { awardSponsorCard } from "@/lib/sponsor-cards";
 import { auth } from "@/lib/auth";
+import { requireAdminTab } from "@/lib/admin-scopes";
 import { prisma } from "@/lib/prisma";
 import {
   grantDonatePrivilegeInGame,
@@ -12,11 +13,7 @@ import { logDonatePrivilegeGranted } from "@/lib/donate-order-log";
 import { revalidatePath } from "next/cache";
 
 async function requireAdmin() {
-  const session = await auth();
-  if (session?.user?.role !== "ADMIN") {
-    throw new Error("Доступ заборонено");
-  }
-  return session;
+  return requireAdminTab("players");
 }
 
 // Admin audit view — every row, active or expired, newest expiry first.

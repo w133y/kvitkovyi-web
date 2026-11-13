@@ -1,20 +1,24 @@
 import { auth } from "@/lib/auth";
 
-// Site admins kept out of the panel's "Сезон і сервер" tab — the season
-// change, the server address and the site sections — by Discord id.
-const NO_SEASON_AND_SERVER_DISCORD_IDS = [
-  "1375438624929349735", // mrailak (mars)
-];
+// Admin panel tabs (app/(site)/admin/page.tsx) some site admins are kept out
+// of, by Discord id: "season" — Сезон і сервер (season change, server
+// address, site sections); "players" — Гравці (privileges, achievements,
+// bios, account deletion).
+export type AdminTab = "season" | "players";
 
-export function canManageSeasonAndServer(discordId: string | null | undefined): boolean {
-  return !!discordId && !NO_SEASON_AND_SERVER_DISCORD_IDS.includes(discordId);
+const RESTRICTED_ADMIN_TABS: Record<string, AdminTab[]> = {
+  "1375438624929349735": ["season", "players"], // mrailak (mars)
+};
+
+export function canUseAdminTab(discordId: string | null | undefined, tab: AdminTab): boolean {
+  return !!discordId && !RESTRICTED_ADMIN_TABS[discordId]?.includes(tab);
 }
 
-// For the server actions behind that tab: hiding it isn't enough, they can be
-// called directly.
-export async function requireSeasonAndServerAdmin() {
+// For the server actions behind a tab: hiding the tab isn't enough, they can
+// be called directly.
+export async function requireAdminTab(tab: AdminTab) {
   const session = await auth();
-  if (session?.user?.role !== "ADMIN" || !canManageSeasonAndServer(session.user.discordId)) {
+  if (session?.user?.role !== "ADMIN" || !canUseAdminTab(session.user.discordId, tab)) {
     throw new Error("Доступ заборонено");
   }
   return session;

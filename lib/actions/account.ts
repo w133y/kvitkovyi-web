@@ -1,6 +1,7 @@
 "use server";
 
 import { auth } from "@/lib/auth";
+import { requireAdminTab } from "@/lib/admin-scopes";
 import { prisma } from "@/lib/prisma";
 import { getDiscordIdForNickname } from "@/lib/mc-db";
 import { deleteAccountData } from "@/lib/account-deletion";
@@ -16,8 +17,7 @@ export async function deleteMyAccount(confirmation: string): Promise<{ ok: true 
 // /admin → "Видалення даних": for requests that come in by Discord/e-mail.
 // Accepts a Discord id or a Minecraft nickname.
 export async function deleteAccountAsAdmin(identifier: string): Promise<{ ok: string } | { error: string }> {
-  const session = await auth();
-  if (session?.user?.role !== "ADMIN") throw new Error("Доступ заборонено");
+  const session = await requireAdminTab("players");
 
   const id = identifier.trim();
   if (!id) return { error: "Вкажіть Discord ID або нік" };

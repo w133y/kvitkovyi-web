@@ -1,6 +1,7 @@
 "use server";
 
 import { auth } from "@/lib/auth";
+import { requireAdminTab } from "@/lib/admin-scopes";
 import { getDiscordLink } from "@/lib/mc-db";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
@@ -114,8 +115,7 @@ export async function updateProfile(
 }
 
 async function requireAdmin() {
-  const session = await auth();
-  if (session?.user?.role !== "ADMIN") throw new Error("Доступ заборонено");
+  return requireAdminTab("players");
 }
 
 // /admin → "Описи гравців"

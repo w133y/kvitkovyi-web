@@ -26,7 +26,7 @@ import { listDisabledPages } from "@/lib/actions/site-pages";
 import { getSeasonAdminData } from "@/lib/actions/seasons";
 import SeasonAdmin from "@/components/admin/SeasonAdmin";
 import AdminTabs from "@/components/admin/AdminTabs";
-import { canManageSeasonAndServer } from "@/lib/admin-scopes";
+import { canUseAdminTab } from "@/lib/admin-scopes";
 
 // Server Actions run with this page's limit — staging a large cosmetics
 // pack (lib/actions/cosmetics-admin.ts) needs well over the default.
@@ -46,7 +46,8 @@ export default async function AdminPage() {
     notFound();
   }
 
-  const seasonAndServer = canManageSeasonAndServer(session.user.discordId);
+  const seasonAndServer = canUseAdminTab(session.user.discordId, "season");
+  const playersTab = canUseAdminTab(session.user.discordId, "players");
   const [
     achievements,
     privileges,
@@ -63,8 +64,8 @@ export default async function AdminPage() {
     playerBios,
     season,
   ] = await Promise.all([
-    listAchievements(),
-    listPrivileges(),
+    playersTab ? listAchievements() : [],
+    playersTab ? listPrivileges() : [],
     getGallerySettings(),
     listGalleryPhotosForAdmin(),
     listWikiCategoriesForAdmin(),
@@ -75,7 +76,7 @@ export default async function AdminPage() {
     listDisabledPages(),
     getServerInfo(),
     countMapMarkers(),
-    listPlayerBios(),
+    playersTab ? listPlayerBios() : [],
     seasonAndServer ? getSeasonAdminData() : null,
   ]);
 
@@ -108,7 +109,7 @@ export default async function AdminPage() {
               </>
             ),
           },
-          {
+          playersTab && {
             id: "players",
             label: "Гравці",
             content: (

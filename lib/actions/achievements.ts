@@ -1,15 +1,12 @@
 "use server";
 
-import { auth } from "@/lib/auth";
+import { requireAdminTab } from "@/lib/admin-scopes";
 import { prisma } from "@/lib/prisma";
 import { listPlayersForFilter, searchPlayerNicknames } from "@/lib/mc-db";
 import { revalidatePath } from "next/cache";
 
 async function requireAdmin() {
-  const session = await auth();
-  if (session?.user?.role !== "ADMIN") {
-    throw new Error("Доступ заборонено");
-  }
+  return requireAdminTab("players");
 }
 
 export async function listAchievements() {
