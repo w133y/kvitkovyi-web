@@ -1,6 +1,7 @@
 "use server";
 
 import { auth } from "@/lib/auth";
+import { requireSeasonAndServerAdmin } from "@/lib/admin-scopes";
 import { prisma } from "@/lib/prisma";
 import { createGalleryUploadTarget, deleteGalleryPhoto, getInternalUrl, uploadGalleryImage, type GalleryUploadTarget } from "@/lib/r2";
 import { postGalleryModeration, postSeasonChangeConfirm, updateGalleryModeration } from "@/lib/gallery-discord";
@@ -257,7 +258,7 @@ export type ProposeSeasonChangeResult = { ok: true } | { error: string };
 // (stats snapshot, rewards). Always the next season: a season change is what
 // freezes the ending season's stats, so numbers are never skipped or reused.
 export async function proposeSeasonChange(): Promise<ProposeSeasonChangeResult> {
-  const session = await requireAdmin();
+  const session = await requireSeasonAndServerAdmin();
   const settings = await getGallerySettings();
   if (settings.pendingSeason !== null) {
     return { error: "Уже є запит на зміну сезону, що очікує підтвердження в Discord" };

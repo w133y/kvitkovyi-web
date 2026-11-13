@@ -2,6 +2,7 @@
 
 import { revalidatePath, updateTag } from "next/cache";
 import { auth } from "@/lib/auth";
+import { requireSeasonAndServerAdmin } from "@/lib/admin-scopes";
 import { prisma } from "@/lib/prisma";
 import { getDisabledPages, SITE_SETTINGS_TAG } from "@/lib/page-access";
 import { SERVER_ADDRESS_RE, SERVER_VERSION_RE, isSitePageKey, type SitePageKey } from "@/lib/site-pages";
@@ -20,7 +21,7 @@ export async function listDisabledPages(): Promise<SitePageKey[]> {
 
 // Switches a site section on/off for regular visitors (see lib/page-access.ts).
 export async function setSitePageEnabled(key: string, enabled: boolean): Promise<SitePageKey[]> {
-  await requireAdmin();
+  await requireSeasonAndServerAdmin();
   if (!isSitePageKey(key)) throw new Error("Невідома вкладка");
 
   // Straight from the DB, not getDisabledPages()'s cache: a read-modify-write
@@ -43,7 +44,7 @@ export async function setServerInfo(
   rawIp: string,
   rawVersion: string
 ): Promise<{ ok: true; serverIp: string; serverVersion: string } | { error: string }> {
-  await requireAdmin();
+  await requireSeasonAndServerAdmin();
   const serverIp = rawIp.trim().toLowerCase();
   if (!SERVER_ADDRESS_RE.test(serverIp)) {
     return { error: "Вкажіть адресу на кшталт mc.example.com або 1.2.3.4:25565" };

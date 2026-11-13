@@ -26,6 +26,7 @@ import { listDisabledPages } from "@/lib/actions/site-pages";
 import { getSeasonAdminData } from "@/lib/actions/seasons";
 import SeasonAdmin from "@/components/admin/SeasonAdmin";
 import AdminTabs from "@/components/admin/AdminTabs";
+import { canManageSeasonAndServer } from "@/lib/admin-scopes";
 
 // Server Actions run with this page's limit — staging a large cosmetics
 // pack (lib/actions/cosmetics-admin.ts) needs well over the default.
@@ -45,6 +46,7 @@ export default async function AdminPage() {
     notFound();
   }
 
+  const seasonAndServer = canManageSeasonAndServer(session.user.discordId);
   const [
     achievements,
     privileges,
@@ -74,7 +76,7 @@ export default async function AdminPage() {
     getServerInfo(),
     countMapMarkers(),
     listPlayerBios(),
-    getSeasonAdminData(),
+    seasonAndServer ? getSeasonAdminData() : null,
   ]);
 
   const section = (title: string, content: React.ReactNode) => (
@@ -95,7 +97,7 @@ export default async function AdminPage() {
 
       <AdminTabs
         tabs={[
-          {
+          season && {
             id: "season",
             label: "Сезон і сервер",
             content: (
@@ -142,7 +144,7 @@ export default async function AdminPage() {
             label: "Журнал помилок",
             content: section("Журнал помилок", <AdminLog initialLogs={logs} initialEnabled={errorLoggingEnabled} />),
           },
-        ]}
+        ].filter((t) => !!t)}
       />
     </div>
   );

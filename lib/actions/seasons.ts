@@ -2,18 +2,11 @@
 
 import type { SeasonRewards } from "@prisma/client";
 import { revalidatePath } from "next/cache";
-import { auth } from "@/lib/auth";
+import { requireSeasonAndServerAdmin } from "@/lib/admin-scopes";
 import { prisma } from "@/lib/prisma";
 import { getCurrentSeason, getSeasonRewards } from "@/lib/seasons";
 import { activeRequirement, seasonMonth, syncActivePlayerRole } from "@/lib/active-players";
 import { logError } from "@/lib/admin-log";
-
-async function requireAdmin() {
-  const session = await auth();
-  if (session?.user?.role !== "ADMIN") {
-    throw new Error("Доступ заборонено");
-  }
-}
 
 const kyivDate = (d: Date) => d.toLocaleDateString("sv-SE", { timeZone: "Europe/Kyiv" });
 
@@ -27,7 +20,7 @@ export type SeasonAdminData = {
 };
 
 export async function getSeasonAdminData(): Promise<SeasonAdminData> {
-  await requireAdmin();
+  await requireSeasonAndServerAdmin();
   const [season, settings, rewards] = await Promise.all([
     getCurrentSeason(),
     prisma.gallerySettings.findUnique({ where: { id: "default" } }),
@@ -53,7 +46,7 @@ function kyivMidnight(date: string): Date {
 }
 
 export async function updateSeasonStart(date: string): Promise<{ ok: true } | { error: string }> {
-  await requireAdmin();
+  await requireSeasonAndServerAdmin();
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || Number.isNaN(Date.parse(date))) return { error: "Невірна дата" };
   const startedAt = kyivMidnight(date);
   if (startedAt > new Date()) return { error: "Дата не може бути в майбутньому" };
@@ -68,7 +61,7 @@ export type SeasonRewardsInput = Omit<SeasonRewards, "id">;
 const COLOR_RE = /^#[0-9a-f]{6}$/i;
 
 export async function updateSeasonRewards(input: SeasonRewardsInput): Promise<{ ok: true } | { error: string }> {
-  await requireAdmin();
+  await requireSeasonAndServerAdmin();
   const counts = [input.minHours, input.topCount, input.podiumCount];
   if (counts.some((n) => !Number.isInteger(n) || n < 0 || n > 10_000)) return { error: "Числа мають бути цілими, від 0" };
   if (input.podiumCount > input.topCount) return { error: "Топ-3 не може бути більшим за топ-10" };
@@ -100,7 +93,7 @@ export async function updateSeasonRewards(input: SeasonRewardsInput): Promise<{ 
 
 // The same sync the hourly cron runs, on demand.
 export async function syncActiveRoleNow(): Promise<{ ok: string } | { error: string }> {
-  await requireAdmin();
+  await requireSeasonAndServerAdmin();
   try {
     const r = await syncActivePlayerRole();
     return { ok: `Активних гравців: ${r.active}. Роль видано: ${r.added}, знято: ${r.removed}.` };
